@@ -50,6 +50,7 @@ final class AuthController extends BaseController {
         'id' => (int)$user['id'],
         'username' => $user['username'],
         'role' => $user['role'],
+        'photo_path' => $user['photo_path'] ?? null,
       ];
       AuditLog::log((int)$user['id'], 'LOGIN', ['username'=>$username]);
 

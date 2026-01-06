@@ -15,5 +15,6 @@ $title = $title ?? 'Dashboard';
 <link href="<?= e(url('assets/lahomes/css/vendor.min.css')) ?>" rel="stylesheet" type="text/css">
 <link href="<?= e(url('assets/lahomes/css/icons.min.css')) ?>" rel="stylesheet" type="text/css">
 <link href="<?= e(url('assets/lahomes/css/app.min.css')) ?>" rel="stylesheet" type="text/css">
+<link href="<?= e(url('assets/lahomes/css/custom.css')) ?>" rel="stylesheet" type="text/css">
 
 <script src="<?= e(url('assets/lahomes/js/config.min.js')) ?>"></script>

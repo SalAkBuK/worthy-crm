@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../../Helpers/functions.php';
 $user = current_user();
 $username = $user['username'] ?? 'User';
+$photo = !empty($user['photo_path']) ? url($user['photo_path']) : url('assets/lahomes/images/users/avatar-1.jpg');
 ?>
 <header class="">
   <div class="topbar">
@@ -41,7 +42,7 @@ $username = $user['username'] ?? 'User';
           <div class="dropdown topbar-item">
             <a type="button" class="topbar-button" id="page-header-user-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
               <span class="d-flex align-items-center">
-                <img class="rounded-circle" width="32" src="<?= e(url('assets/lahomes/images/users/avatar-1.jpg')) ?>" alt="avatar">
+                <img class="rounded-circle topbar-avatar" width="32" src="<?= e($photo) ?>" alt="avatar">
               </span>
             </a>
             <div class="dropdown-menu dropdown-menu-end">
