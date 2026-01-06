@@ -132,6 +132,20 @@ When building new modules, pick the closest Lahomes page and adapt its structure
 
 ---
 
+## Deployment (cPanel via GitHub)
+
+1. In cPanel, open **Git Version Control** and create a repository that clones your GitHub repo.
+2. Set the repo path to a folder in your home directory (e.g. `~/repos/worthy-crm`).
+3. Deploy to your web root:
+   - Preferred: set a deployment path to `public_html/` and ensure the **document root points to `public/`** inside the repo.
+   - Alternative: copy/mirror `public/` contents to `public_html/` and keep the app code above web root.
+4. Pull/deploy from cPanel when you push new commits.
+5. Create `.env` on the server (not in Git), update DB credentials.
+6. Import `database/schema.sql` then `database/seed.sql`.
+7. Ensure `public/uploads` and `storage/logs` are writable.
+
+---
+
 ## Troubleshooting
 
 - **Blank page / 500**: check `storage/logs/app.log`
