@@ -25,7 +25,6 @@ final class AuthController extends BaseController {
   public function login(): void {
     try {
       \verify_csrf();
-      User::ensureSeeded();
 
       $username = strtolower(trim((string)($_POST['username'] ?? '')));
       $password = (string)($_POST['password'] ?? '');

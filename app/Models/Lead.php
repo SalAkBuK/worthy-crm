@@ -11,15 +11,29 @@ final class Lead {
     $pdo->beginTransaction();
     try {
       $ins = $pdo->prepare("INSERT INTO leads
-        (lead_name, contact_email, contact_phone, interested_in_property, property_type, assigned_agent_user_id, created_by_user_id, created_at, status_overall)
-        VALUES (:n,:e,:ph,:p,:t,:a,:c,NOW(),'NEW')");
+        (lead_name, contact_email, contact_phone, interested_in_property, property_type, property_interest_types, area, budget_aed_min, budget_aed_max, budget_aed_range, lead_status, assigned_agent_user_id, created_by_user_id, created_at, status_overall)
+        VALUES (:n,:e,:ph,:p,:t,:pit,:area,:bmin,:bmax,:brange,:ls,:a,:c,NOW(),'NEW')");
       foreach ($rows as $i => $r) {
         $email = strtolower(trim((string)($r['contact_email'] ?? '')));
         $name = trim((string)($r['lead_name'] ?? ''));
         $phone = trim((string)($r['contact_phone'] ?? ''));
         $prop = trim((string)($r['interested_in_property'] ?? ''));
         $type = (string)($r['property_type'] ?? '');
+        $interestTypes = trim((string)($r['property_interest_types'] ?? ''));
+        $interestTypes = $interestTypes !== '' ? $interestTypes : null;
+        $area = trim((string)($r['area'] ?? ''));
+        $area = $area !== '' ? $area : null;
+        $budgetMin = $r['budget_aed_min'] ?? null;
+        $budgetMin = $budgetMin !== '' ? $budgetMin : null;
+        $budgetMax = $r['budget_aed_max'] ?? null;
+        $budgetMax = $budgetMax !== '' ? $budgetMax : null;
+        $budgetRange = trim((string)($r['budget_aed_range'] ?? ''));
+        $budgetRange = $budgetRange !== '' ? $budgetRange : null;
+        $leadStatus = trim((string)($r['lead_status'] ?? ''));
+        $leadStatus = $leadStatus !== '' ? $leadStatus : null;
         $agentId = (int)($r['assigned_agent_user_id'] ?? 0);
+        $allowUnassigned = (bool)($r['allow_unassigned'] ?? false);
+        $allowMissingType = (bool)($r['allow_missing_type'] ?? false);
 
         $errs = [];
         if ($name === '') $errs[] = 'Name required';
@@ -30,8 +44,12 @@ final class Lead {
           $errs[] = 'Phone number must be 6-20 chars and digits/+()-.';
         }
         if ($prop === '') $errs[] = 'Interested property required';
-        if (!in_array($type, ['OFF_PLAN','READY_TO_MOVE'], true)) $errs[] = 'Property type required';
-        if ($agentId <= 0) $errs[] = 'Agent required';
+        if ($type === '' || $type === null) {
+          if (!$allowMissingType) $errs[] = 'Property type required';
+        } elseif (!in_array($type, ['OFF_PLAN','READY_TO_MOVE'], true)) {
+          $errs[] = 'Property type required';
+        }
+        if ($agentId <= 0 && !$allowUnassigned) $errs[] = 'Agent required';
         if ($errs) { $rowErrors[$i] = $errs; continue; }
 
         $ins->execute([
@@ -40,7 +58,13 @@ final class Lead {
           ':ph'=>$phone,
           ':p'=>$prop,
           ':t'=>$type,
-          ':a'=>$agentId,
+          ':pit'=>$interestTypes,
+          ':area'=>$area,
+          ':bmin'=>$budgetMin,
+          ':bmax'=>$budgetMax,
+          ':brange'=>$budgetRange,
+          ':ls'=>$leadStatus,
+          ':a'=>$agentId > 0 ? $agentId : null,
           ':c'=>$assignedBy,
         ]);
       }
@@ -102,7 +126,7 @@ final class Lead {
     $sql = "SELECT l.*, u.username as agent_username, COALESCE(e.employee_name, u.username) as agent_name,
       (SELECT COUNT(*) FROM lead_followups f WHERE f.lead_id=l.id) as followup_count
       FROM leads l
-      JOIN users u ON u.id = l.assigned_agent_user_id
+      LEFT JOIN users u ON u.id = l.assigned_agent_user_id
       LEFT JOIN employees e ON e.employee_code=u.employee_code
       $whereSql
       ORDER BY $order
@@ -168,11 +192,22 @@ final class Lead {
     return ['items'=>$st->fetchAll(), 'meta'=>$meta];
   }
 
+  public static function assignBulk(array $ids, int $agentId): int {
+    $pdo = DB::conn();
+    $ids = array_values(array_filter(array_map('intval', $ids), fn($v) => $v > 0));
+    if (!$ids) return 0;
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $st = $pdo->prepare("UPDATE leads SET assigned_agent_user_id=? WHERE id IN ($placeholders)");
+    $params = array_merge([$agentId], $ids);
+    $st->execute($params);
+    return $st->rowCount();
+  }
+
   public static function findWithAgent(int $id): ?array {
     $pdo = DB::conn();
     $st = $pdo->prepare("SELECT l.*, u.username as agent_username, COALESCE(e.employee_name, u.username) as agent_name
       FROM leads l
-      JOIN users u ON u.id=l.assigned_agent_user_id
+      LEFT JOIN users u ON u.id=l.assigned_agent_user_id
       LEFT JOIN employees e ON e.employee_code=u.employee_code
       WHERE l.id=:id LIMIT 1");
     $st->execute([':id'=>$id]);

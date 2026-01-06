@@ -177,36 +177,4 @@ final class User {
     return $user['agent_name'] ?: ($user['employee_name'] ?: ucfirst($user['username']));
   }
 
-  public static function ensureSeeded(): void {
-    $pdo = DB::conn();
-    // Check if users table exists
-    $st = $pdo->query("SHOW TABLES LIKE 'users'");
-    if (!$st->fetch()) return;
-
-    $seed = [
-      ['kiran', 'admin1234', 'ADMIN', 'kiran'],
-      ['abbas', 'ceo1234', 'CEO', null],
-      ['afi', 'agent123', 'AGENT', 'afi'],
-      ['altaleb', 'agent123', 'AGENT', 'altaleb'],
-      ['aurangzeb', 'agent123', 'AGENT', 'aurangzeb'],
-      ['benyam', 'agent123', 'AGENT', 'benyam'],
-      ['mohamed', 'agent123', 'AGENT', 'mohamed'],
-      ['raunak', 'agent123', 'AGENT', 'raunak'],
-      ['sanaya', 'agent123', 'AGENT', 'sanaya'],
-    ];
-
-    foreach ($seed as [$username, $pass, $role, $empFirst]) {
-      $empCode = null;
-      if ($empFirst) {
-        $q = $pdo->prepare("SELECT employee_code FROM employees WHERE LOWER(TRIM(employee_name)) LIKE :n LIMIT 1");
-        $q->execute([':n' => strtolower($empFirst) . '%']);
-        $empCode = $q->fetchColumn() ?: null;
-      }
-      $hash = password_hash($pass, PASSWORD_DEFAULT);
-      $ins = $pdo->prepare("INSERT INTO users (username, password_hash, role, employee_code, created_at)
-        VALUES (:u,:p,:r,:e,NOW())
-        ON DUPLICATE KEY UPDATE password_hash=VALUES(password_hash), role=VALUES(role), employee_code=VALUES(employee_code)");
-      $ins->execute([':u'=>$username, ':p'=>$hash, ':r'=>$role, ':e'=>$empCode]);
-    }
-  }
 }

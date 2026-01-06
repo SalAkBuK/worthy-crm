@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/wortuckd/crm.worthysproperties.com
+    - /bin/rsync -a --delete --exclude ".git/" --exclude ".env" --exclude "storage/" --exclude "uploads/" ./ $DEPLOYPATH
