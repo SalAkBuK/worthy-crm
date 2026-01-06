@@ -1,0 +1,221 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/../../Helpers/functions.php';
+$rowErrors = $_SESSION['_lead_row_errors'] ?? [];
+$oldRows = $_SESSION['_lead_old_rows'] ?? null;
+$importErrors = $_SESSION['_lead_import_errors'] ?? [];
+unset($_SESSION['_lead_row_errors'], $_SESSION['_lead_old_rows'], $_SESSION['_lead_import_errors']);
+
+$agents = $agents ?? [];
+?>
+<div class="row g-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center border-bottom">
+        <div>
+          <h4 class="card-title mb-1">Bulk Leads</h4>
+          <p class="text-muted mb-0 fs-13">Import CSV/XLSX and assign agents in bulk.</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <?php if ($importErrors): ?>
+          <div class="alert alert-danger">
+            <div class="fw-semibold mb-1">CSV import errors</div>
+            <div class="small text-muted">Fix the rows listed below and try again.</div>
+            <ul class="mb-0 mt-2 ps-3">
+              <?php foreach ($importErrors as $err): ?>
+                <li class="small"><?= e($err) ?></li>
+              <?php endforeach; ?>
+            </ul>
+          </div>
+        <?php endif; ?>
+
+        <form class="mb-4" method="post" action="<?= e(url('admin/leads/import')) ?>" enctype="multipart/form-data">
+          <?= csrf_field() ?>
+          <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label form-required">CSV/XLSX File</label>
+              <input type="file" class="form-control" name="leads_csv" accept=".csv,.xlsx" required>
+              <div class="form-text">Required columns: lead_name/name, contact_email/email, contact_phone/phone, interested_in_property/service category. Optional: property type (stored as interest types), area, budget (AED), lead status.</div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Default Property Type</label>
+              <select class="form-select" name="default_property_type">
+                <option value="">No default (leave empty)</option>
+                <option value="OFF_PLAN">Off Plan</option>
+                <option value="READY_TO_MOVE">Ready To Move</option>
+              </select>
+              <div class="form-text">Used only if the CSV has OFF_PLAN/READY_TO_MOVE. Otherwise left empty.</div>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label">Assignment</label>
+              <div class="d-flex flex-wrap gap-3">
+                <label class="form-check">
+                  <input class="form-check-input" type="radio" name="assign_mode" value="single" checked>
+                  <span class="form-check-label">Assign all to agent</span>
+                </label>
+                <label class="form-check">
+                  <input class="form-check-input" type="radio" name="assign_mode" value="per_row">
+                  <span class="form-check-label">Assign individually (agent_id/agent_username/agent_email column)</span>
+                </label>
+                <label class="form-check">
+                  <input class="form-check-input" type="radio" name="assign_mode" value="unassigned">
+                  <span class="form-check-label">Leave unassigned (assign later)</span>
+                </label>
+              </div>
+              <select class="form-select mt-2" name="assigned_agent_user_id">
+                <option value="">Select agent</option>
+                <?php foreach ($agents as $a): ?>
+                  <option value="<?= e((string)$a['id']) ?>"><?= e($a['employee_name'] ?: ucfirst($a['username'])) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="col-12 d-flex justify-content-end">
+              <button class="btn btn-outline-primary" type="submit">
+                <i class="ri-upload-2-line me-1"></i>Import CSV
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <form method="post" action="<?= e(url('admin/leads')) ?>">
+          <?= csrf_field() ?>
+
+          <div class="d-flex flex-wrap gap-2 justify-content-end mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <label class="form-label mb-0">Assign selected rows</label>
+              <select class="form-select" data-assign-selected>
+                <option value="">Select agent</option>
+                <?php foreach ($agents as $a): ?>
+                  <option value="<?= e((string)$a['id']) ?>"><?= e($a['employee_name'] ?: ucfirst($a['username'])) ?></option>
+                <?php endforeach; ?>
+              </select>
+              <button class="btn btn-outline-primary" type="button" data-apply-selected>Apply</button>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <label class="form-label mb-0">Assign all rows</label>
+              <select class="form-select" data-assign-all>
+                <option value="">Select agent</option>
+                <?php foreach ($agents as $a): ?>
+                  <option value="<?= e((string)$a['id']) ?>"><?= e($a['employee_name'] ?: ucfirst($a['username'])) ?></option>
+                <?php endforeach; ?>
+              </select>
+              <button class="btn btn-outline-primary" type="button" data-apply-assign>Apply</button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table align-middle text-nowrap table-hover table-centered mb-0">
+              <thead class="bg-light-subtle">
+              <tr>
+                <th style="width:32px;">
+                  <input class="form-check-input" type="checkbox" data-bulk-select-all>
+                </th>
+                <th style="width:60px;">#</th>
+                <th class="form-required">Name</th>
+                <th class="form-required">Email</th>
+                <th class="form-required">Phone</th>
+                <th class="form-required">Interested In Property</th>
+                <th>Interest Types</th>
+                <th class="form-required">Type</th>
+                <th>Area</th>
+                <th>Budget (AED)</th>
+                <th>Lead Status</th>
+                <th class="form-required">Agent</th>
+                <th style="width:110px;"></th>
+              </tr>
+              </thead>
+              <tbody id="leadRows">
+              <?php
+                $rows = is_array($oldRows) ? $oldRows : [
+                  ['lead_name'=>'','contact_email'=>'','contact_phone'=>'','interested_in_property'=>'','property_type'=>'OFF_PLAN','assigned_agent_user_id'=>'']
+                ];
+                foreach ($rows as $i=>$r):
+              ?>
+              <tr class="<?= isset($rowErrors[$i]) ? 'table-danger' : '' ?>">
+                <td>
+                  <input class="form-check-input" type="checkbox" data-bulk-select-item>
+                </td>
+                <td class="text-muted" data-idx><?= $i+1 ?></td>
+                <td><input class="form-control" data-base="lead_name" value="<?= e($r['lead_name'] ?? '') ?>"></td>
+                <td><input class="form-control" data-base="contact_email" value="<?= e($r['contact_email'] ?? '') ?>"></td>
+                <td><input type="tel" class="form-control" data-base="contact_phone" value="<?= e($r['contact_phone'] ?? '') ?>" placeholder="+971 5x xxx xxxx"></td>
+                <td><input class="form-control" data-base="interested_in_property" value="<?= e($r['interested_in_property'] ?? '') ?>"></td>
+                <td><input class="form-control" data-base="property_interest_types" value="<?= e($r['property_interest_types'] ?? '') ?>" placeholder="Unit, Villa, Land"></td>
+                <td>
+                  <select class="form-select" data-base="property_type">
+                    <option value="OFF_PLAN" <?= (($r['property_type'] ?? '')==='OFF_PLAN')?'selected':'' ?>>Off Plan</option>
+                    <option value="READY_TO_MOVE" <?= (($r['property_type'] ?? '')==='READY_TO_MOVE')?'selected':'' ?>>Ready To Move</option>
+                  </select>
+                </td>
+                <td><input class="form-control" data-base="area" value="<?= e($r['area'] ?? '') ?>"></td>
+                <td><input class="form-control" data-base="budget_aed_range" value="<?= e($r['budget_aed_range'] ?? '') ?>" placeholder="600,000 - 900,000"></td>
+                <td><input class="form-control" data-base="lead_status" value="<?= e($r['lead_status'] ?? '') ?>"></td>
+                <td>
+                  <select class="form-select" data-base="assigned_agent_user_id">
+                    <option value="">Select agent</option>
+                    <?php foreach ($agents as $a): ?>
+                      <option value="<?= e((string)$a['id']) ?>" <?= ((string)($r['assigned_agent_user_id'] ?? '') === (string)$a['id'])?'selected':'' ?>>
+                        <?= e($a['employee_name'] ?: ucfirst($a['username'])) ?>
+                      </option>
+                    <?php endforeach; ?>
+                  </select>
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-soft-danger" data-remove-row type="button">Remove</button>
+                  <?php if (isset($rowErrors[$i])): ?>
+                    <div class="small text-danger mt-1">
+                      <?= e(implode(', ', $rowErrors[$i])) ?>
+                    </div>
+                  <?php endif; ?>
+                </td>
+              </tr>
+              <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+
+          <template id="leadRowTemplate">
+            <tr>
+              <td>
+                <input class="form-check-input" type="checkbox" data-bulk-select-item>
+              </td>
+              <td class="text-muted" data-idx>1</td>
+              <td><input class="form-control" data-base="lead_name"></td>
+              <td><input class="form-control" data-base="contact_email"></td>
+              <td><input type="tel" class="form-control" data-base="contact_phone" placeholder="+971 5x xxx xxxx"></td>
+              <td><input class="form-control" data-base="interested_in_property"></td>
+              <td><input class="form-control" data-base="property_interest_types" placeholder="Unit, Villa, Land"></td>
+              <td>
+                <select class="form-select" data-base="property_type">
+                  <option value="OFF_PLAN">Off Plan</option>
+                  <option value="READY_TO_MOVE">Ready To Move</option>
+                </select>
+              </td>
+              <td><input class="form-control" data-base="area"></td>
+              <td><input class="form-control" data-base="budget_aed_range" placeholder="600,000 - 900,000"></td>
+              <td><input class="form-control" data-base="lead_status"></td>
+              <td>
+                <select class="form-select" data-base="assigned_agent_user_id">
+                  <option value="">Select agent</option>
+                  <?php foreach ($agents as $a): ?>
+                    <option value="<?= e((string)$a['id']) ?>"><?= e($a['employee_name'] ?: ucfirst($a['username'])) ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </td>
+              <td><button class="btn btn-sm btn-soft-danger" data-remove-row type="button">Remove</button></td>
+            </tr>
+          </template>
+
+          <div class="d-flex justify-content-end mt-3">
+            <button class="btn btn-primary" type="submit">
+              <i class="ri-save-line me-1"></i>Save All Leads
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="<?= e(url('assets/js/admin_leads.js')) ?>"></script>

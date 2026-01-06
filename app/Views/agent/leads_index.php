@@ -1,6 +1,13 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/../../Helpers/functions.php';
+$leadDisplayName = function (?string $name): string {
+  $name = trim((string)$name);
+  if ($name === '') return '';
+  $parts = preg_split('/\s+/', $name);
+  if (!$parts || count($parts) <= 3) return $name;
+  return implode(' ', array_slice($parts, 0, 3)) . '...';
+};
 ?>
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center border-bottom">
@@ -66,7 +73,7 @@ require_once __DIR__ . '/../../Helpers/functions.php';
         <tbody>
         <?php foreach ($items as $l): ?>
           <tr>
-            <td class="fw-semibold"><?= e($l['lead_name']) ?></td>
+            <td class="fw-semibold"><?= e($leadDisplayName($l['lead_name'] ?? '')) ?></td>
             <td><?= e($l['contact_email']) ?></td>
             <td><?= e($l['contact_phone'] ?? '-') ?></td>
             <td><span class="badge bg-light-subtle text-muted border fw-medium fs-13 px-2 py-1"><?= e($l['property_type']) ?></span></td>

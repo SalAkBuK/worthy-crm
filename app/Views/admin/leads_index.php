@@ -7,6 +7,13 @@ $importErrors = $_SESSION['_lead_import_errors'] ?? [];
 unset($_SESSION['_lead_row_errors'], $_SESSION['_lead_old_rows'], $_SESSION['_lead_import_errors']);
 
 $agents = $agents ?? [];
+$leadDisplayName = function (?string $name): string {
+  $name = trim((string)$name);
+  if ($name === '') return '';
+  $parts = preg_split('/\s+/', $name);
+  if (!$parts || count($parts) <= 3) return $name;
+  return implode(' ', array_slice($parts, 0, 3)) . '...';
+};
 ?>
 <div class="row g-4">
   <div class="col-12">
@@ -348,20 +355,6 @@ $agents = $agents ?? [];
             </form>
           </div>
 
-          <form method="post" action="<?= e(url('admin/leads/assign-bulk')) ?>">
-            <?= csrf_field() ?>
-            <div class="d-flex flex-wrap gap-2 justify-content-end mb-2">
-              <div class="d-flex align-items-center gap-2">
-                <label class="form-label mb-0">Assign selected</label>
-                <select class="form-select" name="assigned_agent_user_id">
-                  <option value="">Select agent</option>
-                  <?php foreach ($agents as $a): ?>
-                    <option value="<?= e((string)$a['id']) ?>"><?= e($a['employee_name'] ?: ucfirst($a['username'])) ?></option>
-                  <?php endforeach; ?>
-                </select>
-                <button class="btn btn-outline-primary" type="submit">Assign</button>
-              </div>
-            </div>
           <?php if (!$items): ?>
             <div class="text-center py-5 text-muted">No leads found for current filters.</div>
           <?php else: ?>
@@ -369,9 +362,6 @@ $agents = $agents ?? [];
               <table class="table align-middle text-nowrap table-hover table-centered mb-0">
                 <thead class="bg-light-subtle">
                   <tr>
-                    <th style="width:32px;">
-                      <input class="form-check-input" type="checkbox" data-select-all>
-                    </th>
                     <th><a href="?<?= e(build_query(['sort'=>'lead_name','dir'=>($filters['dir']==='asc'?'desc':'asc')])) ?>">Lead</a></th>
                     <th>Email</th>
                     <th>Phone</th>
@@ -381,16 +371,12 @@ $agents = $agents ?? [];
                     <th>Status</th>
                     <th>Followups</th>
                     <th>Created</th>
-                    <th class="text-end"></th>
                   </tr>
                 </thead>
                 <tbody>
                 <?php foreach ($items as $l): ?>
                   <tr>
-                    <td>
-                      <input class="form-check-input" type="checkbox" name="ids[]" value="<?= e((string)$l['id']) ?>" data-select-item>
-                    </td>
-                    <td class="fw-semibold"><?= e($l['lead_name']) ?></td>
+                    <td class="fw-semibold"><?= e($leadDisplayName($l['lead_name'] ?? '')) ?></td>
                     <td><?= e($l['contact_email']) ?></td>
                     <td><?= e($l['contact_phone'] ?? '-') ?></td>
                     <td class="text-muted"><?= e($l['interested_in_property']) ?></td>
@@ -405,11 +391,6 @@ $agents = $agents ?? [];
                     </td>
                     <td><?= e((string)$l['followup_count']) ?></td>
                     <td class="text-muted"><?= e($l['created_at']) ?></td>
-                    <td class="text-end">
-                      <a class="btn btn-light btn-sm" href="<?= e(url('admin/lead?id='.$l['id'])) ?>">
-                        <i class="ri-eye-line"></i>
-                      </a>
-                    </td>
                   </tr>
                 <?php endforeach; ?>
                 </tbody>
@@ -432,7 +413,6 @@ $agents = $agents ?? [];
               </nav>
             </div>
           <?php endif; ?>
-          </form>
         </div>
       </div>
     </div>

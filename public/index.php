@@ -57,6 +57,8 @@ $router->get('/logout', function () use ($auth) { $auth->logout(); });
 
 // Admin
 $router->get('/admin/leads', function () use ($admin) { $admin->index(); });
+$router->get('/admin/leads/individual', function () use ($admin) { $admin->individual(); });
+$router->get('/admin/leads/bulk', function () use ($admin) { $admin->bulk(); });
 $router->post('/admin/leads', function () use ($admin) { $admin->storeBulk(); });
 $router->post('/admin/leads/import', function () use ($admin) { $admin->importCsv(); });
 $router->post('/admin/leads/assign-bulk', function () use ($admin) { $admin->assignBulk(); });
