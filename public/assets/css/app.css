@@ -1,0 +1,21 @@
+:root{
+  --sidebar-w: 260px;
+  --brand: #6b1d2a; /* premium burgundy-ish */
+}
+.app-body{ background:#f5f7fb; min-height:100vh; }
+.sidebar{ width:var(--sidebar-w); min-height:100vh; background:#fff; display:flex; flex-direction:column; }
+.sidebar .nav-link{ border-radius:.6rem; padding:.6rem .8rem; color:#344054; margin:.1rem .4rem; }
+.sidebar .nav-link:hover{ background:#f2f4f7; }
+.sidebar .nav-link.active{ background:rgba(107,29,42,.08); color:var(--brand); font-weight:600; }
+.topbar{ position:sticky; top:0; z-index:20; }
+.card-soft{ border:0; border-radius:1rem; box-shadow:0 12px 30px rgba(16,24,40,.06); }
+.table thead th{ font-size:.85rem; text-transform:uppercase; letter-spacing:.03em; color:#667085; }
+.badge-pill{ border-radius:999px; }
+.btn-brand{ background:var(--brand); border-color:var(--brand); }
+.btn-brand:hover{ filter:brightness(.95); }
+.small-muted{ font-size:.9rem; color:#667085; }
+.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
+.login-wrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+#bgCanvas{ position:absolute; inset:0; z-index:0; }
+.login-card{ position:relative; z-index:1; width:min(460px, 92vw); }
+.form-required::after{ content:" *"; color:#d92d20; }

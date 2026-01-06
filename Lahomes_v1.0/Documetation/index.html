@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Lahome - Real Estate Multipurpose Admin Dashboard Template</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta content="A fully featured admin theme which can be used to build CRM, CMS, etc." name="description" />
+    <meta content="Techzaa" name="author" />
+    <link rel="shortcut icon" href="assets/favicon.ico" />
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gumshoe/5.1.1/gumshoe.min.js"
+        integrity="sha512-W5NqCBQ5MoBpPMuHHrM9vBTl1RJnxTmhrhROigUebWZPliv7CPqWQppC4Fqcu3uTZ/U0s9dmEsyfJcv1JmgNNg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+
+<body style="font-family: 'Nunito', sans-serif; scroll-behavior: smooth;">
+    <section class="bg-slate-100 py-24">
+        <div class="container mx-auto">
+            <div class="text-center my-10">
+                <a href="#!" class="mb-6 flex justify-center cursor-default">
+                    <img src="assets/logo-dark.png" class="h-8 mx-auto" alt="Logo">
+                </a>
+                <h2 class="text-2xl/snug font-bold text-gray-900 mx-auto"> Real Estate Multipurpose Admin Dashboard
+                    Template</h2>
+                <h2 class="text-2xl/snug font-bold text-gray-900 mx-auto mt-3"> Documentation 1.0</h2>
+            </div>
+        </div>
+    </section>
+
+    <div class="container mx-auto px-20 relative">
+        <div class="grid lg:grid-cols-4 gap-10 py-16">
+            <div class="lg:block hidden">
+                <div class="sticky top-10 bg-slate-100 p-6 rounded-xl">
+                    <ul class="flex flex-col gap-2 sidebar-nav mb-0 py-0" id="ui-nav">
+                        <li class="p-0 group"><a href="#introduction"
+                                class="inline-flex items-center gap-2 text-base text-gray-900 border border-gray-300 py-1 px-4 rounded-full transition-all duration-500 hover:text-blue-500 group-[.active]:border-blue-500/20 group-[.active]:text-white group-[.active]:bg-blue-500">Introduction</a>
+                        </li>
+                        <li class="p-0 group"><a href="#prerequisites"
+                                class="inline-flex items-center gap-2 text-base text-gray-900 border border-gray-300 py-1 px-4 rounded-full transition-all duration-500 hover:text-blue-500 group-[.active]:border-blue-500/20 group-[.active]:text-white group-[.active]:bg-blue-500">Prerequisites</a>
+                        </li>
+                        <li class="p-0 group"><a href="#installation"
+                                class="inline-flex items-center gap-2 text-base text-gray-900 border border-gray-300 py-1 px-4 rounded-full transition-all duration-500 hover:text-blue-500 group-[.active]:border-blue-500/20 group-[.active]:text-white group-[.active]:bg-blue-500">Installation</a>
+                        </li>
+                        <li class="p-0 group"><a href="#folder-structure"
+                                class="inline-flex items-center gap-2 text-base text-gray-900 border border-gray-300 py-1 px-4 rounded-full transition-all duration-500 hover:text-blue-500 group-[.active]:border-blue-500/20 group-[.active]:text-white group-[.active]:bg-blue-500">Folder
+                                Structure</a></li>
+                        <li class="p-0 group"><a href="#code-structure"
+                                class="inline-flex items-center gap-2 text-base text-gray-900 border border-gray-300 py-1 px-4 rounded-full transition-all duration-500 hover:text-blue-500 group-[.active]:border-blue-500/20 group-[.active]:text-white group-[.active]:bg-blue-500">Code
+                                Structure</a></li>
+                        <li class="p-0 group"><a href="#rtl"
+                                class="inline-flex items-center gap-2 text-base text-gray-900 border border-gray-300 py-1 px-4 rounded-full transition-all duration-500 hover:text-blue-500 group-[.active]:border-blue-500/20 group-[.active]:text-white group-[.active]:bg-blue-500">RTL
+                                Layout</a></li>
+                        <li class="p-0 group"><a href="#customization"
+                                class="inline-flex items-center gap-2 text-base text-gray-900 border border-gray-300 py-1 px-4 rounded-full transition-all duration-500 hover:text-blue-500 group-[.active]:border-blue-500/20 group-[.active]:text-white group-[.active]:bg-blue-500">Customization</a>
+                        </li>
+
+                        <li class="p-0 group"><a href="#plugins"
+                                class="inline-flex items-center gap-2 text-base text-gray-900 border border-gray-300 py-1 px-4 rounded-full transition-all duration-500 hover:text-blue-500 group-[.active]:border-blue-500/20 group-[.active]:text-white group-[.active]:bg-blue-500">Sources
+                                & Credits</a></li>
+                        <li class="p-0 group"><a href="#browser-compatibility"
+                                class="inline-flex items-center gap-2 text-base text-gray-900 border border-gray-300 py-1 px-4 rounded-full transition-all duration-500 hover:text-blue-500 group-[.active]:border-blue-500/20 group-[.active]:text-white group-[.active]:bg-blue-500">Browser
+                                Compatibility</a></li>
+                        <li class="p-0 group"><a href="#support"
+                                class="inline-flex items-center gap-2 text-base text-gray-900 border border-gray-300 py-1 px-4 rounded-full transition-all duration-500 hover:text-blue-500 group-[.active]:border-blue-500/20 group-[.active]:text-white group-[.active]:bg-blue-500">Support</a>
+                        </li>
+                        <li class="p-0 group"><a href="#changelog"
+                                class="inline-flex items-center gap-2 text-base text-gray-900 border border-gray-300 py-1 px-4 rounded-full transition-all duration-500 hover:text-blue-500 group-[.active]:border-blue-500/20 group-[.active]:text-white group-[.active]:bg-blue-500">Changelog</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="lg:col-span-3">
+                <div class="grid grid-cols-1 gap-8 items-center">
+
+                    <h4 class="text-2xl/none font-medium">Thank you very much for your purchase!</h4>
+                    <div class="bg-blue-500/20 text-blue-500 text-sm rounded-md border-s-4 border-blue-500 p-4 mt-5"
+                        role="alert">
+                        If you have any questions that are beyond the scope of this documentation, please feel free to
+                        email or contact us via my author page.</div>
+
+                    <div class="border rounded-md scroll-mt-8" id="introduction">
+                        <h4 class="text-lg/none font-medium border-b border-gray-200 p-4">Introduction</h4>
+
+                        <div class="p-4">
+                            <p class="text-gray-600 text-base mb-4">
+                                Lahome - Real Estate Multipurpose Admin Dashboard Template is a fully featured premium
+                                admin template built on top of awesome
+                                <strong class="text-blue-500">Bootstrap 5.3.3.</strong>.
+                                It's crafted using modern web technologies
+                                <strong class="text-blue-500">HTML5</strong>,
+                                <strong class="text-blue-500">CSS3</strong> and
+                                <strong class="text-blue-500">Javascript</strong>.
+                                The theme includes beautiful dashboard &amp; many ready to use handcrafted
+                                components, widgets, pages, etc.
+                                The components can be used very easily on any page. The theme is fully
+                                responsive and customizable.
+                            </p>
+                            <p class="text-gray-600 text-base mb-4">
+                                It's a powerful and super flexible, which suits best for web applications
+                                including Calendar, Chat, Ecommerce, CRM, Email, Social, Project and Base
+                                UI. It is fully responsive, which means that it looks perfect on mobiles
+                                and tablets. Also, we tried to implement this by keeping the concept of
+                                modularity in mind, this enables you to reduce the development time and
+                                cost.
+                            </p>
+                            <p class="text-gray-600 text-base">
+                                This documentation is guidelines for all users who can even be a beginner
+                                or experienced web developer.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="border rounded-md scroll-mt-8" id="prerequisites">
+                        <h4 class="text-lg/none font-medium border-b border-gray-200 p-4">Prerequisites</h4>
+
+                        <div class="p-4">
+
+                            <p class="text-gray-600 text-base">
+                                Please follow below steps to install and setup all prerequisites:
+                            </p>
+                            <ul class="list-none mt-3">
+                                <li class="flex mt-4">
+                                    <i class="ri-arrow-right-s-fill text-xl/none"></i>
+                                    <div class="ms-2">
+                                        <h6 class="font-semibold">Yarn</h6>
+                                        <p class="text-gray-600 text-base"> Make sure to have the <a
+                                                href="https://classic.yarnpkg.com/en/" class="text-blue-500"
+                                                target="_blank">Yarn</a> installed &amp; running in your computer. If
+                                            you
+                                            already have installed Yarn on your computer, you can skip this step. We
+                                            suggest you
+                                            to use Yarn instead of NPM.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li class="flex mt-4">
+                                    <i class="ri-arrow-right-s-fill text-xl/none"></i>
+                                    <div class="ms-2">
+                                        <h6 class="font-semibold">Nodejs</h6>
+                                        <p class="text-gray-600 text-base"> Make sure to have the <a
+                                                href="https://nodejs.org/" class="text-blue-500"
+                                                target="_blank">Node.js</a> installed &amp; running in
+                                            your computer. If you already have installed Node on your computer, you can
+                                            skip
+                                            this step if your existing node version is greater than 16.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li class="flex mt-4">
+                                    <i class="ri-arrow-right-s-fill text-xl/none"></i>
+                                    <div class="ms-2">
+                                        <h6 class="font-semibold">Gulp</h6>
+                                        <p class="text-gray-600 text-base"> Make sure to have the <a
+                                                href="https://gulpjs.com/" class="text-blue-500"
+                                                target="_blank">Gulp</a> installed &amp; running in
+                                            your computer. If you already have installed gulp on run command npm install
+                                            -g gulp
+                                            from your terminal.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li class="flex mt-4">
+                                    <i class="ri-arrow-right-s-fill text-xl/none"></i>
+                                    <div class="ms-2">
+                                        <h6 class="font-semibold">Git</h6>
+                                        <p class="text-gray-600 text-base"> Make sure to have the <a
+                                                href="https://git-scm.com/" class="text-blue-500"
+                                                target="_blank">Git</a>
+                                            installed globally &amp; running on your computer. If you already have
+                                            installed git
+                                            on your computer, you can skip this step.
+                                        </p>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="border rounded-md scroll-mt-8" id="installation">
+                        <h4 class="text-lg/none font-medium border-b border-gray-200 p-4">Installation</h4>
+
+                        <div class="p-4">
+                            <p class="text-gray-600 text-base">
+                                To setup the admin theme, follow below-mentioned steps:
+                            </p>
+                            <ul class="list-none my-3">
+                                <li class="flex mt-4">
+                                    <i class="ri-arrow-right-s-fill text-xl/none"></i>
+                                    <div class="ms-2">
+                                        <h6 class="font-semibold">Install Prerequisites</h6>
+                                        <p class="text-gray-600 text-base">
+                                            Make sure to have all above prerequisites installed &
+                                            running on your computer
+                                        </p>
+                                    </div>
+                                </li>
+                            </ul>
+                            <p class="text-gray-600 text-base mb-3"> After you finished with the above steps, you can
+                                run the following commands into the terminal / command prompt from the root directory of
+                                the project to run the project locally or build for production use: </p>
+                            <div class="bg-white">
+                                <div
+                                    class="mt-5 rounded-md bg-slate-50 border overflow-x-scroll md:overflow-hidden mt-6">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col"
+                                                    class="w-1/5 px-6 py-3 text-left text-lg font-medium text-gray-800 uppercase">
+                                                    Command</th>
+                                                <th scope="col"
+                                                    class="w-4/5 px-6 py-3 text-left text-lg font-medium text-gray-800 uppercase">
+                                                    Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-200">
+                                            <tr>
+                                                <th class="text-start px-6 py-4 text-base font-medium text-red-600">
+                                                    yarn install
+                                                </th>
+                                                <td class="px-6 py-4 text-base text-gray-800">
+                                                    This would install all the required dependencies in the
+                                                    <code class="text-blue-500">node_modules</code>
+                                                    folder.
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <th class="text-start px-6 py-4 text-base font-medium text-red-600">
+                                                    gulp
+                                                </th>
+                                                <td class="px-6 py-4 text-base text-gray-800"> Runs the project locally,
+                                                    starts
+                                                    the development server and watches for any changes in your code,
+                                                    including
+                                                    your HTML, javascript, sass, etc. The development server is
+                                                    accessible at <a href="http://localhost:3000" class="text-blue-500"
+                                                        target="_blank">http://localhost:3000</a>.
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <th class="text-start px-6 py-4 text-base font-medium text-red-600">
+                                                    gulp build
+                                                </th>
+                                                <td class="px-6 py-4 text-base text-gray-800">
+                                                    Generates a
+                                                    <code class="text-blue-500">/dist</code> directory
+                                                    with all the production files.
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border rounded-md scroll-mt-8" id="troubleshooting">
+                        <h5 class="text-lg/none font-medium border-b border-gray-200 p-4">
+                            Troubleshooting
+                        </h5>
+
+                        <div class="p-4">
+                            <ul>
+                                <li>
+                                    I am getting error
+                                    "<code
+                                        class="text-pink-500">Error: ENOENT: no such file or directory, scandir '/root/website/node_modules/node-sass/vendor'</code>"
+                                    while running npm install, what should I do?
+                                    <p class="text-gray-600 text-base mb-4">
+                                        If you are getting this error, there could be multiple root
+                                        causes, please try following workarounds:
+                                    </p>
+                                    <ul>
+                                        <li>
+                                            Run <code class="text-pink-500">npm rebuild node-sass</code> to re-install
+                                            node-sass
+                                        </li>
+                                        <li>
+                                            Delete node_modules folder and re run
+                                            <code class="text-pink-500">yarn</code>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+
+                            <div class="p-4 rounded bg-blue-500/20 text-blue-500 mt-3">
+                                If you are having any question or difficulty during setup, don't hesitate
+                                to contact us. We would be glad to assist you.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border rounded-md scroll-mt-8" id="folder-structure">
+                        <h4 class="text-lg/none font-medium border-b border-gray-200 p-4">Folder Structure</h4>
+
+                        <div class="p-4">
+
+                            <pre class="rounded-md text-black overflow-hidden">
+├── dist (Compiled versions - Ready to use)
+├── src 
+│    ├── partials
+│    ├── assets
+│    │    ├── images
+│    │    ├── fonts
+│    │    ├── js
+│    │    └── scss
+│    └── all html pages
+├── gulpfile.js
+├── package.json
+└── yarn.lock</pre>
+                        </div>
+                    </div>
+
+                    <div class="border rounded-md scroll-mt-8 overflow-hidden" id="code-structure">
+                        <h5 class="text-lg/none font-medium border-b border-gray-200 p-4">Code Starter</h5>
+
+                        <div class="p-4">
+                            <p class="text-gray-600 text-base">We use partials for repetitive contents. So full layout
+                                are included in structures</p>
+                        </div>
+                        <img src="assets/code-ss.png" class="img-fluid rounded -ms-2">
+                    </div>
+
+                    <div class="border rounded-md scroll-mt-8" id="rtl">
+                        <h4 class="text-lg/none font-medium border-b border-gray-200 p-4">RTL Support</h4>
+
+                        <div class="p-4">
+                            <p class="text-gray-600 text-base mb-4">
+                                Lahome also includes built-in support for right-to-left
+                                (RTL) languages. To use RTL support, simply replace the
+                                reference to the standard CSS file with the RTL version.
+                                This will automatically flip the layout and alignment of
+                                elements for proper RTL display. Note that both standard
+                                and RTL CSS files are included in the Lahome package.
+                            </p>
+                            <p class="text-gray-600 text-base">
+                                To enable RTL support in your chosen demo, navigate to the
+                                <code class="text-pink-500">src/partials/head-css.html</code>
+                                file and replace the reference to
+                                <code class="text-pink-500">app.min.css</code> with
+                                <code class="text-pink-500">app-rtl.min.css</code> for Lahome
+                                Additionally, don't forget to add the
+                                <code class="text-pink-500">dir="rtl"</code> attribute to the HTML tag, such as
+                                <code class="text-pink-500">&lt;html lang="en" dir="rtl"&gt;</code>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="border rounded-md scroll-mt-8">
+                        <h5 class="text-lg/none font-medium border-b border-gray-200 p-4">Customizing Color Palette</h5>
+
+                        <div class="p-4">
+
+                            <p class="text-gray-600 text-base mb-4">
+                                You can change the color palette of any demo very easily by simply changing
+                                the few scss variables value.
+                            </p>
+
+                            <p class="text-gray-600 text-base mb-4">
+                                In order to modify the light mode colors in existing themes, open the
+                                <code class="text-pink-500">_theme-mode.scss</code> file from
+                                <code class="text-pink-500">src/assets/scss/config/_theme-mode.scss</code> and change
+                                any variable in it.
+                                Your changes would get reflected automatically in any bootstrap based
+                                components or elements. Note that, this requires you to setup and run gulp
+                                flow provided in installation steps earlier.
+                            </p>
+
+                            <p class="text-gray-600 text-base">
+                                And for modify the dark mode colors in existing themes, open the
+                                <code class="text-pink-500">variable-dark.scss</code> file from
+                                <code class="text-pink-500">src/scss/config/variable-dark.scss</code> and change any
+                                variable in it.
+                            </p>
+
+                        </div>
+                    </div>
+
+                    <div class="border rounded-md scroll-mt-8" id="customization">
+                        <h4 class="text-lg/none font-medium border-b border-gray-200 p-4">
+                            Customizing Sidebar Color, Topbar Color and Layouts
+                        </h4>
+
+                        <div class="p-4">
+                            <div class="p-lg-1">
+                                <p class="text-gray-600 text-base mb-4">
+                                    Lahome allows you to have customized left sidebar, overall layout width or
+                                    right sidebar. You could turn the left sidebar to different size, theme
+                                    (look) and size. You can customize it by specifying the layout class name
+                                    on body element in your html. The config object properties accept the
+                                    following values:
+                                </p>
+
+                                <p class="text-gray-600 text-base mb-4">
+                                    And for Customizing in existing themes, open the
+                                    <code class="text-pink-500">config.js</code> file from
+                                    <code class="text-pink-500">src/assets/js/config.js</code> and change in config js
+                                    it.
+                                </p>
+
+                                <div class="rounded-md bg-slate-50 border overflow-x-scroll md:overflow-hidden mt-6">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead>
+                                            <tr>
+                                                <th
+                                                    class="px-6 py-3 text-left text-lg font-medium text-gray-800 uppercase">
+                                                    Title</th>
+                                                <th
+                                                    class="px-6 py-3 text-left text-lg font-medium text-gray-800 uppercase">
+                                                    Type</th>
+                                                <th
+                                                    class="px-6 py-3 text-left text-lg font-medium text-gray-800 uppercase">
+                                                    Options</th>
+                                                <th
+                                                    class="px-6 py-3 text-left text-lg font-medium text-gray-800 uppercase">
+                                                    Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-200">
+                                            <tr>
+                                                <td class="px-6 py-4 text-base font-medium text-red-600"><code
+                                                        class="text-nowrap">data-theme</code></td>
+                                                <td class="px-6 py-4 text-base text-gray-800">String</td>
+                                                <td class="px-6 py-4 text-base text-gray-800">"light" | "dark"</td>
+                                                <td class="px-6 py-4 text-base text-gray-800">Changes overall color
+                                                    scheme to dark</td>
+                                            </tr>
+
+                                            <tr>
+                                                <td class="px-6 py-4 text-base text-red-600">
+                                                    <code class="text-nowrap">data-topbar-color</code>
+                                                </td>
+                                                <td class="px-6 py-4 text-base text-gray-800">String</td>
+                                                <td class="px-6 py-4 text-base text-gray-800">"light" | "dark" </td>
+                                                <td class="px-6 py-4 text-base text-gray-800">
+                                                    Changes the color scheme of the topbar to a given
+                                                    value
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td class="px-6 py-4 text-base text-red-600">
+                                                    <code class="text-nowrap">data-menu-color</code>
+                                                </td>
+                                                <td class="px-6 py-4 text-base text-gray-800">String</td>
+                                                <td class="px-6 py-4 text-base text-gray-800">"light" | "dark" </td>
+                                                <td class="px-6 py-4 text-base text-gray-800">
+                                                    Changes the color scheme of the menu to a given
+                                                    value
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-6 py-4 text-base text-red-600">
+                                                    <code class="text-nowrap">data-menu-size</code>
+                                                </td>
+                                                <td class="px-6 py-4 text-base text-gray-800">String</td>
+                                                <td class="px-6 py-4 text-base text-gray-800">
+                                                    "default" | "condensed" | "sm-hover" |
+                                                    "sm-hover-active" | "hidden"
+                                                </td>
+                                                <td class="px-6 py-4 text-base text-gray-800">
+                                                    The left sidebar size is reduced to a condensed
+                                                    (small) size
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border rounded-md scroll-mt-8" id="plugins">
+                        <h5 class="text-lg/none font-medium border-b border-gray-200 p-4">Plugins</h5>
+
+                        <div class="p-4">
+
+                            <p class="text-gray-600 text-base mb-4">
+                                Here is the list of plugin with the official documentation. Lahome won't be
+                                easy to build without using them and we are thankful to them.
+                            </p>
+
+                            <div class="rounded-md bg-slate-50 border overflow-x-scroll md:overflow-hidden mt-6">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead>
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-lg font-medium text-gray-800 uppercase">
+                                                Plugins</th>
+                                            <th class="px-6 py-3 text-left text-lg font-medium text-gray-800 uppercase">
+                                                URL</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Bootstrap</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a
+                                                    href="https://getbootstrap.com/"
+                                                    target="_blank">https://getbootstrap.com/</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Apex Charts</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a
+                                                    href="https://apexcharts.com/"
+                                                    target="_blank">https://apexcharts.com/</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Boxicons</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a
+                                                    href="https://boxicons.com/"
+                                                    target="_blank">https://boxicons.com/</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Iconify Solar Icon</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a
+                                                    href="https://icon-sets.iconify.design/solar/"
+                                                    target="_blank">https://icon-sets.iconify.design/solar/</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Choice</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a
+                                                    href="https://github.com/Choices-js/Choices#readme"
+                                                    target="_blank">https://github.com/Choices-js/Choices#readme</a>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Clipboard</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a
+                                                    href="https://clipboardjs.com/"
+                                                    target="_blank">https://clipboardjs.com/</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Day Js</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a href="https://day.js.org/"
+                                                    target="_blank">https://day.js.org/</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Dragula</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a
+                                                    href="https://github.com/bevacqua/dragula"
+                                                    target="_blank">https://github.com/bevacqua/dragula</a>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Dropzone</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a
+                                                    href="https://www.npmjs.com/package/dropzone"
+                                                    target="_blank">https://www.npmjs.com/package/dropzone</a>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Flatpicker</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a
+                                                    href="https://flatpickr.js.org/"
+                                                    target="_blank">https://flatpickr.js.org/</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Full Calendar</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a
+                                                    href="https://fullcalendar.io/"
+                                                    target="_blank">https://fullcalendar.io/</a></td>
+                                        </tr>
+
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Grid Js</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a href="https://gridjs.io/"
+                                                    target="_blank">https://gridjs.io/</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Highlight Js</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a
+                                                    href="https://highlightjs.org/"
+                                                    target="_blank">https://highlightjs.org/</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Input Mask</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a
+                                                    href="https://github.com/RobinHerbots/Inputmask"
+                                                    target="_blank">https://github.com/RobinHerbots/Inputmask</a>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Js Vectormap</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a
+                                                    href="https://themustafaomar.com/open-source/jsvectormap/"
+                                                    target="_blank">https://themustafaomar.com/open-source/jsvectormap/</a>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Simplebar</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a
+                                                    href="https://grsmto.github.io/simplebar/"
+                                                    target="_blank">https://grsmto.github.io/simplebar/</a>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Swiper Slider</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a
+                                                    href="https://swiperjs.com/"
+                                                    target="_blank">https://swiperjs.com/</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Vanila Wizard</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a
+                                                    href="https://www.npmjs.com/package/vanilla-wizard"
+                                                    target="_blank">https://www.npmjs.com/package/vanilla-wizard</a>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 text-base text-gray-800">Vanilajs Datepicker</td>
+                                            <td class="px-6 py-4 text-base text-blue-500"><a
+                                                    href="https://mymth.github.io/vanillajs-datepicker/#/"
+                                                    target="_blank">https://mymth.github.io/vanillajs-datepicker/#/</a>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border rounded-md scroll-mt-8" id="browser-compatibility">
+                        <h4 class="text-lg/none font-medium border-b border-gray-200 p-4">Browser Compatibility:Chrome
+                            (Windows, Mac, Linux)</h4>
+
+                        <div class="p-4">
+                            <ul class="list-disc ps-6">
+                                <li class="text-sm text-gray-700 mb-1">Firefox (Windows, Mac, Linux)</li>
+                                <li class="text-sm text-gray-700 mb-1">Safari (Mac)</li>
+                                <li class="text-sm text-gray-700 mb-1">Microsoft Edge</li>
+                                <li class="text-sm text-gray-700 mb-1">And other WebKit browsers</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="border rounded-md scroll-mt-8" id="support">
+                        <h4 class="text-lg/none font-medium border-b border-gray-200 p-4">Support</h4>
+                        <div class="p-4">
+
+                            <p class="text-gray-600 text-base">
+                                Once again thank you for your purchase. I'll be happy to answer the the questions you
+                                have
+                                related to the theme. In case if you have any suggestion or feature, request please feel
+                                free to
+                                contact me, I'll try to implement it and will release as part of future updates.
+                            </p>
+                            <p class="text-blue-500 text-base mt-3 float-right">- Techzaa</p>
+                            <p class="text-gray-600 text-base mt-2">
+                                Stay Awesome!
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="border rounded-md scroll-mt-8" id="changelog">
+                        <h4 class="text-lg/none font-medium border-b border-gray-200 p-4">Changelog</h4>
+
+                        <div class="p-4">
+                            <h5 class="text-lg">Version <span class="text-blue-500">1.0.0</span> - 8th August 2024</h5>
+                            <ul class="list-inside mt-2">
+                                <li class="text-base text-gray-600"><i class="ri-focus-2-fill me-2"></i> Initial
+                                    released
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <!--grid-->
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-slate-200 text-gray-500">
+        <div class="py-5">
+            <div class="container mx-auto px-10">
+                <div class="text-center">
+                    <div>
+                        <p class="text-gray-600 text-base mb-4">
+                            ©
+                            <script>document.write(new Date().getFullYear()) </script> Lahome. Design by Techzaa
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        var spy = new Gumshoe('#ui-nav a');
+    </script>
+</body>
+
+</html>

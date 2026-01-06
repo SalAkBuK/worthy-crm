@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "ES2020",
+    "lib": [
+      "DOM",
+      "ES2019"
+    ],
+    "strict": true,
+    "outDir": "public/assets/js",
+    "rootDir": "public/assets/ts",
+    "skipLibCheck": true
+  },
+  "include": [
+    "public/assets/ts/**/*.ts"
+  ]
+}

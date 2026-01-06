@@ -1,0 +1,208 @@
+<?php
+declare(strict_types=1);
+
+namespace App\Models;
+
+use App\Helpers\DB;
+
+final class Lead {
+  public static function createBulk(array $rows, int $assignedBy, array &$rowErrors): bool {
+    $pdo = DB::conn();
+    $pdo->beginTransaction();
+    try {
+      $ins = $pdo->prepare("INSERT INTO leads
+        (lead_name, contact_email, contact_phone, interested_in_property, property_type, assigned_agent_user_id, created_by_user_id, created_at, status_overall)
+        VALUES (:n,:e,:ph,:p,:t,:a,:c,NOW(),'NEW')");
+      foreach ($rows as $i => $r) {
+        $email = strtolower(trim((string)($r['contact_email'] ?? '')));
+        $name = trim((string)($r['lead_name'] ?? ''));
+        $phone = trim((string)($r['contact_phone'] ?? ''));
+        $prop = trim((string)($r['interested_in_property'] ?? ''));
+        $type = (string)($r['property_type'] ?? '');
+        $agentId = (int)($r['assigned_agent_user_id'] ?? 0);
+
+        $errs = [];
+        if ($name === '') $errs[] = 'Name required';
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errs[] = 'Valid email required';
+        if ($phone === '') {
+          $errs[] = 'Phone number required';
+        } elseif (!preg_match('/^[0-9 +().-]{6,20}$/', $phone)) {
+          $errs[] = 'Phone number must be 6-20 chars and digits/+()-.';
+        }
+        if ($prop === '') $errs[] = 'Interested property required';
+        if (!in_array($type, ['OFF_PLAN','READY_TO_MOVE'], true)) $errs[] = 'Property type required';
+        if ($agentId <= 0) $errs[] = 'Agent required';
+        if ($errs) { $rowErrors[$i] = $errs; continue; }
+
+        $ins->execute([
+          ':n'=>$name,
+          ':e'=>$email,
+          ':ph'=>$phone,
+          ':p'=>$prop,
+          ':t'=>$type,
+          ':a'=>$agentId,
+          ':c'=>$assignedBy,
+        ]);
+      }
+
+      if ($rowErrors) {
+        $pdo->rollBack();
+        return false;
+      }
+      $pdo->commit();
+      return true;
+    } catch (\Throwable $e) {
+      $pdo->rollBack();
+      throw $e;
+    }
+  }
+
+  public static function searchAdmin(array $filters, int $page, int $perPage): array {
+    $pdo = DB::conn();
+    $where = [];
+    $params = [];
+
+    if (!empty($filters['q'])) {
+      $where[] = "(l.lead_name LIKE :q OR l.contact_email LIKE :q)";
+      $params[':q'] = '%' . $filters['q'] . '%';
+    }
+    if (!empty($filters['agent'])) {
+      $where[] = "l.assigned_agent_user_id = :agent";
+      $params[':agent'] = (int)$filters['agent'];
+    }
+    if (!empty($filters['type'])) {
+      $where[] = "l.property_type = :type";
+      $params[':type'] = $filters['type'];
+    }
+    if (!empty($filters['from'])) {
+      $where[] = "DATE(l.created_at) >= :from";
+      $params[':from'] = $filters['from'];
+    }
+    if (!empty($filters['to'])) {
+      $where[] = "DATE(l.created_at) <= :to";
+      $params[':to'] = $filters['to'];
+    }
+
+    $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+    $allowedSort = ['created_at','lead_name','contact_email','property_type','agent_name','status_overall'];
+    $sort = in_array(($filters['sort'] ?? 'created_at'), $allowedSort, true) ? $filters['sort'] : 'created_at';
+    $dir = (($filters['dir'] ?? 'desc') === 'asc') ? 'ASC' : 'DESC';
+
+    $order = "l.created_at DESC";
+    if ($sort === 'agent_name') $order = "agent_name $dir";
+    else $order = "l.$sort $dir";
+
+    $count = $pdo->prepare("SELECT COUNT(*) FROM leads l $whereSql");
+    $count->execute($params);
+    $total = (int)$count->fetchColumn();
+
+    $meta = \paginate_meta($total, $page, $perPage);
+
+    $sql = "SELECT l.*, u.username as agent_username, COALESCE(e.employee_name, u.username) as agent_name,
+      (SELECT COUNT(*) FROM lead_followups f WHERE f.lead_id=l.id) as followup_count
+      FROM leads l
+      JOIN users u ON u.id = l.assigned_agent_user_id
+      LEFT JOIN employees e ON e.employee_code=u.employee_code
+      $whereSql
+      ORDER BY $order
+      LIMIT :limit OFFSET :offset";
+
+    $st = $pdo->prepare($sql);
+    foreach ($params as $k=>$v) $st->bindValue($k, $v);
+    $st->bindValue(':limit', $meta['perPage'], \PDO::PARAM_INT);
+    $st->bindValue(':offset', $meta['offset'], \PDO::PARAM_INT);
+    $st->execute();
+    return ['items'=>$st->fetchAll(), 'meta'=>$meta];
+  }
+
+  public static function searchAgent(int $agentId, array $filters, int $page, int $perPage): array {
+    $pdo = DB::conn();
+    $where = ["l.assigned_agent_user_id = :agent"];
+    $params = [':agent'=>$agentId];
+
+    if (!empty($filters['q'])) {
+      $where[] = "(l.lead_name LIKE :q OR l.contact_email LIKE :q)";
+      $params[':q'] = '%' . $filters['q'] . '%';
+    }
+    if (!empty($filters['type'])) {
+      $where[] = "l.property_type = :type";
+      $params[':type'] = $filters['type'];
+    }
+    if (!empty($filters['status'])) {
+      $where[] = "l.status_overall = :status";
+      $params[':status'] = $filters['status'];
+    }
+    if (!empty($filters['from'])) {
+      $where[] = "DATE(l.created_at) >= :from";
+      $params[':from'] = $filters['from'];
+    }
+    if (!empty($filters['to'])) {
+      $where[] = "DATE(l.created_at) <= :to";
+      $params[':to'] = $filters['to'];
+    }
+
+    $whereSql = 'WHERE ' . implode(' AND ', $where);
+
+    $allowedSort = ['created_at','lead_name','status_overall','property_type'];
+    $sort = in_array(($filters['sort'] ?? 'created_at'), $allowedSort, true) ? $filters['sort'] : 'created_at';
+    $dir = (($filters['dir'] ?? 'desc') === 'asc') ? 'ASC' : 'DESC';
+
+    $count = $pdo->prepare("SELECT COUNT(*) FROM leads l $whereSql");
+    $count->execute($params);
+    $total = (int)$count->fetchColumn();
+    $meta = \paginate_meta($total, $page, $perPage);
+
+    $sql = "SELECT l.*, 
+      (SELECT COUNT(*) FROM lead_followups f WHERE f.lead_id=l.id) as followup_count,
+      (SELECT MAX(f.contact_datetime) FROM lead_followups f WHERE f.lead_id=l.id) as last_contact_at
+      FROM leads l
+      $whereSql
+      ORDER BY l.$sort $dir
+      LIMIT :limit OFFSET :offset";
+    $st = $pdo->prepare($sql);
+    foreach ($params as $k=>$v) $st->bindValue($k, $v);
+    $st->bindValue(':limit', $meta['perPage'], \PDO::PARAM_INT);
+    $st->bindValue(':offset', $meta['offset'], \PDO::PARAM_INT);
+    $st->execute();
+    return ['items'=>$st->fetchAll(), 'meta'=>$meta];
+  }
+
+  public static function findWithAgent(int $id): ?array {
+    $pdo = DB::conn();
+    $st = $pdo->prepare("SELECT l.*, u.username as agent_username, COALESCE(e.employee_name, u.username) as agent_name
+      FROM leads l
+      JOIN users u ON u.id=l.assigned_agent_user_id
+      LEFT JOIN employees e ON e.employee_code=u.employee_code
+      WHERE l.id=:id LIMIT 1");
+    $st->execute([':id'=>$id]);
+    $row = $st->fetch();
+    return $row ?: null;
+  }
+
+  public static function updateStatusByLeadId(int $leadId): void {
+    $pdo = DB::conn();
+    $st = $pdo->prepare("SELECT attempt_no, call_status, interested_status FROM lead_followups WHERE lead_id=:id ORDER BY attempt_no DESC LIMIT 1");
+    $st->execute([':id'=>$leadId]);
+    $last = $st->fetch();
+
+    $status = 'NEW';
+    if ($last) {
+      $attempt = (int)$last['attempt_no'];
+      $call = (string)$last['call_status'];
+      if ($call === 'NO_RESPONSE' || $call === 'ASK_CONTACT_LATER') {
+        $status = ($attempt >= 3) ? 'CLOSED' : 'IN_PROGRESS';
+      } else {
+        $status = 'CLOSED';
+      }
+    }
+    $up = $pdo->prepare("UPDATE leads SET status_overall=:s WHERE id=:id");
+    $up->execute([':s'=>$status, ':id'=>$leadId]);
+  }
+
+  public static function setStatus(int $leadId, string $status): void {
+    $pdo = DB::conn();
+    $up = $pdo->prepare("UPDATE leads SET status_overall=:s WHERE id=:id");
+    $up->execute([':s'=>$status, ':id'=>$leadId]);
+  }
+}
