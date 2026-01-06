@@ -14,6 +14,14 @@ final class AdminLeadsController extends BaseController {
 
   public function index(): void {
     try {
+      $this->individual();
+    } catch (\Throwable $e) {
+      $this->handleException($e);
+    }
+  }
+
+  public function individual(): void {
+    try {
       \require_role(['ADMIN', 'CEO']);
       $agents = User::allAgents();
       $filters = [
@@ -30,12 +38,25 @@ final class AdminLeadsController extends BaseController {
 
       $result = Lead::searchAdmin($filters, $page, $perPage);
 
-      View::render('admin/leads_index', [
-        'title' => 'Lead Entry & Management',
+      View::render('admin/leads_individual', [
+        'title' => 'Individual Leads',
         'agents' => $agents,
         'filters' => $filters,
         'items' => $result['items'],
         'meta' => $result['meta'],
+      ]);
+    } catch (\Throwable $e) {
+      $this->handleException($e);
+    }
+  }
+
+  public function bulk(): void {
+    try {
+      \require_role(['ADMIN', 'CEO']);
+      $agents = User::allAgents();
+      View::render('admin/leads_bulk', [
+        'title' => 'Bulk Leads',
+        'agents' => $agents,
       ]);
     } catch (\Throwable $e) {
       $this->handleException($e);
