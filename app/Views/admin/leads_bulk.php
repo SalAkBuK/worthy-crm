@@ -1,10 +1,9 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/../../Helpers/functions.php';
-$rowErrors = $_SESSION['_lead_row_errors'] ?? [];
-$oldRows = $_SESSION['_lead_old_rows'] ?? null;
-$importErrors = $_SESSION['_lead_import_errors'] ?? [];
-unset($_SESSION['_lead_row_errors'], $_SESSION['_lead_old_rows'], $_SESSION['_lead_import_errors']);
+$rowErrors = $_SESSION['_lead_bulk_row_errors'] ?? [];
+$oldRows = $_SESSION['_lead_bulk_old_rows'] ?? null;
+$importErrors = $_SESSION['_lead_bulk_import_errors'] ?? [];
 
 $agents = $agents ?? [];
 ?>
@@ -13,9 +12,12 @@ $agents = $agents ?? [];
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center border-bottom">
         <div>
-          <h4 class="card-title mb-1">Bulk Leads</h4>
-          <p class="text-muted mb-0 fs-13">Import CSV/XLSX and assign agents in bulk.</p>
+          <h4 class="card-title mb-0">Bulk Leads</h4>
         </div>
+        <form method="post" action="<?= e(url('admin/leads/bulk/clear')) ?>">
+          <?= csrf_field() ?>
+          <button class="btn btn-sm btn-outline-secondary" type="submit">Clear Imported Rows</button>
+        </form>
       </div>
       <div class="card-body">
         <?php if ($importErrors): ?>
@@ -36,7 +38,6 @@ $agents = $agents ?? [];
             <div class="col-md-4">
               <label class="form-label form-required">CSV/XLSX File</label>
               <input type="file" class="form-control" name="leads_csv" accept=".csv,.xlsx" required>
-              <div class="form-text">Required columns: lead_name/name, contact_email/email, contact_phone/phone, interested_in_property/service category. Optional: property type (stored as interest types), area, budget (AED), lead status.</div>
             </div>
             <div class="col-md-3">
               <label class="form-label">Default Property Type</label>
@@ -45,7 +46,6 @@ $agents = $agents ?? [];
                 <option value="OFF_PLAN">Off Plan</option>
                 <option value="READY_TO_MOVE">Ready To Move</option>
               </select>
-              <div class="form-text">Used only if the CSV has OFF_PLAN/READY_TO_MOVE. Otherwise left empty.</div>
             </div>
             <div class="col-md-5">
               <label class="form-label">Assignment</label>
@@ -53,10 +53,6 @@ $agents = $agents ?? [];
                 <label class="form-check">
                   <input class="form-check-input" type="radio" name="assign_mode" value="single" checked>
                   <span class="form-check-label">Assign all to agent</span>
-                </label>
-                <label class="form-check">
-                  <input class="form-check-input" type="radio" name="assign_mode" value="per_row">
-                  <span class="form-check-label">Assign individually (agent_id/agent_username/agent_email column)</span>
                 </label>
                 <label class="form-check">
                   <input class="form-check-input" type="radio" name="assign_mode" value="unassigned">
@@ -80,10 +76,11 @@ $agents = $agents ?? [];
 
         <form method="post" action="<?= e(url('admin/leads')) ?>">
           <?= csrf_field() ?>
+          <input type="hidden" name="form_type" value="bulk">
 
-          <div class="d-flex flex-wrap gap-2 justify-content-end mb-2">
+          <div class="d-flex flex-wrap gap-3 justify-content-end mb-2">
             <div class="d-flex align-items-center gap-2">
-              <label class="form-label mb-0">Assign selected rows</label>
+              <span class="badge rounded-pill bg-light-subtle text-dark border bulk-assign-pill">Assign selected</span>
               <select class="form-select" data-assign-selected>
                 <option value="">Select agent</option>
                 <?php foreach ($agents as $a): ?>
@@ -93,7 +90,7 @@ $agents = $agents ?? [];
               <button class="btn btn-outline-primary" type="button" data-apply-selected>Apply</button>
             </div>
             <div class="d-flex align-items-center gap-2">
-              <label class="form-label mb-0">Assign all rows</label>
+              <span class="badge rounded-pill bg-light-subtle text-dark border bulk-assign-pill">Assign all</span>
               <select class="form-select" data-assign-all>
                 <option value="">Select agent</option>
                 <?php foreach ($agents as $a): ?>
@@ -128,7 +125,7 @@ $agents = $agents ?? [];
               <tbody id="leadRows">
               <?php
                 $rows = is_array($oldRows) ? $oldRows : [
-                  ['lead_name'=>'','contact_email'=>'','contact_phone'=>'','interested_in_property'=>'','property_type'=>'OFF_PLAN','assigned_agent_user_id'=>'']
+                  ['lead_name'=>'','contact_email'=>'','contact_phone'=>'','interested_in_property'=>'','property_type'=>'','assigned_agent_user_id'=>'']
                 ];
                 foreach ($rows as $i=>$r):
               ?>
@@ -144,6 +141,7 @@ $agents = $agents ?? [];
                 <td><input class="form-control" data-base="property_interest_types" value="<?= e($r['property_interest_types'] ?? '') ?>" placeholder="Unit, Villa, Land"></td>
                 <td>
                   <select class="form-select" data-base="property_type">
+                    <option value="" <?= (($r['property_type'] ?? '')==='')?'selected':'' ?>>Select type</option>
                     <option value="OFF_PLAN" <?= (($r['property_type'] ?? '')==='OFF_PLAN')?'selected':'' ?>>Off Plan</option>
                     <option value="READY_TO_MOVE" <?= (($r['property_type'] ?? '')==='READY_TO_MOVE')?'selected':'' ?>>Ready To Move</option>
                   </select>
@@ -188,6 +186,7 @@ $agents = $agents ?? [];
               <td><input class="form-control" data-base="property_interest_types" placeholder="Unit, Villa, Land"></td>
               <td>
                 <select class="form-select" data-base="property_type">
+                  <option value="">Select type</option>
                   <option value="OFF_PLAN">Off Plan</option>
                   <option value="READY_TO_MOVE">Ready To Move</option>
                 </select>
@@ -219,3 +218,134 @@ $agents = $agents ?? [];
 </div>
 
 <script src="<?= e(url('assets/js/admin_leads.js')) ?>"></script>
+<script>
+  (function () {
+    var assignBtn = document.querySelector('[data-apply-selected]');
+    var assignSelect = document.querySelector('[data-assign-selected]');
+    var tbody = document.getElementById('leadRows');
+    var tpl = document.getElementById('leadRowTemplate');
+    var csrf = document.querySelector('input[name="_csrf"]');
+    if (!assignBtn || !assignSelect || !tbody || !tpl || !csrf) return;
+
+    function updateRowNames() {
+      Array.from(tbody.querySelectorAll('tr')).forEach(function (tr, idx) {
+        tr.querySelectorAll('input,select').forEach(function (input) {
+          var base = input.getAttribute('data-base');
+          if (!base) return;
+          input.name = 'rows[' + idx + '][' + base + ']';
+        });
+        var idxCell = tr.querySelector('[data-idx]');
+        if (idxCell) idxCell.textContent = String(idx + 1);
+      });
+    }
+
+    function addBlankRow() {
+      var frag = tpl.content.cloneNode(true);
+      tbody.appendChild(frag);
+      updateRowNames();
+    }
+
+    function getSelectedRows() {
+      return Array.from(tbody.querySelectorAll('tr')).filter(function (tr) {
+        var chk = tr.querySelector('[data-bulk-select-item]');
+        return chk && chk.checked;
+      });
+    }
+
+    function getRowData(tr) {
+      var row = {};
+      tr.querySelectorAll('input,select').forEach(function (input) {
+        var base = input.getAttribute('data-base');
+        if (!base) return;
+        row[base] = input.value;
+      });
+      return row;
+    }
+
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-apply-selected]');
+      if (!btn) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      var agentId = assignSelect.value;
+      var selectedRows = getSelectedRows();
+      if (!agentId) {
+        alert('Select an agent to assign.');
+        return;
+      }
+      if (!selectedRows.length) {
+        alert('Select at least one row.');
+        return;
+      }
+      if (!confirm('Assign the selected leads to this agent and save them now?')) {
+        return;
+      }
+
+      selectedRows.forEach(function (tr) {
+        tr.classList.remove('table-danger');
+        Array.from(tr.querySelectorAll('.bulk-row-error')).forEach(function (el) {
+          el.remove();
+        });
+      });
+
+      var rows = selectedRows.map(getRowData);
+      var remainingRows = Array.from(tbody.querySelectorAll('tr'))
+        .filter(function (tr) { return selectedRows.indexOf(tr) === -1; })
+        .map(getRowData);
+
+      fetch("<?= e(url('admin/leads/assign-selected')) ?>", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          _csrf: csrf.value,
+          agent_id: agentId,
+          rows: rows,
+          remaining_rows: remainingRows
+        })
+      }).then(function (res) {
+        return res.json().then(function (data) {
+          return { status: res.status, data: data };
+        });
+      }).then(function (result) {
+        if (!result.data || !result.data.ok) {
+          if (result.data && result.data.row_errors) {
+            Object.keys(result.data.row_errors).forEach(function (key) {
+              var idx = parseInt(key, 10);
+              var errs = result.data.row_errors[key];
+              if (Number.isNaN(idx) || !selectedRows[idx]) return;
+              var tr = selectedRows[idx];
+              tr.classList.add('table-danger');
+              if (Array.isArray(errs) && errs.length) {
+                var msg = document.createElement('div');
+                msg.className = 'small text-danger mt-1 bulk-row-error';
+                msg.textContent = errs.join(', ');
+                tr.lastElementChild && tr.lastElementChild.appendChild(msg);
+              }
+            });
+          }
+          alert((result.data && result.data.error) ? result.data.error : 'Unable to assign leads.');
+          return;
+        }
+        selectedRows.forEach(function (tr) { tr.remove(); });
+        updateRowNames();
+        if (tbody.querySelectorAll('tr').length === 0) {
+          addBlankRow();
+        }
+      }).catch(function () {
+        alert('Unable to assign leads. Please try again.');
+      });
+    }, true);
+
+    tbody.addEventListener('click', function (e) {
+      var target = e.target;
+      if (!target) return;
+      if (target.closest('input,select,textarea,button,a,label')) return;
+      var tr = target.closest('tr');
+      if (!tr) return;
+      var chk = tr.querySelector('[data-bulk-select-item]');
+      if (!chk) return;
+      chk.checked = !chk.checked;
+    });
+  })();
+</script>

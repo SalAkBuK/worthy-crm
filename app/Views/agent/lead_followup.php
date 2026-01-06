@@ -41,10 +41,8 @@ $blockReason = $blockReason ?? null;
             <?= $isClosed ? 'Completed' : e((string)$completed) . '/3 attempts' ?>
           </div>
         </div>
-        <div class="progress mt-2">
-          <div class="progress-bar <?= $isClosed ? 'bg-success' : '' ?>" role="progressbar" style="width: <?= e((string)$progressPct) ?>%" aria-valuenow="<?= e((string)$progressPct) ?>" aria-valuemin="0" aria-valuemax="100">
-            <?= e((string)$progressPct) ?>%
-          </div>
+        <div class="progress mt-2 mb-2">
+          <div class="progress-bar bg-primary progress-bar-striped" role="progressbar" style="width: <?= e((string)$progressPct) ?>%" aria-valuenow="<?= e((string)$progressPct) ?>" aria-valuemin="0" aria-valuemax="100"></div>
         </div>
       </div>
       <div class="card-header border-top border-bottom">

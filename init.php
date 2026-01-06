@@ -40,6 +40,7 @@ require_once __DIR__ . '/app/Controllers/AuthController.php';
 require_once __DIR__ . '/app/Controllers/AdminLeadsController.php';
 require_once __DIR__ . '/app/Controllers/AgentLeadsController.php';
 require_once __DIR__ . '/app/Controllers/CeoController.php';
+require_once __DIR__ . '/app/Controllers/ProfileController.php';
 
 /*
 |--------------------------------------------------------------------------

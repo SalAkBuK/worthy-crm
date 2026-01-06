@@ -63,29 +63,74 @@ final class AdminLeadsController extends BaseController {
     }
   }
 
+  public function assigned(): void {
+    try {
+      \require_role(['ADMIN', 'CEO']);
+      $agents = User::allAgents();
+      $filters = [
+        'q' => trim((string)($_GET['q'] ?? '')),
+        'agent' => $_GET['agent'] ?? '',
+        'type' => $_GET['type'] ?? '',
+        'from' => \parse_date($_GET['from'] ?? null),
+        'to' => \parse_date($_GET['to'] ?? null),
+        'sort' => $_GET['sort'] ?? 'created_at',
+        'dir' => $_GET['dir'] ?? 'desc',
+        'assigned_only' => true,
+      ];
+      $page = max(1, (int)($_GET['page'] ?? 1));
+      $perPage = 10;
+
+      $result = Lead::searchAdmin($filters, $page, $perPage);
+
+      View::render('admin/leads_assigned', [
+        'title' => 'Assigned Leads',
+        'agents' => $agents,
+        'filters' => $filters,
+        'items' => $result['items'],
+        'meta' => $result['meta'],
+      ]);
+    } catch (\Throwable $e) {
+      $this->handleException($e);
+    }
+  }
+
   public function storeBulk(): void {
     try {
       \require_role(['ADMIN', 'CEO']);
       \verify_csrf();
 
+      $formType = (string)($_POST['form_type'] ?? 'bulk');
       $rows = $_POST['rows'] ?? [];
       if (!is_array($rows) || count($rows) === 0) {
         flash('danger', 'Please add at least one lead row.');
-        redirect('admin/leads');
+        redirect($formType === 'individual' ? 'admin/leads/individual' : 'admin/leads/bulk');
       }
       $rowErrors = [];
+      if ($formType === 'bulk') {
+        foreach ($rows as $i => $row) {
+          $type = trim((string)($row['property_type'] ?? ''));
+          if ($type === '') {
+            $rows[$i]['allow_missing_type'] = true;
+          }
+        }
+      }
       $ok = Lead::createBulk($rows, (int)current_user()['id'], $rowErrors);
 
       if (!$ok) {
-        $_SESSION['_lead_row_errors'] = $rowErrors;
-        $_SESSION['_lead_old_rows'] = $rows;
+        if ($formType === 'individual') {
+          $_SESSION['_lead_individual_row_errors'] = $rowErrors;
+          $_SESSION['_lead_individual_old_rows'] = $rows;
+        } else {
+          $_SESSION['_lead_bulk_row_errors'] = $rowErrors;
+          $_SESSION['_lead_bulk_old_rows'] = $rows;
+        }
         flash('danger', 'Fix the highlighted rows and try again.');
-        redirect('admin/leads');
+        redirect($formType === 'individual' ? 'admin/leads/individual' : 'admin/leads/bulk');
       }
 
       AuditLog::log((int)current_user()['id'], 'LEADS_BULK_CREATE', ['count'=>count($rows)]);
       flash('success', 'Leads saved successfully.');
-      redirect('admin/leads');
+      redirect($formType === 'individual' ? 'admin/leads/individual' : 'admin/leads/bulk');
     } catch (\Throwable $e) {
       $this->handleException($e);
     }
@@ -99,26 +144,26 @@ final class AdminLeadsController extends BaseController {
       $file = $_FILES['leads_csv'] ?? null;
       if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
         flash('danger', 'Please choose a CSV or XLSX file to import.');
-        redirect('admin/leads');
+        redirect('admin/leads/bulk');
       }
       if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
         flash('danger', 'File upload failed.');
-        redirect('admin/leads');
+        redirect('admin/leads/bulk');
       }
       if (($file['size'] ?? 0) > 3 * 1024 * 1024) {
         flash('danger', 'File too large (max 3MB).');
-        redirect('admin/leads');
+        redirect('admin/leads/bulk');
       }
       $ext = strtolower((string)pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
       if (!in_array($ext, ['csv', 'xlsx'], true)) {
         flash('danger', 'Unsupported file type. Please upload CSV or XLSX.');
-        redirect('admin/leads');
+        redirect('admin/leads/bulk');
       }
 
       $assignMode = (string)($_POST['assign_mode'] ?? 'single');
       if (!in_array($assignMode, ['single', 'per_row', 'unassigned'], true)) {
         flash('danger', 'Invalid assignment mode.');
-        redirect('admin/leads');
+        redirect('admin/leads/bulk');
       }
 
       $defaultAgentId = 0;
@@ -126,7 +171,7 @@ final class AdminLeadsController extends BaseController {
         $defaultAgentId = (int)($_POST['assigned_agent_user_id'] ?? 0);
         if ($defaultAgentId <= 0) {
           flash('danger', 'Select an agent to assign all leads.');
-          redirect('admin/leads');
+          redirect('admin/leads/bulk');
         }
       }
 
@@ -138,12 +183,12 @@ final class AdminLeadsController extends BaseController {
       $dataRows = $this->readSpreadsheetRows($file['tmp_name'], $ext);
       if (!$dataRows) {
         flash('danger', 'File is empty or unreadable.');
-        redirect('admin/leads');
+        redirect('admin/leads/bulk');
       }
       $header = array_shift($dataRows);
       if (!$header) {
         flash('danger', 'File is missing a header row.');
-        redirect('admin/leads');
+        redirect('admin/leads/bulk');
       }
 
       $headerMap = [];
@@ -173,11 +218,11 @@ final class AdminLeadsController extends BaseController {
 
       if ($colName === null || $colEmail === null || $colPhone === null || $colInterested === null) {
         flash('danger', 'CSV must include columns for lead_name/name, contact_email/email, contact_phone/phone, interested_in_property/service category.');
-        redirect('admin/leads');
+        redirect('admin/leads/bulk');
       }
       if ($assignMode === 'per_row' && $colAgentId === null && $colAgentUser === null && $colAgentEmail === null) {
         flash('danger', 'CSV must include agent_id, agent_username, or agent_email when assigning individually.');
-        redirect('admin/leads');
+        redirect('admin/leads/bulk');
       }
 
       $agents = User::allAgents();
@@ -201,7 +246,7 @@ final class AdminLeadsController extends BaseController {
           'contact_email' => $data[$colEmail] ?? '',
           'contact_phone' => $data[$colPhone] ?? '',
           'interested_in_property' => $data[$colInterested] ?? '',
-          'property_type' => $defaultType,
+          'property_type' => null,
           'property_interest_types' => $colInterestTypes !== null ? ($data[$colInterestTypes] ?? '') : '',
           'area' => $colArea !== null ? ($data[$colArea] ?? '') : '',
           'budget_aed_min' => null,
@@ -223,8 +268,8 @@ final class AdminLeadsController extends BaseController {
           if ($rawType === 'OFF_PLAN') $row['property_type'] = 'OFF_PLAN';
           elseif ($rawType === 'READY_TO_MOVE' || $rawType === 'READY TO MOVE') $row['property_type'] = 'READY_TO_MOVE';
           elseif ($rawType === 'OFF PLAN') $row['property_type'] = 'OFF_PLAN';
-          elseif ($rawType === '') $row['property_type'] = $defaultType;
-          else $row['property_type'] = $defaultType;
+          elseif ($rawType === '') $row['property_type'] = null;
+          else $row['property_type'] = null;
         }
 
         if ($assignMode === 'per_row') {
@@ -250,17 +295,17 @@ final class AdminLeadsController extends BaseController {
       }
       if (!$rows) {
         flash('danger', 'No valid rows found in CSV.');
-        redirect('admin/leads');
+        redirect('admin/leads/bulk');
       }
 
-      $_SESSION['_lead_old_rows'] = $rows;
+      $_SESSION['_lead_bulk_old_rows'] = $rows;
       AuditLog::log((int)current_user()['id'], 'LEADS_CSV_IMPORT', [
         'count' => count($rows),
         'mode' => $assignMode,
         'deferred' => true,
       ]);
-      flash('success', 'Imported ' . count($rows) . ' rows. Review and click “Save All Leads” to commit.');
-      redirect('admin/leads');
+      flash('success', 'Imported ' . count($rows) . ' rows. Review and click "Save All Leads" to commit.');
+      redirect('admin/leads/bulk');
     } catch (\Throwable $e) {
       $this->handleException($e);
     }
@@ -303,6 +348,86 @@ final class AdminLeadsController extends BaseController {
       ]);
       flash('success', 'Assigned ' . $updated . ' lead(s) to agent.');
       redirect('admin/leads');
+    } catch (\Throwable $e) {
+      $this->handleException($e);
+    }
+  }
+
+  public function assignSelected(): void {
+    try {
+      \require_role(['ADMIN', 'CEO']);
+      header('Content-Type: application/json; charset=utf-8');
+      $payload = json_decode((string)file_get_contents('php://input'), true);
+      if (!is_array($payload)) {
+        http_response_code(400);
+        echo json_encode(['ok' => false, 'error' => 'Invalid request.']);
+        return;
+      }
+      $token = (string)($payload['_csrf'] ?? '');
+      if (!$token || !hash_equals($_SESSION['_csrf'] ?? '', $token)) {
+        http_response_code(419);
+        echo json_encode(['ok' => false, 'error' => 'Invalid CSRF token.']);
+        return;
+      }
+
+      $agentId = (int)($payload['agent_id'] ?? 0);
+      $rows = $payload['rows'] ?? [];
+      $remainingRows = $payload['remaining_rows'] ?? null;
+      if ($agentId <= 0) {
+        http_response_code(422);
+        echo json_encode(['ok' => false, 'error' => 'Select an agent to assign.']);
+        return;
+      }
+      if (!is_array($rows) || !$rows) {
+        http_response_code(422);
+        echo json_encode(['ok' => false, 'error' => 'Select at least one row.']);
+        return;
+      }
+
+      foreach ($rows as $i => $row) {
+        if (!is_array($row)) {
+          http_response_code(422);
+          echo json_encode(['ok' => false, 'error' => 'Invalid row data.']);
+          return;
+        }
+        $rows[$i]['assigned_agent_user_id'] = $agentId;
+        $type = trim((string)($row['property_type'] ?? ''));
+        if ($type === '') {
+          $rows[$i]['allow_missing_type'] = true;
+        }
+      }
+
+      $rowErrors = [];
+      $ok = Lead::createBulk($rows, (int)current_user()['id'], $rowErrors);
+      if (!$ok) {
+        http_response_code(422);
+        echo json_encode(['ok' => false, 'error' => 'Fix the highlighted rows and try again.', 'row_errors' => $rowErrors]);
+        return;
+      }
+
+      if (is_array($remainingRows)) {
+        $_SESSION['_lead_bulk_old_rows'] = $remainingRows;
+        unset($_SESSION['_lead_bulk_row_errors']);
+        if (!$remainingRows) unset($_SESSION['_lead_bulk_old_rows']);
+      }
+
+      AuditLog::log((int)current_user()['id'], 'LEADS_BULK_ASSIGN_CREATE', [
+        'count' => count($rows),
+        'agent_id' => $agentId,
+      ]);
+      echo json_encode(['ok' => true, 'count' => count($rows)]);
+    } catch (\Throwable $e) {
+      $this->handleException($e);
+    }
+  }
+
+  public function clearBulkDraft(): void {
+    try {
+      \require_role(['ADMIN', 'CEO']);
+      \verify_csrf();
+      unset($_SESSION['_lead_bulk_row_errors'], $_SESSION['_lead_bulk_old_rows'], $_SESSION['_lead_bulk_import_errors']);
+      flash('success', 'Imported rows cleared.');
+      redirect('admin/leads/bulk');
     } catch (\Throwable $e) {
       $this->handleException($e);
     }
@@ -579,6 +704,7 @@ final class AdminLeadsController extends BaseController {
         'to' => \parse_date($_GET['to'] ?? null),
         'sort' => $_GET['sort'] ?? 'created_at',
         'dir' => $_GET['dir'] ?? 'desc',
+        'assigned_only' => !empty($_GET['assigned_only']),
       ];
 
       $pdo = DB::conn();
@@ -591,6 +717,9 @@ final class AdminLeadsController extends BaseController {
       if (!empty($filters['agent'])) {
         $where[] = "l.assigned_agent_user_id = :agent";
         $params[':agent'] = (int)$filters['agent'];
+      }
+      if (!empty($filters['assigned_only'])) {
+        $where[] = "l.assigned_agent_user_id > 0";
       }
       if (!empty($filters['type'])) {
         $where[] = "l.property_type = :type";
@@ -873,3 +1002,4 @@ final class AdminLeadsController extends BaseController {
     } catch (\Throwable $e) { $this->handleException($e); }
   }
 }
+

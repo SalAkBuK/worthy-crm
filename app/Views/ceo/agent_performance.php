@@ -4,6 +4,13 @@ require_once __DIR__ . '/../../Helpers/functions.php';
 
 $agentName = $agent['employee_name'] ?: ucfirst((string)$agent['username']);
 $agentInitial = strtoupper(substr($agentName, 0, 1));
+$leadDisplayName = function (?string $name): string {
+  $name = trim((string)$name);
+  if ($name === '') return '';
+  $parts = preg_split('/\s+/', $name);
+  if (!$parts || count($parts) <= 3) return $name;
+  return implode(' ', array_slice($parts, 0, 3)) . '...';
+};
 
 $days = array_map(fn($r)=>$r['day'], $byDay);
 $dayCounts = array_map(fn($r)=>(int)$r['c'], $byDay);
@@ -186,7 +193,7 @@ $dayCounts = array_map(fn($r)=>(int)$r['c'], $byDay);
                   $interestClass = $interestStatus === 'INTERESTED' ? 'bg-success-subtle text-success' : ($interestStatus === 'NOT_INTERESTED' ? 'bg-danger-subtle text-danger' : 'bg-light text-muted');
                 ?>
                   <tr>
-                    <td class="fw-semibold"><?= e($l['lead_name']) ?></td>
+                    <td class="fw-semibold"><?= e($leadDisplayName($l['lead_name'] ?? '')) ?></td>
                     <td><?= e($l['contact_email']) ?></td>
                     <td><span class="badge bg-light-subtle text-muted border"><?= e($l['property_type']) ?></span></td>
                     <td class="text-muted"><?= e($l['created_at']) ?></td>

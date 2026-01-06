@@ -45,8 +45,12 @@ final class Lead {
         }
         if ($prop === '') $errs[] = 'Interested property required';
         if ($type === '' || $type === null) {
-          if (!$allowMissingType) $errs[] = 'Property type required';
-        } elseif (!in_array($type, ['OFF_PLAN','READY_TO_MOVE'], true)) {
+          if ($allowMissingType) {
+            $type = 'NONE';
+          } else {
+            $errs[] = 'Property type required';
+          }
+        } elseif (!in_array($type, ['OFF_PLAN','READY_TO_MOVE','NONE'], true)) {
           $errs[] = 'Property type required';
         }
         if ($agentId <= 0 && !$allowUnassigned) $errs[] = 'Agent required';
@@ -93,6 +97,9 @@ final class Lead {
     if (!empty($filters['agent'])) {
       $where[] = "l.assigned_agent_user_id = :agent";
       $params[':agent'] = (int)$filters['agent'];
+    }
+    if (!empty($filters['assigned_only'])) {
+      $where[] = "l.assigned_agent_user_id > 0";
     }
     if (!empty($filters['type'])) {
       $where[] = "l.property_type = :type";

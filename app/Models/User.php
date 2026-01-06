@@ -118,6 +118,12 @@ final class User {
     $st->execute([':p'=>$photoPath, ':id'=>$id]);
   }
 
+  public static function updatePhotoPath(int $id, string $photoPath): void {
+    $pdo = DB::conn();
+    $st = $pdo->prepare("UPDATE users SET photo_path=:p WHERE id=:id");
+    $st->execute([':p'=>$photoPath, ':id'=>$id]);
+  }
+
   public static function updateAgentContact(int $id, ?string $email, ?string $phone): void {
     $pdo = DB::conn();
     $st = $pdo->prepare("UPDATE users SET email=:e, contact_phone=:p WHERE id=:id AND role='AGENT'");
@@ -144,6 +150,24 @@ final class User {
     $st = $pdo->prepare("UPDATE users SET password_hash=:p WHERE id=:id AND role='AGENT'");
     $st->execute([':p'=>$passwordHash, ':id'=>$id]);
     return $st->rowCount() > 0;
+  }
+
+  public static function updateProfile(int $id, ?string $name, ?string $email, ?string $phone, ?string $rera): void {
+    $pdo = DB::conn();
+    $st = $pdo->prepare("UPDATE users SET agent_name=:n, email=:e, contact_phone=:p, rera_number=:r WHERE id=:id");
+    $st->execute([
+      ':n' => $name !== '' ? $name : null,
+      ':e' => $email !== '' ? $email : null,
+      ':p' => $phone !== '' ? $phone : null,
+      ':r' => $rera !== '' ? $rera : null,
+      ':id' => $id,
+    ]);
+  }
+
+  public static function updatePassword(int $id, string $passwordHash): void {
+    $pdo = DB::conn();
+    $st = $pdo->prepare("UPDATE users SET password_hash=:p WHERE id=:id");
+    $st->execute([':p' => $passwordHash, ':id' => $id]);
   }
 
   public static function deleteAgentIfNoActivity(int $id): array {

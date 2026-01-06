@@ -1,10 +1,21 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/../../Helpers/functions.php';
-$rowErrors = $_SESSION['_lead_row_errors'] ?? [];
-$oldRows = $_SESSION['_lead_old_rows'] ?? null;
-unset($_SESSION['_lead_row_errors'], $_SESSION['_lead_old_rows']);
+$rowErrors = $_SESSION['_lead_individual_row_errors'] ?? [];
+$oldRows = $_SESSION['_lead_individual_old_rows'] ?? null;
+unset($_SESSION['_lead_individual_row_errors'], $_SESSION['_lead_individual_old_rows']);
 $agents = $agents ?? [];
+$reqUri = $_SERVER['REQUEST_URI'] ?? 'admin/leads/individual';
+$base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/');
+$path = parse_url($reqUri, PHP_URL_PATH) ?? '';
+$query = parse_url($reqUri, PHP_URL_QUERY);
+if ($base !== '' && str_starts_with($path, $base)) {
+  $path = substr($path, strlen($base));
+}
+if ($path === '') $path = '/';
+$returnPath = ltrim($path, '/');
+if ($query) $returnPath .= '?' . $query;
+$returnParam = urlencode($returnPath);
 $leadDisplayName = function (?string $name): string {
   $name = trim((string)$name);
   if ($name === '') return '';
@@ -28,6 +39,7 @@ $leadDisplayName = function (?string $name): string {
       <div class="card-body">
         <form method="post" action="<?= e(url('admin/leads')) ?>">
           <?= csrf_field() ?>
+          <input type="hidden" name="form_type" value="individual">
           <div class="table-responsive">
             <table class="table align-middle text-nowrap table-hover table-centered mb-0">
               <thead class="bg-light-subtle">
@@ -48,7 +60,7 @@ $leadDisplayName = function (?string $name): string {
               <tbody id="individualLeadRows">
                 <?php
                   $rows = is_array($oldRows) ? $oldRows : [
-                    ['lead_name'=>'','contact_email'=>'','contact_phone'=>'','interested_in_property'=>'','property_type'=>'OFF_PLAN','assigned_agent_user_id'=>'']
+                    ['lead_name'=>'','contact_email'=>'','contact_phone'=>'','interested_in_property'=>'','property_type'=>'','assigned_agent_user_id'=>'']
                   ];
                   foreach ($rows as $i => $r):
                 ?>
@@ -60,6 +72,7 @@ $leadDisplayName = function (?string $name): string {
                   <td><input class="form-control" data-base="property_interest_types" name="rows[<?= $i ?>][property_interest_types]" value="<?= e($r['property_interest_types'] ?? '') ?>" placeholder="Unit, Villa, Land"></td>
                   <td>
                     <select class="form-select" data-base="property_type" name="rows[<?= $i ?>][property_type]">
+                      <option value="" <?= (($r['property_type'] ?? '')==='')?'selected':'' ?>>Select type</option>
                       <option value="OFF_PLAN" <?= (($r['property_type'] ?? '')==='OFF_PLAN')?'selected':'' ?>>Off Plan</option>
                       <option value="READY_TO_MOVE" <?= (($r['property_type'] ?? '')==='READY_TO_MOVE')?'selected':'' ?>>Ready To Move</option>
                     </select>
@@ -99,6 +112,7 @@ $leadDisplayName = function (?string $name): string {
               <td><input class="form-control" data-base="property_interest_types" placeholder="Unit, Villa, Land"></td>
               <td>
                 <select class="form-select" data-base="property_type">
+                  <option value="">Select type</option>
                   <option value="OFF_PLAN">Off Plan</option>
                   <option value="READY_TO_MOVE">Ready To Move</option>
                 </select>
@@ -198,6 +212,7 @@ $leadDisplayName = function (?string $name): string {
                 <th>Status</th>
                 <th>Followups</th>
                 <th>Created</th>
+                <th class="text-end"></th>
               </tr>
             </thead>
             <tbody>
@@ -207,7 +222,8 @@ $leadDisplayName = function (?string $name): string {
                 <td><?= e($l['contact_email']) ?></td>
                 <td><?= e($l['contact_phone'] ?? '-') ?></td>
                 <td class="text-muted"><?= e($l['interested_in_property']) ?></td>
-                <td><span class="badge bg-light-subtle text-dark py-1 px-2 fs-13"><?= e($l['property_type']) ?></span></td>
+                <?php $ptype = $l['property_type'] !== null && $l['property_type'] !== '' ? (string)$l['property_type'] : 'NONE'; ?>
+                <td><span class="badge bg-light-subtle text-dark py-1 px-2 fs-13"><?= e($ptype) ?></span></td>
                 <td><?= e($l['agent_name'] ?: '-') ?></td>
                 <td>
                   <?php
@@ -218,6 +234,11 @@ $leadDisplayName = function (?string $name): string {
                 </td>
                 <td><?= e((string)$l['followup_count']) ?></td>
                 <td class="text-muted"><?= e($l['created_at']) ?></td>
+                <td class="text-end">
+                  <a class="btn btn-light btn-sm" href="<?= e(url('admin/lead?id='.$l['id'].'&return='.$returnParam)) ?>" title="View lead">
+                    <i class="ri-eye-line"></i>
+                  </a>
+                </td>
               </tr>
             <?php endforeach; ?>
             </tbody>

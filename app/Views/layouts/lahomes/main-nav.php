@@ -7,6 +7,10 @@ $uri = $_SERVER['REQUEST_URI'] ?? '';
 $isAdminLeads = str_contains($uri, '/admin/leads');
 $isAdminLeadsIndividual = str_contains($uri, '/admin/leads/individual') || $uri === '/admin/leads';
 $isAdminLeadsBulk = str_contains($uri, '/admin/leads/bulk');
+$isAdminLeadsAssigned = str_contains($uri, '/admin/leads/assigned');
+$isAgentLeads = str_contains($uri, '/agent/leads');
+$isAgentLeadsAdd = str_contains($uri, '/agent/leads/add');
+$isAgentLeadsList = str_contains($uri, '/agent/leads') && !$isAgentLeadsAdd;
 ?>
 <div class="main-nav">
   <div class="logo-box">
@@ -55,6 +59,9 @@ $isAdminLeadsBulk = str_contains($uri, '/admin/leads/bulk');
               <li class="sub-nav-item">
                 <a class="sub-nav-link <?= $isAdminLeadsBulk ? 'active' : '' ?>" href="<?= e(url('admin/leads/bulk')) ?>">Bulk Leads</a>
               </li>
+              <li class="sub-nav-item">
+                <a class="sub-nav-link <?= $isAdminLeadsAssigned ? 'active' : '' ?>" href="<?= e(url('admin/leads/assigned')) ?>">Assigned Leads</a>
+              </li>
             </ul>
           </div>
         </li>
@@ -66,10 +73,20 @@ $isAdminLeadsBulk = str_contains($uri, '/admin/leads/bulk');
         </li>
       <?php elseif ($role === 'AGENT'): ?>
         <li class="nav-item">
-          <a class="nav-link <?= str_contains($uri, '/agent/leads') ? 'active' : '' ?>" href="<?= e(url('agent/leads')) ?>">
+          <a class="nav-link menu-arrow <?= $isAgentLeads ? 'active' : '' ?>" href="#sidebarAgentLeads" data-bs-toggle="collapse" role="button" aria-expanded="<?= $isAgentLeads ? 'true' : 'false' ?>" aria-controls="sidebarAgentLeads">
             <span class="nav-icon"><i class="ri-group-line"></i></span>
-            <span class="nav-text">Assigned Leads</span>
+            <span class="nav-text">Leads</span>
           </a>
+          <div class="collapse <?= $isAgentLeads ? 'show' : '' ?>" id="sidebarAgentLeads">
+            <ul class="nav sub-navbar-nav">
+              <li class="sub-nav-item">
+                <a class="sub-nav-link <?= $isAgentLeadsList ? 'active' : '' ?>" href="<?= e(url('agent/leads')) ?>">Assigned Leads</a>
+              </li>
+              <li class="sub-nav-item">
+                <a class="sub-nav-link <?= $isAgentLeadsAdd ? 'active' : '' ?>" href="<?= e(url('agent/leads/add')) ?>">Add Lead</a>
+              </li>
+            </ul>
+          </div>
         </li>
       <?php endif; ?>
 

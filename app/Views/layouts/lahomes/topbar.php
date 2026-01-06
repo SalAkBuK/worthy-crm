@@ -48,6 +48,10 @@ $photo = !empty($user['photo_path']) ? url($user['photo_path']) : url('assets/la
             <div class="dropdown-menu dropdown-menu-end">
               <h6 class="dropdown-header">Welcome <?= e($username) ?>!</h6>
               <div class="dropdown-divider my-1"></div>
+              <a class="dropdown-item" href="<?= e(url('profile')) ?>">
+                <iconify-icon icon="solar:user-rounded-broken" class="align-middle me-2 fs-18"></iconify-icon>
+                <span class="align-middle">Profile</span>
+              </a>
               <a class="dropdown-item text-danger" href="<?= e(url('logout')) ?>">
                 <iconify-icon icon="solar:logout-3-broken" class="align-middle me-2 fs-18"></iconify-icon>
                 <span class="align-middle">Logout</span>

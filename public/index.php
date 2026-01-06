@@ -13,6 +13,7 @@ use App\Controllers\AuthController;
 use App\Controllers\AdminLeadsController;
 use App\Controllers\AgentLeadsController;
 use App\Controllers\CeoController;
+use App\Controllers\ProfileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -30,6 +31,7 @@ $auth  = new AuthController();
 $admin = new AdminLeadsController();
 $agent = new AgentLeadsController();
 $ceo   = new CeoController();
+$profile = new ProfileController();
 
 /*
 |--------------------------------------------------------------------------
@@ -55,13 +57,21 @@ $router->get('/login', function () use ($auth) { $auth->showLogin(); });
 $router->post('/login', function () use ($auth) { $auth->login(); });
 $router->get('/logout', function () use ($auth) { $auth->logout(); });
 
+// Profile
+$router->get('/profile', function () use ($profile) { $profile->show(); });
+$router->post('/profile/update', function () use ($profile) { $profile->update(); });
+$router->post('/profile/password', function () use ($profile) { $profile->changePassword(); });
+
 // Admin
 $router->get('/admin/leads', function () use ($admin) { $admin->index(); });
 $router->get('/admin/leads/individual', function () use ($admin) { $admin->individual(); });
 $router->get('/admin/leads/bulk', function () use ($admin) { $admin->bulk(); });
+$router->get('/admin/leads/assigned', function () use ($admin) { $admin->assigned(); });
 $router->post('/admin/leads', function () use ($admin) { $admin->storeBulk(); });
 $router->post('/admin/leads/import', function () use ($admin) { $admin->importCsv(); });
 $router->post('/admin/leads/assign-bulk', function () use ($admin) { $admin->assignBulk(); });
+$router->post('/admin/leads/assign-selected', function () use ($admin) { $admin->assignSelected(); });
+$router->post('/admin/leads/bulk/clear', function () use ($admin) { $admin->clearBulkDraft(); });
 $router->get('/admin/lead', function () use ($admin) { $admin->show(); });
 $router->get('/admin/leads/export', function () use ($admin) { $admin->exportLeads(); });
 $router->post('/admin/lead/reopen', function () use ($admin) { $admin->reopen(); });
@@ -79,6 +89,8 @@ $router->post('/admin/agent/reset-password', function () use ($admin) { $admin->
 
 // Agent
 $router->get('/agent/leads', function () use ($agent) { $agent->index(); });
+$router->get('/agent/leads/add', function () use ($agent) { $agent->addLead(); });
+$router->post('/agent/leads/create', function () use ($agent) { $agent->createLead(); });
 $router->get('/agent/lead', function () use ($agent) { $agent->openLead(); });
 $router->post('/agent/followup', function () use ($agent) { $agent->storeFollowup(); });
 

@@ -37,6 +37,48 @@ final class AgentLeadsController extends BaseController {
     } catch (\Throwable $e) { $this->handleException($e); }
   }
 
+  public function addLead(): void {
+    try {
+      \require_role(['AGENT']);
+      View::render('agent/leads_add', [
+        'title' => 'Add Lead',
+      ]);
+    } catch (\Throwable $e) { $this->handleException($e); }
+  }
+
+  public function createLead(): void {
+    try {
+      \require_role(['AGENT']);
+      \verify_csrf();
+      $rows = $_POST['rows'] ?? [];
+      if (!is_array($rows) || !$rows) {
+        flash('danger', 'Please add at least one lead.');
+        redirect('agent/leads/add');
+      }
+      $agentId = (int)current_user()['id'];
+      foreach ($rows as $i => $row) {
+        if (!is_array($row)) continue;
+        $rows[$i]['assigned_agent_user_id'] = $agentId;
+        $type = trim((string)($row['property_type'] ?? ''));
+        if ($type === '') {
+          $rows[$i]['allow_missing_type'] = true;
+        }
+      }
+      $rowErrors = [];
+      $ok = Lead::createBulk($rows, $agentId, $rowErrors);
+      if (!$ok) {
+        $_SESSION['_lead_agent_row_errors'] = $rowErrors;
+        $_SESSION['_lead_agent_old_rows'] = $rows;
+        flash('danger', 'Fix the highlighted rows and try again.');
+        redirect('agent/leads/add');
+      }
+
+      AuditLog::log($agentId, 'AGENT_LEAD_CREATE', ['count' => count($rows)]);
+      flash('success', 'Lead saved successfully.');
+      redirect('agent/leads');
+    } catch (\Throwable $e) { $this->handleException($e); }
+  }
+
   public function openLead(): void {
     try {
       \require_role(['AGENT']);

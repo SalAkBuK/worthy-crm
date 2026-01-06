@@ -6,6 +6,63 @@ $adminUsers = array_filter($users, fn($u) => ($u['role'] ?? '') === 'ADMIN');
 $agentUsers = array_filter($users, fn($u) => ($u['role'] ?? '') === 'AGENT');
 $leads = $leads ?? [];
 $followups = $followups ?? [];
+$leadStatuses = ['NEW', 'IN_PROGRESS', 'CLOSED'];
+$leadsByStatus = [
+  'NEW' => array_values(array_filter($leads, fn($l) => ($l['status_overall'] ?? '') === 'NEW')),
+  'IN_PROGRESS' => array_values(array_filter($leads, fn($l) => ($l['status_overall'] ?? '') === 'IN_PROGRESS')),
+  'CLOSED' => array_values(array_filter($leads, fn($l) => ($l['status_overall'] ?? '') === 'CLOSED')),
+];
+$followupStatuses = ['INTERESTED', 'NOT_INTERESTED'];
+$followupsByStatus = [
+  'INTERESTED' => array_values(array_filter($followups, fn($f) => ($f['interested_status'] ?? '') === 'INTERESTED')),
+  'NOT_INTERESTED' => array_values(array_filter($followups, fn($f) => ($f['interested_status'] ?? '') === 'NOT_INTERESTED')),
+];
+$renderLeadsTable = function(array $rows): void {
+  if (!$rows) {
+    echo '<div class="text-center text-muted py-4">No leads found.</div>';
+    return;
+  }
+  echo '<div class="table-responsive">';
+  echo '<table class="table align-middle text-nowrap table-hover table-centered mb-0">';
+  echo '<thead class="bg-light-subtle">';
+  echo '<tr><th>Lead</th><th>Email</th><th>Phone</th><th>Type</th><th>Status</th><th>Assigned Agent</th><th>Created</th></tr>';
+  echo '</thead><tbody>';
+  foreach ($rows as $l) {
+    echo '<tr>';
+    echo '<td class="fw-medium">' . e($l['lead_name'] ?? '-') . '</td>';
+    echo '<td>' . e($l['contact_email'] ?? '-') . '</td>';
+    echo '<td>' . e($l['contact_phone'] ?? '-') . '</td>';
+    echo '<td>' . e($l['property_type'] ?? '-') . '</td>';
+    echo '<td>' . e($l['status_overall'] ?? '-') . '</td>';
+    echo '<td>' . e($l['agent_name'] ?? '-') . '</td>';
+    echo '<td class="text-muted">' . e($l['created_at'] ?? '-') . '</td>';
+    echo '</tr>';
+  }
+  echo '</tbody></table></div>';
+};
+$renderFollowupsTable = function(array $rows): void {
+  if (!$rows) {
+    echo '<div class="text-center text-muted py-4">No follow-ups found.</div>';
+    return;
+  }
+  echo '<div class="table-responsive">';
+  echo '<table class="table align-middle text-nowrap table-hover table-centered mb-0">';
+  echo '<thead class="bg-light-subtle">';
+  echo '<tr><th>Lead</th><th>Agent</th><th>Attempt</th><th>Call Status</th><th>Interested</th><th>Contact Date</th><th>Next Follow-up</th></tr>';
+  echo '</thead><tbody>';
+  foreach ($rows as $f) {
+    echo '<tr>';
+    echo '<td class="fw-medium">' . e($f['lead_name'] ?? '-') . '</td>';
+    echo '<td>' . e($f['agent_name'] ?? '-') . '</td>';
+    echo '<td>#' . e((string)($f['attempt_no'] ?? '')) . '</td>';
+    echo '<td>' . e($f['call_status'] ?? '-') . '</td>';
+    echo '<td>' . e($f['interested_status'] ?? '-') . '</td>';
+    echo '<td class="text-muted">' . e($f['contact_datetime'] ?? '-') . '</td>';
+    echo '<td class="text-muted">' . e($f['next_followup_at'] ?? '-') . '</td>';
+    echo '</tr>';
+  }
+  echo '</tbody></table></div>';
+};
 ?>
 <div class="row g-3">
   <div class="col-12">
@@ -162,39 +219,22 @@ $followups = $followups ?? [];
               </div>
             </div>
             <div class="mt-4">
-              <div class="table-responsive">
-                <table class="table align-middle text-nowrap table-hover table-centered mb-0">
-                  <thead class="bg-light-subtle">
-                    <tr>
-                      <th>Lead</th>
-                      <th>Email</th>
-                      <th>Phone</th>
-                      <th>Type</th>
-                      <th>Status</th>
-                      <th>Assigned Agent</th>
-                      <th>Created</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                  <?php if (!$leads): ?>
-                    <tr>
-                      <td colspan="7" class="text-center text-muted py-4">No leads found.</td>
-                    </tr>
-                  <?php else: ?>
-                    <?php foreach ($leads as $l): ?>
-                      <tr>
-                        <td class="fw-medium"><?= e($l['lead_name']) ?></td>
-                        <td><?= e($l['contact_email']) ?></td>
-                        <td><?= e($l['contact_phone'] ?? '-') ?></td>
-                        <td><?= e($l['property_type']) ?></td>
-                        <td><?= e($l['status_overall']) ?></td>
-                        <td><?= e($l['agent_name']) ?></td>
-                        <td class="text-muted"><?= e($l['created_at']) ?></td>
-                      </tr>
-                    <?php endforeach; ?>
-                  <?php endif; ?>
-                  </tbody>
-                </table>
+              <ul class="nav nav-pills nav-pills-sm gap-2 mb-3" role="tablist">
+                <?php foreach ($leadStatuses as $i => $st): ?>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link <?= $i === 0 ? 'active' : '' ?>" data-bs-toggle="tab" data-bs-target="#summary-leads-<?= e(strtolower($st)) ?>" type="button" role="tab">
+                      <?= e(str_replace('_', ' ', $st)) ?>
+                      <span class="badge bg-light-subtle text-muted border ms-1"><?= e((string)count($leadsByStatus[$st])) ?></span>
+                    </button>
+                  </li>
+                <?php endforeach; ?>
+              </ul>
+              <div class="tab-content">
+                <?php foreach ($leadStatuses as $i => $st): ?>
+                  <div class="tab-pane fade <?= $i === 0 ? 'show active' : '' ?>" id="summary-leads-<?= e(strtolower($st)) ?>" role="tabpanel">
+                    <?php $renderLeadsTable($leadsByStatus[$st]); ?>
+                  </div>
+                <?php endforeach; ?>
               </div>
             </div>
           </div>
@@ -211,39 +251,22 @@ $followups = $followups ?? [];
               </div>
             </div>
             <div class="mt-4">
-              <div class="table-responsive">
-                <table class="table align-middle text-nowrap table-hover table-centered mb-0">
-                  <thead class="bg-light-subtle">
-                    <tr>
-                      <th>Lead</th>
-                      <th>Agent</th>
-                      <th>Attempt</th>
-                      <th>Call Status</th>
-                      <th>Interested</th>
-                      <th>Contact Date</th>
-                      <th>Next Follow-up</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                  <?php if (!$followups): ?>
-                    <tr>
-                      <td colspan="7" class="text-center text-muted py-4">No follow-ups found.</td>
-                    </tr>
-                  <?php else: ?>
-                    <?php foreach ($followups as $f): ?>
-                      <tr>
-                        <td class="fw-medium"><?= e($f['lead_name']) ?></td>
-                        <td><?= e($f['agent_name']) ?></td>
-                        <td>#<?= e((string)$f['attempt_no']) ?></td>
-                        <td><?= e($f['call_status']) ?></td>
-                        <td><?= e($f['interested_status']) ?></td>
-                        <td class="text-muted"><?= e($f['contact_datetime']) ?></td>
-                        <td class="text-muted"><?= e($f['next_followup_at'] ?? '-') ?></td>
-                      </tr>
-                    <?php endforeach; ?>
-                  <?php endif; ?>
-                  </tbody>
-                </table>
+              <ul class="nav nav-pills nav-pills-sm gap-2 mb-3" role="tablist">
+                <?php foreach ($followupStatuses as $i => $st): ?>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link <?= $i === 0 ? 'active' : '' ?>" data-bs-toggle="tab" data-bs-target="#summary-followups-<?= e(strtolower($st)) ?>" type="button" role="tab">
+                      <?= e(str_replace('_', ' ', $st)) ?>
+                      <span class="badge bg-light-subtle text-muted border ms-1"><?= e((string)count($followupsByStatus[$st])) ?></span>
+                    </button>
+                  </li>
+                <?php endforeach; ?>
+              </ul>
+              <div class="tab-content">
+                <?php foreach ($followupStatuses as $i => $st): ?>
+                  <div class="tab-pane fade <?= $i === 0 ? 'show active' : '' ?>" id="summary-followups-<?= e(strtolower($st)) ?>" role="tabpanel">
+                    <?php $renderFollowupsTable($followupsByStatus[$st]); ?>
+                  </div>
+                <?php endforeach; ?>
               </div>
             </div>
           </div>
