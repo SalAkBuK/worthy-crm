@@ -839,7 +839,7 @@ final class AdminLeadsController extends BaseController {
       throw new \RuntimeException('Invalid file type. Only jpg, png, webp allowed.');
     }
     $ext = $allowed[$mime];
-    $dir = __DIR__ . '/../../uploads/agents/' . $agentId;
+    $dir = __DIR__ . '/../../public/uploads/agents/' . $agentId;
     if (!is_dir($dir)) mkdir($dir, 0755, true);
 
     $name = bin2hex(random_bytes(16)) . '.' . $ext;
