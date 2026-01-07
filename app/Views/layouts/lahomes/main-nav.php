@@ -15,12 +15,12 @@ $isAgentLeadsList = str_contains($uri, '/agent/leads') && !$isAgentLeadsAdd;
 <div class="main-nav">
   <div class="logo-box">
     <a href="<?= e(url('')) ?>" class="logo-dark">
-      <img src="<?= e(url('assets/lahomes/images/favicon.ico')) ?>" class="logo-sm" alt="logo sm">
-      <img src="<?= e(url('assets/lahomes/images/logo-light.png')) ?>" class="logo-lg" alt="logo">
+      <img src="<?= e(url('assets/lahomes/images/favicon.ico')) ?>" class="logo-sm" alt="Worthy CRM">
+      <img src="<?= e(url('assets/lahomes/images/logo-light.png')) ?>" class="logo-lg" alt="Worthy CRM">
     </a>
     <a href="<?= e(url('')) ?>" class="logo-light">
-      <img src="<?= e(url('assets/lahomes/images/favicon.ico')) ?>" class="logo-sm" alt="logo sm">
-      <img src="<?= e(url('assets/lahomes/images/logo-light.png')) ?>" class="logo-lg" alt="logo">
+      <img src="<?= e(url('assets/lahomes/images/favicon.ico')) ?>" class="logo-sm" alt="Worthy CRM">
+      <img src="<?= e(url('assets/lahomes/images/logo-light.png')) ?>" class="logo-lg" alt="Worthy CRM">
     </a>
   </div>
 

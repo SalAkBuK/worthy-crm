@@ -4,9 +4,9 @@ require_once __DIR__ . '/../../../Helpers/functions.php';
 $title = $title ?? 'Dashboard';
 ?>
 <meta charset="utf-8">
-<title><?= e($title) ?> | Lahomes - Agent Performance</title>
+<title><?= e($title) ?> | Worthy CRM</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Agent performance tracking dashboard.">
+<meta name="description" content="Worthy CRM dashboard.">
 <meta name="author" content="Worthy Square">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 

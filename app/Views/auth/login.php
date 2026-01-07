@@ -18,10 +18,10 @@ $title = 'Sign In';
             <div class="card-body px-3 py-5">
               <div class="mx-auto mb-4 text-center auth-logo">
                 <a href="<?= e(url('login')) ?>" class="logo-dark">
-                  <img src="<?= e(url('assets/lahomes/images/logo-light.png')) ?>" height="32" alt="logo">
+                  <img src="<?= e(url('assets/lahomes/images/logo-light.png')) ?>" height="32" alt="Worthy CRM">
                 </a>
                 <a href="<?= e(url('login')) ?>" class="logo-light">
-                  <img src="<?= e(url('assets/lahomes/images/logo-light.png')) ?>" height="32" alt="logo">
+                  <img src="<?= e(url('assets/lahomes/images/logo-light.png')) ?>" height="32" alt="Worthy CRM">
                 </a>
               </div>
 
@@ -64,7 +64,7 @@ $title = 'Sign In';
             </div>
           </div>
 
-          <p class="mb-0 text-center text-white">Agent Performance System</p>
+          <p class="mb-0 text-center text-white">Worthy CRM</p>
         </div>
       </div>
     </div>
