@@ -35,6 +35,40 @@ $blockReason = $blockReason ?? null;
         <label class="form-label text-muted mb-1">Interested In</label>
         <div class="fw-semibold mb-3"><?= e($lead['interested_in_property']) ?></div>
 
+        <?php
+          $budget = '-';
+          $range = trim((string)($lead['budget_aed_range'] ?? ''));
+          $min = $lead['budget_aed_min'] ?? null;
+          $max = $lead['budget_aed_max'] ?? null;
+          if ($range !== '') {
+            $budget = $range;
+          } elseif ($min !== null || $max !== null) {
+            if ($min !== null && $max !== null) {
+              $budget = $min . ' - ' . $max;
+            } else {
+              $budget = (string)($min ?? $max);
+            }
+          }
+        ?>
+        <div class="row g-2 mb-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label text-muted mb-1">Interest Types</label>
+            <div class="fw-semibold"><?= e($lead['property_interest_types'] ?? '-') ?></div>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label text-muted mb-1">Area</label>
+            <div class="fw-semibold"><?= e($lead['area'] ?? '-') ?></div>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label text-muted mb-1">Budget (AED)</label>
+            <div class="fw-semibold"><?= e($budget) ?></div>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label text-muted mb-1">Lead Status</label>
+            <div class="fw-semibold"><?= e($lead['lead_status'] ?? '-') ?></div>
+          </div>
+        </div>
+
         <div class="d-flex align-items-center justify-content-between">
           <div class="fw-semibold">Completion Progress</div>
           <div class="text-muted">

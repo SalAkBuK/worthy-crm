@@ -12,11 +12,21 @@ $leadDisplayName = function (?string $name): string {
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center border-bottom">
     <div>
-      <h4 class="card-title mb-1">Your Assigned Leads</h4>
-      <p class="text-muted mb-0 fs-13">Complete minimum 3 follow-up attempts per lead.</p>
+      <h4 class="card-title mb-1">Assigned Leads</h4>
+      <p class="text-muted mb-0 fs-13">Goal: complete at least 3 follow-up attempts per lead.</p>
     </div>
   </div>
   <div class="card-body border-bottom">
+    <?php $currentStatus = $filters['status'] ?? ''; ?>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+      <span class="text-muted fw-semibold">Quick status:</span>
+      <div class="btn-group btn-group-sm" role="group" aria-label="Lead status filters">
+        <a class="btn btn-outline-secondary <?= $currentStatus === '' ? 'active' : '' ?>" href="?<?= e(build_query(['status' => null, 'page' => 1])) ?>">All</a>
+        <a class="btn btn-outline-secondary <?= $currentStatus === 'NEW' ? 'active' : '' ?>" href="?<?= e(build_query(['status' => 'NEW', 'page' => 1])) ?>">New</a>
+        <a class="btn btn-outline-secondary <?= $currentStatus === 'IN_PROGRESS' ? 'active' : '' ?>" href="?<?= e(build_query(['status' => 'IN_PROGRESS', 'page' => 1])) ?>">In Progress</a>
+        <a class="btn btn-outline-secondary <?= $currentStatus === 'CLOSED' ? 'active' : '' ?>" href="?<?= e(build_query(['status' => 'CLOSED', 'page' => 1])) ?>">Closed</a>
+      </div>
+    </div>
     <form class="row g-3 align-items-end" method="get" action="<?= e(url('agent/leads')) ?>">
       <div class="col-md-4">
         <label class="form-label">Search</label>
@@ -33,10 +43,10 @@ $leadDisplayName = function (?string $name): string {
       <div class="col-md-2">
         <label class="form-label">Status</label>
         <select class="form-select" name="status">
-          <option value="">All status</option>
-          <option value="NEW" <?= (($filters['status'] ?? '')==='NEW')?'selected':'' ?>>NEW</option>
-          <option value="IN_PROGRESS" <?= (($filters['status'] ?? '')==='IN_PROGRESS')?'selected':'' ?>>IN_PROGRESS</option>
-          <option value="CLOSED" <?= (($filters['status'] ?? '')==='CLOSED')?'selected':'' ?>>CLOSED</option>
+          <option value="">All statuses</option>
+          <option value="NEW" <?= (($filters['status'] ?? '')==='NEW')?'selected':'' ?>>New</option>
+          <option value="IN_PROGRESS" <?= (($filters['status'] ?? '')==='IN_PROGRESS')?'selected':'' ?>>In Progress</option>
+          <option value="CLOSED" <?= (($filters['status'] ?? '')==='CLOSED')?'selected':'' ?>>Closed</option>
         </select>
       </div>
       <div class="col-md-2">
@@ -53,58 +63,7 @@ $leadDisplayName = function (?string $name): string {
     </form>
   </div>
 
-  <?php if (!$items): ?>
-    <div class="text-center py-5 text-muted">No assigned leads found.</div>
-  <?php else: ?>
-    <div class="table-responsive">
-      <table class="table align-middle text-nowrap table-hover table-centered mb-0">
-        <thead class="bg-light-subtle">
-        <tr>
-          <th>Lead</th>
-          <th>Email</th>
-          <th>Phone</th>
-          <th>Type</th>
-          <th>Status</th>
-          <th>Followups</th>
-          <th>Last Contact</th>
-          <th class="text-end"></th>
-        </tr>
-        </thead>
-        <tbody>
-        <?php foreach ($items as $l): ?>
-          <tr>
-            <td class="fw-semibold"><?= e($leadDisplayName($l['lead_name'] ?? '')) ?></td>
-            <td><?= e($l['contact_email']) ?></td>
-            <td><?= e($l['contact_phone'] ?? '-') ?></td>
-            <td><span class="badge bg-light-subtle text-muted border fw-medium fs-13 px-2 py-1"><?= e($l['property_type']) ?></span></td>
-            <td>
-              <?php $s=$l['status_overall']; $cls=$s==='CLOSED'?'success':($s==='IN_PROGRESS'?'warning':'secondary'); ?>
-              <span class="badge bg-<?= e($cls) ?>-subtle text-<?= e($cls) ?> fw-medium fs-13 px-2 py-1"><?= e($s) ?></span>
-            </td>
-            <td><?= e((string)$l['followup_count']) ?>/3</td>
-            <td class="text-muted"><?= e($l['last_contact_at'] ?? '-') ?></td>
-            <td class="text-end">
-              <a class="btn btn-sm btn-soft-primary" href="<?= e(url('agent/lead?id='.$l['id'])) ?>">
-                <i class="ri-eye-line me-1"></i>Open
-              </a>
-            </td>
-          </tr>
-        <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
-
-    <?php $m=$meta; $page=$m['page']; $pages=$m['pages']; ?>
-    <div class="card-body">
-      <nav>
-        <ul class="pagination pagination-rounded mb-0">
-          <li class="page-item <?= $page<=1?'disabled':'' ?>"><a class="page-link" href="?<?= e(build_query(['page'=>$page-1])) ?>">Prev</a></li>
-          <?php for($p=max(1,$page-2); $p<=min($pages,$page+2); $p++): ?>
-            <li class="page-item <?= $p===$page?'active':'' ?>"><a class="page-link" href="?<?= e(build_query(['page'=>$p])) ?>"><?= $p ?></a></li>
-          <?php endfor; ?>
-          <li class="page-item <?= $page>=$pages?'disabled':'' ?>"><a class="page-link" href="?<?= e(build_query(['page'=>$page+1])) ?>">Next</a></li>
-        </ul>
-      </nav>
-    </div>
-  <?php endif; ?>
+  <div id="agentLeadsTable" data-refresh-url="<?= e(url('agent/leads/partial')) ?>">
+    <?php require __DIR__ . '/leads_table.php'; ?>
+  </div>
 </div>

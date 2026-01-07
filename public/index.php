@@ -14,6 +14,8 @@ use App\Controllers\AdminLeadsController;
 use App\Controllers\AgentLeadsController;
 use App\Controllers\CeoController;
 use App\Controllers\ProfileController;
+use App\Controllers\NotificationsController;
+use App\Controllers\SystemTasksController;
 
 /*
 |--------------------------------------------------------------------------
@@ -32,6 +34,8 @@ $admin = new AdminLeadsController();
 $agent = new AgentLeadsController();
 $ceo   = new CeoController();
 $profile = new ProfileController();
+$notifications = new NotificationsController();
+$tasks = new SystemTasksController();
 
 /*
 |--------------------------------------------------------------------------
@@ -62,6 +66,11 @@ $router->get('/profile', function () use ($profile) { $profile->show(); });
 $router->post('/profile/update', function () use ($profile) { $profile->update(); });
 $router->post('/profile/password', function () use ($profile) { $profile->changePassword(); });
 
+// Notifications
+$router->get('/notifications', function () use ($notifications) { $notifications->index(); });
+$router->post('/notifications/read-all', function () use ($notifications) { $notifications->markAllRead(); });
+$router->get('/notifications/stream', function () use ($notifications) { $notifications->stream(); });
+
 // Admin
 $router->get('/admin/leads', function () use ($admin) { $admin->index(); });
 $router->get('/admin/leads/individual', function () use ($admin) { $admin->individual(); });
@@ -89,6 +98,7 @@ $router->post('/admin/agent/reset-password', function () use ($admin) { $admin->
 
 // Agent
 $router->get('/agent/leads', function () use ($agent) { $agent->index(); });
+$router->get('/agent/leads/partial', function () use ($agent) { $agent->partial(); });
 $router->get('/agent/leads/add', function () use ($agent) { $agent->addLead(); });
 $router->post('/agent/leads/create', function () use ($agent) { $agent->createLead(); });
 $router->get('/agent/lead', function () use ($agent) { $agent->openLead(); });
@@ -99,6 +109,9 @@ $router->get('/ceo/dashboard', function () use ($ceo) { $ceo->dashboard(); });
 $router->get('/ceo/summary', function () use ($ceo) { $ceo->summary(); });
 $router->get('/ceo/agent', function () use ($ceo) { $ceo->agentPerformance(); });
 $router->get('/ceo/export', function () use ($ceo) { $ceo->exportCsv(); });
+
+// System tasks (cron)
+$router->get('/tasks/notifications', function () use ($tasks) { $tasks->runNotifications(); });
 
 /*
 |--------------------------------------------------------------------------

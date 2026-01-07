@@ -210,6 +210,21 @@ final class Lead {
     return $st->rowCount();
   }
 
+  public static function assignmentsForIds(array $ids): array {
+    $pdo = DB::conn();
+    $ids = array_values(array_filter(array_map('intval', $ids), fn($v) => $v > 0));
+    if (!$ids) return [];
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $st = $pdo->prepare("SELECT id, assigned_agent_user_id FROM leads WHERE id IN ($placeholders)");
+    $st->execute($ids);
+    $rows = $st->fetchAll();
+    $map = [];
+    foreach ($rows as $row) {
+      $map[(int)$row['id']] = $row['assigned_agent_user_id'] !== null ? (int)$row['assigned_agent_user_id'] : 0;
+    }
+    return $map;
+  }
+
   public static function findWithAgent(int $id): ?array {
     $pdo = DB::conn();
     $st = $pdo->prepare("SELECT l.*, u.username as agent_username, COALESCE(e.employee_name, u.username) as agent_name

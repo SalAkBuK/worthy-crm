@@ -127,3 +127,23 @@ CREATE TABLE IF NOT EXISTS login_attempts (
   KEY idx_login_locked (locked_until),
   KEY idx_login_last_attempt (last_attempt_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id INT UNSIGNED NOT NULL,
+  type VARCHAR(60) NOT NULL,
+  title VARCHAR(190) NOT NULL,
+  body TEXT NULL,
+  link_url VARCHAR(255) NULL,
+  meta_json JSON NULL,
+  dedup_key VARCHAR(190) NULL,
+  read_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_notifications_user (user_id),
+  KEY idx_notifications_read (read_at),
+  KEY idx_notifications_created (created_at),
+  UNIQUE KEY uq_notifications_dedup (user_id, dedup_key),
+  CONSTRAINT fk_notifications_user FOREIGN KEY (user_id)
+    REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

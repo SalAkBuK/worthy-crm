@@ -26,6 +26,16 @@ function get_flashes(): array {
   return $items;
 }
 
+function toast(string $type, string $message): void {
+  $_SESSION['_toast'][] = ['type' => $type, 'message' => $message];
+}
+
+function get_toasts(): array {
+  $items = $_SESSION['_toast'] ?? [];
+  unset($_SESSION['_toast']);
+  return $items;
+}
+
 function csrf_token(): string {
   if (empty($_SESSION['_csrf'])) {
     $_SESSION['_csrf'] = bin2hex(random_bytes(32));
@@ -101,3 +111,9 @@ function build_query(array $overrides = []): string {
   return http_build_query($params);
 }
 
+function notification_types_for_role(string $role): ?array {
+  if ($role === 'CEO') {
+    return ['lead_reopen', 'agent_deleted', 'agent_status_change', 'weekly_summary'];
+  }
+  return null;
+}

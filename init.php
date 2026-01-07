@@ -29,6 +29,7 @@ require_once __DIR__ . '/app/Models/LoginAttempt.php';
 require_once __DIR__ . '/app/Models/AuditLog.php';
 require_once __DIR__ . '/app/Models/Lead.php';
 require_once __DIR__ . '/app/Models/Followup.php';
+require_once __DIR__ . '/app/Models/Notification.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -41,6 +42,8 @@ require_once __DIR__ . '/app/Controllers/AdminLeadsController.php';
 require_once __DIR__ . '/app/Controllers/AgentLeadsController.php';
 require_once __DIR__ . '/app/Controllers/CeoController.php';
 require_once __DIR__ . '/app/Controllers/ProfileController.php';
+require_once __DIR__ . '/app/Controllers/NotificationsController.php';
+require_once __DIR__ . '/app/Controllers/SystemTasksController.php';
 
 /*
 |--------------------------------------------------------------------------

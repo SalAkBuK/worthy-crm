@@ -9,6 +9,7 @@ use App\Models\Lead;
 use App\Models\User;
 use App\Models\Followup;
 use App\Models\AuditLog;
+use App\Models\Notification;
 
 final class AdminLeadsController extends BaseController {
 
@@ -117,6 +118,14 @@ final class AdminLeadsController extends BaseController {
       $ok = Lead::createBulk($rows, (int)current_user()['id'], $rowErrors);
 
       if (!$ok) {
+        Notification::create(
+          (int)current_user()['id'],
+          'bulk_import_failed',
+          'Lead import failed',
+          'Fix the highlighted rows and try again.',
+          $formType === 'individual' ? 'admin/leads/individual' : 'admin/leads/bulk',
+          ['rows' => count($rows)]
+        );
         if ($formType === 'individual') {
           $_SESSION['_lead_individual_row_errors'] = $rowErrors;
           $_SESSION['_lead_individual_old_rows'] = $rows;
@@ -129,6 +138,25 @@ final class AdminLeadsController extends BaseController {
       }
 
       AuditLog::log((int)current_user()['id'], 'LEADS_BULK_CREATE', ['count'=>count($rows)]);
+      if ($formType === 'individual') {
+        $assignedCounts = [];
+        foreach ($rows as $row) {
+          $agentId = (int)($row['assigned_agent_user_id'] ?? 0);
+          if ($agentId > 0) {
+            $assignedCounts[$agentId] = ($assignedCounts[$agentId] ?? 0) + 1;
+          }
+        }
+        foreach ($assignedCounts as $agentId => $count) {
+          Notification::create(
+            (int)$agentId,
+            'lead_assigned',
+            'New leads assigned',
+            'You have been assigned ' . $count . ' lead(s).',
+            'agent/leads',
+            ['count' => $count]
+          );
+        }
+      }
       flash('success', 'Leads saved successfully.');
       redirect($formType === 'individual' ? 'admin/leads/individual' : 'admin/leads/bulk');
     } catch (\Throwable $e) {
@@ -341,11 +369,26 @@ final class AdminLeadsController extends BaseController {
         flash('danger', 'Select an agent to assign.');
         redirect('admin/leads');
       }
+      $assignments = Lead::assignmentsForIds($ids);
+      $assignedCount = 0;
+      foreach ($assignments as $prevAgentId) {
+        if ($prevAgentId !== $agentId) $assignedCount++;
+      }
       $updated = Lead::assignBulk($ids, $agentId);
       AuditLog::log((int)current_user()['id'], 'LEADS_BULK_ASSIGN', [
         'count' => $updated,
         'agent_id' => $agentId,
       ]);
+      if ($assignedCount > 0) {
+        Notification::create(
+          $agentId,
+          'lead_assigned',
+          'New leads assigned',
+          'You have been assigned ' . $assignedCount . ' lead(s).',
+          'agent/leads',
+          ['count' => $assignedCount, 'lead_ids' => array_values(array_keys($assignments))]
+        );
+      }
       flash('success', 'Assigned ' . $updated . ' lead(s) to agent.');
       redirect('admin/leads');
     } catch (\Throwable $e) {
@@ -415,6 +458,14 @@ final class AdminLeadsController extends BaseController {
         'count' => count($rows),
         'agent_id' => $agentId,
       ]);
+      Notification::create(
+        $agentId,
+        'lead_assigned',
+        'New leads assigned',
+        'You have been assigned ' . count($rows) . ' lead(s).',
+        'agent/leads',
+        ['count' => count($rows)]
+      );
       echo json_encode(['ok' => true, 'count' => count($rows)]);
     } catch (\Throwable $e) {
       $this->handleException($e);
@@ -504,6 +555,7 @@ final class AdminLeadsController extends BaseController {
       $id = (int)($_POST['id'] ?? 0);
       if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
 
+      $agent = User::findById($id);
       $result = User::deleteAgentIfNoActivity($id);
       if (!$result['ok']) {
         flash('danger', $result['error'] ?? 'Unable to delete agent.');
@@ -511,6 +563,16 @@ final class AdminLeadsController extends BaseController {
       }
 
       AuditLog::log((int)current_user()['id'], 'AGENT_DELETE', ['agent_id'=>$id]);
+      $agentName = $agent ? User::agentDisplayName($agent) : ('Agent #' . $id);
+      $recipients = User::userIdsByRoles(['ADMIN', 'CEO']);
+      Notification::createMany(
+        $recipients,
+        'agent_deleted',
+        'Agent deleted',
+        $agentName . ' was deleted.',
+        'admin/agents',
+        ['agent_id' => $id, 'agent_name' => $agentName]
+      );
       flash('success', 'Agent deleted.');
       redirect('admin/agents');
     } catch (\Throwable $e) { $this->handleException($e); }
@@ -639,6 +701,18 @@ final class AdminLeadsController extends BaseController {
         redirect('admin/agents');
       }
       $updated = User::setAgentsActive($ids, $action === 'activate');
+      if ($updated > 0) {
+        $verb = $action === 'activate' ? 'activated' : 'deactivated';
+        $recipients = User::userIdsByRoles(['ADMIN', 'CEO']);
+        Notification::createMany(
+          $recipients,
+          'agent_status_change',
+          'Agents ' . $verb,
+          'Updated ' . $updated . ' agent(s).',
+          'admin/agents',
+          ['count' => $updated, 'action' => $action]
+        );
+      }
       flash('success', 'Updated ' . $updated . ' agent(s).');
       redirect('admin/agents');
     } catch (\Throwable $e) { $this->handleException($e); }
@@ -995,8 +1069,18 @@ final class AdminLeadsController extends BaseController {
       if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
       $lead = Lead::findWithAgent($id);
       if (!$lead) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      $prevStatus = $lead['status_overall'] ?? '';
       Lead::setStatus($id, 'IN_PROGRESS');
       AuditLog::log((int)current_user()['id'], 'LEAD_REOPEN', ['lead_id'=>$id]);
+      $recipients = User::userIdsByRoles(['ADMIN', 'CEO']);
+      Notification::createMany(
+        $recipients,
+        'lead_reopen',
+        'Lead reopened',
+        'Lead "' . ($lead['lead_name'] ?? 'Unknown') . '" was reopened.',
+        'admin/lead?id=' . $id,
+        ['lead_id' => $id, 'previous_status' => $prevStatus, 'status' => 'IN_PROGRESS']
+      );
       flash('success', 'Lead reopened. Agents can add more attempts.');
       redirect('admin/lead?id=' . $id);
     } catch (\Throwable $e) { $this->handleException($e); }

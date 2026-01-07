@@ -7,6 +7,7 @@ use App\Helpers\View;
 use App\Models\Lead;
 use App\Models\Followup;
 use App\Models\AuditLog;
+use App\Models\Notification;
 use App\Helpers\Logger;
 
 final class AgentLeadsController extends BaseController {
@@ -30,6 +31,32 @@ final class AgentLeadsController extends BaseController {
 
       View::render('agent/leads_index', [
         'title' => 'Assigned Leads',
+        'filters' => $filters,
+        'items' => $result['items'],
+        'meta' => $result['meta'],
+      ]);
+    } catch (\Throwable $e) { $this->handleException($e); }
+  }
+
+  public function partial(): void {
+    try {
+      \require_role(['AGENT']);
+      header('Content-Type: text/html; charset=utf-8');
+      $filters = [
+        'q' => trim((string)($_GET['q'] ?? '')),
+        'type' => $_GET['type'] ?? '',
+        'status' => $_GET['status'] ?? '',
+        'from' => \parse_date($_GET['from'] ?? null),
+        'to' => \parse_date($_GET['to'] ?? null),
+        'sort' => $_GET['sort'] ?? 'created_at',
+        'dir' => $_GET['dir'] ?? 'desc',
+      ];
+      $page = max(1, (int)($_GET['page'] ?? 1));
+      $perPage = 10;
+
+      $result = Lead::searchAgent((int)current_user()['id'], $filters, $page, $perPage);
+
+      View::partial('agent/leads_table', [
         'filters' => $filters,
         'items' => $result['items'],
         'meta' => $result['meta'],
@@ -365,8 +392,40 @@ final class AgentLeadsController extends BaseController {
         'whatsapp_screenshot_path' => $whatsPath,
       ]);
 
+      $prevStatus = $lead['status_overall'] ?? 'NEW';
       \App\Models\Lead::updateStatusByLeadId($leadId);
       AuditLog::log((int)current_user()['id'], 'FOLLOWUP_CREATE', ['lead_id'=>$leadId, 'attempt_no'=>$nextAttempt, 'id'=>$id]);
+
+      if ($nextFollowup) {
+        Notification::create(
+          (int)current_user()['id'],
+          'followup_scheduled',
+          'Follow-up scheduled',
+          'Next follow-up set for ' . $nextFollowup . '.',
+          'agent/lead?id=' . $leadId,
+          ['lead_id' => $leadId, 'followup_id' => $id, 'next_followup_at' => $nextFollowup]
+        );
+      }
+
+      $updatedLead = Lead::findWithAgent($leadId);
+      $newStatus = $updatedLead['status_overall'] ?? $prevStatus;
+      if ($newStatus !== $prevStatus) {
+        $leadName = $lead['lead_name'] ?? 'Unknown';
+        $agentName = $lead['agent_name'] ?? $lead['agent_username'] ?? (string)(current_user()['username'] ?? 'Agent');
+        if ($newStatus === 'CLOSED') {
+          \toast('success', 'Lead won: "' . $leadName . '" closed.');
+        } else {
+          $recipients = \App\Models\User::userIdsByRoles(['ADMIN']);
+          Notification::createMany(
+            $recipients,
+            'lead_status_changed',
+            'Lead status changed',
+            'Lead "' . $leadName . '" moved from ' . $prevStatus . ' to ' . $newStatus . '.',
+            'admin/lead?id=' . $leadId,
+            ['lead_id' => $leadId, 'from' => $prevStatus, 'to' => $newStatus]
+          );
+        }
+      }
 
       flash('success', 'Follow-up saved (Attempt #' . $nextAttempt . ').');
       redirect('agent/lead?id=' . $leadId);

@@ -201,4 +201,14 @@ final class User {
     return $user['agent_name'] ?: ($user['employee_name'] ?: ucfirst($user['username']));
   }
 
+  public static function userIdsByRoles(array $roles): array {
+    $roles = array_values(array_filter(array_map('strval', $roles)));
+    if (!$roles) return [];
+    $pdo = DB::conn();
+    $placeholders = implode(',', array_fill(0, count($roles), '?'));
+    $st = $pdo->prepare("SELECT id FROM users WHERE role IN ($placeholders)");
+    $st->execute($roles);
+    return array_map('intval', array_column($st->fetchAll(), 'id'));
+  }
+
 }
