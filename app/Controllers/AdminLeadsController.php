@@ -487,9 +487,10 @@ final class AdminLeadsController extends BaseController {
   public function agents(): void {
     try {
       \require_role(['ADMIN', 'CEO']);
+      $status = array_key_exists('status', $_GET) ? (string)($_GET['status'] ?? '') : 'ACTIVE';
       $filters = [
         'q' => trim((string)($_GET['q'] ?? '')),
-        'status' => $_GET['status'] ?? '',
+        'status' => $status,
         'scope' => $_GET['scope'] ?? '',
         'leads' => $_GET['leads'] ?? '',
       ];
@@ -555,25 +556,90 @@ final class AdminLeadsController extends BaseController {
       $id = (int)($_POST['id'] ?? 0);
       if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
 
-      $agent = User::findById($id);
-      $result = User::deleteAgentIfNoActivity($id);
-      if (!$result['ok']) {
-        flash('danger', $result['error'] ?? 'Unable to delete agent.');
+      $agent = User::agentWithStats($id);
+      if (!$agent) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+
+      $leadAction = (string)($_POST['lead_action'] ?? 'keep');
+      if (!in_array($leadAction, ['keep', 'delete', 'reassign'], true)) {
+        flash('danger', 'Invalid lead action.');
         redirect('admin/agents');
       }
 
-      AuditLog::log((int)current_user()['id'], 'AGENT_DELETE', ['agent_id'=>$id]);
-      $agentName = $agent ? User::agentDisplayName($agent) : ('Agent #' . $id);
+      $leadCount = 0;
+      $reassignAgent = null;
+      if ($leadAction === 'delete') {
+        $leadCount = Lead::deleteByAgent($id);
+      } elseif ($leadAction === 'reassign') {
+        $newAgentId = (int)($_POST['reassign_agent_id'] ?? 0);
+        if ($newAgentId <= 0) {
+          flash('danger', 'Select an agent to reassign leads.');
+          redirect('admin/agents');
+        }
+        if ($newAgentId === $id) {
+          flash('danger', 'Select a different agent to reassign leads.');
+          redirect('admin/agents');
+        }
+        $reassignAgent = User::agentWithStats($newAgentId);
+        if (!$reassignAgent) {
+          flash('danger', 'Reassignment agent not found.');
+          redirect('admin/agents');
+        }
+        if ((int)($reassignAgent['is_active'] ?? 1) !== 1) {
+          flash('danger', 'Select an active agent to reassign leads.');
+          redirect('admin/agents');
+        }
+        $leadCount = Lead::reassignByAgent($id, $newAgentId);
+        if ($leadCount > 0) {
+          Notification::create(
+            $newAgentId,
+            'lead_assigned',
+            'New leads assigned',
+            'You have been assigned ' . $leadCount . ' lead(s).',
+            'agent/leads',
+            ['count' => $leadCount, 'from_agent_id' => $id]
+          );
+        }
+      }
+
+      $wasActive = (int)($agent['is_active'] ?? 1) === 1;
+      if ($wasActive) {
+        User::setAgentsActive([$id], false);
+      }
+
+      AuditLog::log((int)current_user()['id'], 'AGENT_DEACTIVATE', [
+        'agent_id' => $id,
+        'lead_action' => $leadAction,
+        'lead_count' => $leadCount,
+        'reassign_agent_id' => $reassignAgent ? (int)$reassignAgent['id'] : null,
+        'was_active' => $wasActive,
+      ]);
+
+      $agentName = User::agentDisplayName($agent);
+      $body = $agentName . ' was deleted.';
+      if ($leadAction === 'delete') {
+        $body .= ' Deleted ' . $leadCount . ' lead(s).';
+      } elseif ($leadAction === 'reassign' && $reassignAgent) {
+        $body .= ' Reassigned ' . $leadCount . ' lead(s) to ' . User::agentDisplayName($reassignAgent) . '.';
+      } else {
+        $body .= ' Leads remain assigned.';
+      }
+
       $recipients = User::userIdsByRoles(['ADMIN', 'CEO']);
       Notification::createMany(
         $recipients,
         'agent_deleted',
         'Agent deleted',
-        $agentName . ' was deleted.',
+        $body,
         'admin/agents',
-        ['agent_id' => $id, 'agent_name' => $agentName]
+        [
+          'agent_id' => $id,
+          'agent_name' => $agentName,
+          'lead_action' => $leadAction,
+          'lead_count' => $leadCount,
+          'reassign_agent_id' => $reassignAgent ? (int)$reassignAgent['id'] : null,
+        ]
       );
-      flash('success', 'Agent deleted.');
+      flash('success', $body);
       redirect('admin/agents');
     } catch (\Throwable $e) { $this->handleException($e); }
   }

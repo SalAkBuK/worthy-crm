@@ -7,6 +7,9 @@ $statusFilter = $filters['status'] ?? '';
 $scopeFilter = $filters['scope'] ?? '';
 $leadsFilter = $filters['leads'] ?? '';
 $agents = $agents ?? [];
+$activeAgents = array_values(array_filter($agents, static function ($agent) {
+  return (int)($agent['is_active'] ?? 1) === 1;
+}));
 ?>
 <div class="row">
   <div class="col-lg-12">
@@ -207,13 +210,15 @@ $agents = $agents ?? [];
                         <iconify-icon icon="solar:key-square-broken" class="align-middle fs-18"></iconify-icon>
                       </button>
                     </form>
-                    <form method="post" action="<?= e(url('admin/agent/delete')) ?>" onsubmit="return confirm('Delete this agent? This cannot be undone.');">
-                      <?= csrf_field() ?>
-                      <input type="hidden" name="id" value="<?= e((string)$a['id']) ?>">
-                      <button class="btn btn-soft-danger btn-sm" type="submit">
-                        <iconify-icon icon="solar:trash-bin-minimalistic-2-broken" class="align-middle fs-18"></iconify-icon>
-                      </button>
-                    </form>
+                    <button class="btn btn-soft-danger btn-sm"
+                            type="button"
+                            data-bs-toggle="modal"
+                            data-bs-target="#agentDeactivateModal"
+                            data-agent-id="<?= e((string)$a['id']) ?>"
+                            data-agent-name="<?= e($display) ?>"
+                            data-agent-leads="<?= e((string)($a['leads_count'] ?? 0)) ?>">
+                      <iconify-icon icon="solar:trash-bin-minimalistic-2-broken" class="align-middle fs-18"></iconify-icon>
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -272,6 +277,61 @@ $agents = $agents ?? [];
   </div>
 </div>
 
+<div class="modal fade" id="agentDeactivateModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Deactivate Agent</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="<?= e(url('admin/agent/delete')) ?>" id="agentDeactivateForm">
+        <div class="modal-body">
+          <?= csrf_field() ?>
+          <input type="hidden" name="id" id="agentDeactivateId" value="">
+
+          <div class="alert alert-warning">
+            <div class="fw-semibold">Agent: <span id="agentDeactivateName">Agent</span></div>
+            <div class="small">Assigned leads: <span id="agentDeactivateLeadCount" data-count="0">0</span></div>
+            <div class="small text-muted">Agent will be deactivated, not deleted.</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Lead handling</label>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="lead_action" id="leadActionKeep" value="keep" checked>
+              <label class="form-check-label" for="leadActionKeep">Keep leads assigned to this agent</label>
+            </div>
+            <div class="form-check mt-2">
+              <input class="form-check-input" type="radio" name="lead_action" id="leadActionDelete" value="delete">
+              <label class="form-check-label" for="leadActionDelete">Delete this agent's leads</label>
+            </div>
+            <div class="form-check mt-2">
+              <input class="form-check-input" type="radio" name="lead_action" id="leadActionReassign" value="reassign">
+              <label class="form-check-label" for="leadActionReassign">Reassign leads to another agent</label>
+            </div>
+          </div>
+
+          <div class="mb-3" id="leadReassignWrap" style="display:none;">
+            <label class="form-label">Reassign to</label>
+            <select class="form-select" name="reassign_agent_id" id="reassignAgentSelect">
+              <option value="">Select an agent</option>
+              <?php foreach ($activeAgents as $opt): ?>
+                <?php $optName = $opt['agent_name'] ?: ($opt['employee_name'] ?: ucfirst($opt['username'])); ?>
+                <option value="<?= e((string)$opt['id']) ?>"><?= e($optName) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <div class="form-text text-muted">Only active agents are listed.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Deactivate Agent</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
   (function () {
     var modalEl = document.getElementById('agentEditModal');
@@ -292,6 +352,97 @@ $agents = $agents ?? [];
       if (phoneEl) phoneEl.value = phone;
       if (userEl) userEl.value = username;
     });
+  })();
+</script>
+<script>
+  (function () {
+    var modalEl = document.getElementById('agentDeactivateModal');
+    if (!modalEl) return;
+    var idInput = document.getElementById('agentDeactivateId');
+    var nameEl = document.getElementById('agentDeactivateName');
+    var leadCountEl = document.getElementById('agentDeactivateLeadCount');
+    var reassignWrap = document.getElementById('leadReassignWrap');
+    var reassignSelect = document.getElementById('reassignAgentSelect');
+    var radios = document.querySelectorAll('input[name="lead_action"]');
+
+    function currentAction() {
+      var checked = document.querySelector('input[name="lead_action"]:checked');
+      return checked ? checked.value : 'keep';
+    }
+
+    function syncAction() {
+      var showReassign = currentAction() === 'reassign';
+      if (reassignWrap) reassignWrap.style.display = showReassign ? 'block' : 'none';
+      if (reassignSelect) {
+        reassignSelect.required = showReassign;
+        if (!showReassign) reassignSelect.value = '';
+      }
+    }
+
+    modalEl.addEventListener('show.bs.modal', function (event) {
+      var btn = event.relatedTarget;
+      if (!btn) return;
+      var agentId = btn.getAttribute('data-agent-id') || '';
+      var agentName = btn.getAttribute('data-agent-name') || 'Agent';
+      var leadCount = btn.getAttribute('data-agent-leads') || '0';
+      if (idInput) idInput.value = agentId;
+      if (nameEl) nameEl.textContent = agentName;
+      if (leadCountEl) {
+        leadCountEl.textContent = leadCount;
+        leadCountEl.setAttribute('data-count', leadCount);
+      }
+      if (reassignSelect) {
+        reassignSelect.value = '';
+        Array.prototype.forEach.call(reassignSelect.options, function (opt) {
+          if (!opt.value) return;
+          opt.disabled = false;
+          opt.hidden = false;
+          if (opt.value === agentId) {
+            opt.disabled = true;
+            opt.hidden = true;
+          }
+        });
+      }
+      var keepRadio = document.getElementById('leadActionKeep');
+      if (keepRadio) keepRadio.checked = true;
+      syncAction();
+    });
+
+    Array.prototype.forEach.call(radios, function (radio) {
+      radio.addEventListener('change', syncAction);
+    });
+
+    var form = document.getElementById('agentDeactivateForm');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        var action = currentAction();
+        if (action === 'reassign') {
+          if (!reassignSelect || !reassignSelect.value) {
+            e.preventDefault();
+            alert('Select an agent to reassign leads.');
+            return;
+          }
+          if (idInput && reassignSelect.value === idInput.value) {
+            e.preventDefault();
+            alert('Select a different agent to reassign leads.');
+            return;
+          }
+        }
+        if (action === 'delete') {
+          var count = 0;
+          if (leadCountEl) {
+            count = parseInt(leadCountEl.getAttribute('data-count') || '0', 10);
+          }
+          if (count > 0 && !confirm('Delete all leads assigned to this agent? This will also remove followups.')) {
+            e.preventDefault();
+            return;
+          }
+        }
+        if (!confirm('Deactivate this agent?')) {
+          e.preventDefault();
+        }
+      });
+    }
   })();
 </script>
 <script>

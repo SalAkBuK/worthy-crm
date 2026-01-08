@@ -225,6 +225,20 @@ final class Lead {
     return $map;
   }
 
+  public static function reassignByAgent(int $fromAgentId, int $toAgentId): int {
+    $pdo = DB::conn();
+    $st = $pdo->prepare("UPDATE leads SET assigned_agent_user_id=:to WHERE assigned_agent_user_id=:from");
+    $st->execute([':to' => $toAgentId, ':from' => $fromAgentId]);
+    return $st->rowCount();
+  }
+
+  public static function deleteByAgent(int $agentId): int {
+    $pdo = DB::conn();
+    $st = $pdo->prepare("DELETE FROM leads WHERE assigned_agent_user_id=:id");
+    $st->execute([':id' => $agentId]);
+    return $st->rowCount();
+  }
+
   public static function findWithAgent(int $id): ?array {
     $pdo = DB::conn();
     $st = $pdo->prepare("SELECT l.*, u.username as agent_username, COALESCE(e.employee_name, u.username) as agent_name
