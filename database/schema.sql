@@ -50,11 +50,13 @@ CREATE TABLE IF NOT EXISTS leads (
   budget_aed_range VARCHAR(80) NULL,
   lead_status VARCHAR(50) NULL,
   assigned_agent_user_id INT UNSIGNED NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_by_user_id INT UNSIGNED NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   status_overall ENUM('NEW','IN_PROGRESS','CLOSED') NOT NULL DEFAULT 'NEW',
   PRIMARY KEY (id),
   KEY idx_leads_assigned_agent (assigned_agent_user_id),
+  KEY idx_leads_active (is_active),
   KEY idx_leads_created_at (created_at),
   KEY idx_leads_status (status_overall),
   CONSTRAINT fk_leads_assigned_agent FOREIGN KEY (assigned_agent_user_id)

@@ -61,6 +61,7 @@ final class SystemTasksController extends BaseController {
       LEFT JOIN lead_followups f ON f.lead_id=l.id
       WHERE l.assigned_agent_user_id IS NOT NULL
         AND l.assigned_agent_user_id > 0
+        AND l.is_active = 1
         AND l.status_overall <> 'CLOSED'
       GROUP BY l.id
       HAVING last_activity <= DATE_SUB(NOW(), INTERVAL ? DAY)";
@@ -102,6 +103,7 @@ final class SystemTasksController extends BaseController {
         ON latest.lead_id=f.lead_id AND latest.agent_user_id=f.agent_user_id AND latest.max_attempt=f.attempt_no
       JOIN leads l ON l.id=f.lead_id
       WHERE f.next_followup_at IS NOT NULL
+        AND l.is_active = 1
         AND l.status_overall <> 'CLOSED'";
     $st = $pdo->prepare($sql);
     $st->execute();
@@ -242,6 +244,7 @@ final class SystemTasksController extends BaseController {
         GROUP BY f.lead_id, f.agent_user_id
       ) lastf ON lastf.lead_id=l.id AND lastf.agent_user_id=l.assigned_agent_user_id
       WHERE l.status_overall='CLOSED'
+        AND l.is_active = 1
         AND l.assigned_agent_user_id > 0
         AND lastf.last_followup_at >= :start
         AND lastf.last_followup_at < :end
@@ -281,11 +284,13 @@ final class SystemTasksController extends BaseController {
     $weekKey = $start->format('o-W');
 
     $pdo = DB::conn();
-    $st = $pdo->prepare("SELECT COUNT(*) FROM leads WHERE created_at >= :start AND created_at < :end");
+    $st = $pdo->prepare("SELECT COUNT(*) FROM leads WHERE is_active=1 AND created_at >= :start AND created_at < :end");
     $st->execute([':start' => $startStr, ':end' => $endStr]);
     $created = (int)$st->fetchColumn();
 
-    $st = $pdo->prepare("SELECT COUNT(*) FROM lead_followups WHERE created_at >= :start AND created_at < :end");
+    $st = $pdo->prepare("SELECT COUNT(*) FROM lead_followups f
+      JOIN leads l ON l.id=f.lead_id AND l.is_active=1
+      WHERE f.created_at >= :start AND f.created_at < :end");
     $st->execute([':start' => $startStr, ':end' => $endStr]);
     $followups = (int)$st->fetchColumn();
 
@@ -296,6 +301,7 @@ final class SystemTasksController extends BaseController {
         GROUP BY f.lead_id, f.agent_user_id
       ) lastf ON lastf.lead_id=l.id AND lastf.agent_user_id=l.assigned_agent_user_id
       WHERE l.status_overall='CLOSED'
+        AND l.is_active = 1
         AND lastf.last_followup_at >= :start
         AND lastf.last_followup_at < :end");
     $st->execute([':start' => $startStr, ':end' => $endStr]);
@@ -309,6 +315,7 @@ final class SystemTasksController extends BaseController {
         LEFT JOIN lead_followups f ON f.lead_id=l.id
         WHERE l.assigned_agent_user_id IS NOT NULL
           AND l.assigned_agent_user_id > 0
+          AND l.is_active = 1
           AND l.status_overall <> 'CLOSED'
         GROUP BY l.id
         HAVING last_activity <= DATE_SUB(NOW(), INTERVAL ? DAY)

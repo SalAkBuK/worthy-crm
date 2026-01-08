@@ -21,6 +21,7 @@ final class CeoController extends BaseController {
       $pdo = DB::conn();
       $where = [];
       $params = [];
+      $where[] = "l.is_active = 1";
       if ($filters['from']) { $where[] = "DATE(l.created_at) >= :from"; $params[':from'] = $filters['from']; }
       if ($filters['to']) { $where[] = "DATE(l.created_at) <= :to"; $params[':to'] = $filters['to']; }
       $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
@@ -67,7 +68,7 @@ final class CeoController extends BaseController {
       $totalUsers = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
       $totalAgents = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role='AGENT'")->fetchColumn();
       $totalAdmins = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role='ADMIN'")->fetchColumn();
-      $totalFollowups = (int)$pdo->query("SELECT COUNT(*) FROM lead_followups")->fetchColumn();
+      $totalFollowups = (int)$pdo->query("SELECT COUNT(*) FROM lead_followups f JOIN leads l ON l.id=f.lead_id AND l.is_active=1")->fetchColumn();
 
       // Chart data: followups per agent
       $st = $pdo->prepare("SELECT u.id, u.username, COALESCE(e.employee_name, u.username) as name,
@@ -102,6 +103,7 @@ final class CeoController extends BaseController {
 
       $st = $pdo->prepare("SELECT DATE(f.contact_datetime) as day, COUNT(DISTINCT f.lead_id) as c
         FROM lead_followups f
+        JOIN leads l ON l.id = f.lead_id AND l.is_active = 1
         $contactWhereSql
         GROUP BY day
         ORDER BY day ASC");
@@ -134,8 +136,8 @@ final class CeoController extends BaseController {
       $totalUsers = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
       $totalAgents = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role='AGENT'")->fetchColumn();
       $totalAdmins = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role='ADMIN'")->fetchColumn();
-      $totalLeads = (int)$pdo->query("SELECT COUNT(*) FROM leads")->fetchColumn();
-      $totalFollowups = (int)$pdo->query("SELECT COUNT(*) FROM lead_followups")->fetchColumn();
+      $totalLeads = (int)$pdo->query("SELECT COUNT(*) FROM leads WHERE is_active=1")->fetchColumn();
+      $totalFollowups = (int)$pdo->query("SELECT COUNT(*) FROM lead_followups f JOIN leads l ON l.id=f.lead_id AND l.is_active=1")->fetchColumn();
       $users = $pdo->query("SELECT u.*, e.employee_name
         FROM users u
         LEFT JOIN employees e ON e.employee_code = u.employee_code
@@ -146,6 +148,7 @@ final class CeoController extends BaseController {
         FROM leads l
         JOIN users u ON u.id = l.assigned_agent_user_id
         LEFT JOIN employees e ON e.employee_code = u.employee_code
+        WHERE l.is_active=1
         ORDER BY l.created_at DESC
         LIMIT 200")->fetchAll();
       $followups = $pdo->query("SELECT f.*, l.lead_name, l.contact_email, COALESCE(e.employee_name, u.username) as agent_name
@@ -153,6 +156,7 @@ final class CeoController extends BaseController {
         JOIN leads l ON l.id = f.lead_id
         JOIN users u ON u.id = f.agent_user_id
         LEFT JOIN employees e ON e.employee_code = u.employee_code
+        WHERE l.is_active=1
         ORDER BY f.contact_datetime DESC
         LIMIT 200")->fetchAll();
 
@@ -188,6 +192,7 @@ final class CeoController extends BaseController {
 
       $where = ["l.assigned_agent_user_id = :agent"];
       $params = [':agent'=>$agentId];
+      $where[] = "l.is_active = 1";
       if ($filters['from']) { $where[] = "DATE(l.created_at) >= :from"; $params[':from'] = $filters['from']; }
       if ($filters['to']) { $where[] = "DATE(l.created_at) <= :to"; $params[':to'] = $filters['to']; }
       if ($filters['q']) { $where[] = "(l.lead_name LIKE :q OR l.contact_email LIKE :q)"; $params[':q'] = '%' . $filters['q'] . '%'; }
@@ -282,6 +287,7 @@ final class CeoController extends BaseController {
       $pdo = DB::conn();
       $where = ["l.assigned_agent_user_id = :agent"];
       $params = [':agent'=>$agentId];
+      $where[] = "l.is_active = 1";
       if ($from) { $where[] = "DATE(l.created_at) >= :from"; $params[':from'] = $from; }
       if ($to) { $where[] = "DATE(l.created_at) <= :to"; $params[':to'] = $to; }
       $whereSql = 'WHERE ' . implode(' AND ', $where);

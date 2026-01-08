@@ -24,7 +24,7 @@ final class AdminLeadsController extends BaseController {
   public function individual(): void {
     try {
       \require_role(['ADMIN', 'CEO']);
-      $agents = User::allAgents();
+      $agents = User::activeAgents();
       $filters = [
         'q' => trim((string)($_GET['q'] ?? '')),
         'agent' => $_GET['agent'] ?? '',
@@ -54,7 +54,7 @@ final class AdminLeadsController extends BaseController {
   public function bulk(): void {
     try {
       \require_role(['ADMIN', 'CEO']);
-      $agents = User::allAgents();
+      $agents = User::activeAgents();
       View::render('admin/leads_bulk', [
         'title' => 'Bulk Leads',
         'agents' => $agents,
@@ -67,7 +67,7 @@ final class AdminLeadsController extends BaseController {
   public function assigned(): void {
     try {
       \require_role(['ADMIN', 'CEO']);
-      $agents = User::allAgents();
+      $agents = User::activeAgents();
       $filters = [
         'q' => trim((string)($_GET['q'] ?? '')),
         'agent' => $_GET['agent'] ?? '',
@@ -559,8 +559,8 @@ final class AdminLeadsController extends BaseController {
       $agent = User::agentWithStats($id);
       if (!$agent) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
 
-      $leadAction = (string)($_POST['lead_action'] ?? 'keep');
-      if (!in_array($leadAction, ['keep', 'delete', 'reassign'], true)) {
+      $leadAction = (string)($_POST['lead_action'] ?? 'delete');
+      if (!in_array($leadAction, ['delete', 'reassign'], true)) {
         flash('danger', 'Invalid lead action.');
         redirect('admin/agents');
       }
@@ -620,8 +620,6 @@ final class AdminLeadsController extends BaseController {
         $body .= ' Deleted ' . $leadCount . ' lead(s).';
       } elseif ($leadAction === 'reassign' && $reassignAgent) {
         $body .= ' Reassigned ' . $leadCount . ' lead(s) to ' . User::agentDisplayName($reassignAgent) . '.';
-      } else {
-        $body .= ' Leads remain assigned.';
       }
 
       $recipients = User::userIdsByRoles(['ADMIN', 'CEO']);
@@ -768,6 +766,9 @@ final class AdminLeadsController extends BaseController {
       }
       $updated = User::setAgentsActive($ids, $action === 'activate');
       if ($updated > 0) {
+        Lead::setActiveByAgents($ids, $action === 'activate');
+      }
+      if ($updated > 0) {
         $verb = $action === 'activate' ? 'activated' : 'deactivated';
         $recipients = User::userIdsByRoles(['ADMIN', 'CEO']);
         Notification::createMany(
@@ -850,6 +851,7 @@ final class AdminLeadsController extends BaseController {
       $pdo = DB::conn();
       $where = [];
       $params = [];
+      $where[] = "l.is_active = 1";
       if (!empty($filters['q'])) {
         $where[] = "(l.lead_name LIKE :q OR l.contact_email LIKE :q OR l.contact_phone LIKE :q)";
         $params[':q'] = '%' . $filters['q'] . '%';

@@ -90,6 +90,7 @@ final class Lead {
     $where = [];
     $params = [];
 
+    $where[] = "l.is_active = 1";
     if (!empty($filters['q'])) {
       $where[] = "(l.lead_name LIKE :q OR l.contact_email LIKE :q)";
       $params[':q'] = '%' . $filters['q'] . '%';
@@ -149,7 +150,7 @@ final class Lead {
 
   public static function searchAgent(int $agentId, array $filters, int $page, int $perPage): array {
     $pdo = DB::conn();
-    $where = ["l.assigned_agent_user_id = :agent"];
+    $where = ["l.assigned_agent_user_id = :agent", "l.is_active = 1"];
     $params = [':agent'=>$agentId];
 
     if (!empty($filters['q'])) {
@@ -227,8 +228,26 @@ final class Lead {
 
   public static function reassignByAgent(int $fromAgentId, int $toAgentId): int {
     $pdo = DB::conn();
-    $st = $pdo->prepare("UPDATE leads SET assigned_agent_user_id=:to WHERE assigned_agent_user_id=:from");
+    $st = $pdo->prepare("UPDATE leads SET assigned_agent_user_id=:to, is_active=1 WHERE assigned_agent_user_id=:from");
     $st->execute([':to' => $toAgentId, ':from' => $fromAgentId]);
+    return $st->rowCount();
+  }
+
+  public static function setActiveByAgent(int $agentId, bool $active): int {
+    $pdo = DB::conn();
+    $st = $pdo->prepare("UPDATE leads SET is_active=:active WHERE assigned_agent_user_id=:id");
+    $st->execute([':active' => $active ? 1 : 0, ':id' => $agentId]);
+    return $st->rowCount();
+  }
+
+  public static function setActiveByAgents(array $agentIds, bool $active): int {
+    $pdo = DB::conn();
+    $agentIds = array_values(array_filter(array_map('intval', $agentIds), fn($v) => $v > 0));
+    if (!$agentIds) return 0;
+    $placeholders = implode(',', array_fill(0, count($agentIds), '?'));
+    $st = $pdo->prepare("UPDATE leads SET is_active=? WHERE assigned_agent_user_id IN ($placeholders)");
+    $params = array_merge([$active ? 1 : 0], $agentIds);
+    $st->execute($params);
     return $st->rowCount();
   }
 

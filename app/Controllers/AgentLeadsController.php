@@ -112,7 +112,7 @@ final class AgentLeadsController extends BaseController {
       $id = (int)($_GET['id'] ?? 0);
       if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
       $lead = Lead::findWithAgent($id);
-      if (!$lead || (int)$lead['assigned_agent_user_id'] !== (int)current_user()['id']) {
+      if (!$lead || (int)$lead['assigned_agent_user_id'] !== (int)current_user()['id'] || (int)($lead['is_active'] ?? 1) !== 1) {
         http_response_code(403); require __DIR__ . '/../Views/errors/403.php'; return;
       }
       $followups = Followup::listForLead($id);
@@ -153,7 +153,7 @@ final class AgentLeadsController extends BaseController {
       if ($leadId <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
 
       $lead = Lead::findWithAgent($leadId);
-      if (!$lead || (int)$lead['assigned_agent_user_id'] !== (int)current_user()['id']) {
+      if (!$lead || (int)$lead['assigned_agent_user_id'] !== (int)current_user()['id'] || (int)($lead['is_active'] ?? 1) !== 1) {
         http_response_code(403); require __DIR__ . '/../Views/errors/403.php'; return;
       }
 

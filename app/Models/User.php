@@ -36,6 +36,16 @@ final class User {
     return $st->fetchAll();
   }
 
+  public static function activeAgents(): array {
+    $pdo = DB::conn();
+    $st = $pdo->query("SELECT u.*, e.employee_name
+      FROM users u
+      LEFT JOIN employees e ON e.employee_code = u.employee_code
+      WHERE u.role='AGENT' AND u.is_active=1
+      ORDER BY COALESCE(e.employee_name, u.username) ASC");
+    return $st->fetchAll();
+  }
+
   public static function agentsWithStats(array $filters): array {
     $pdo = DB::conn();
     $where = "u.role='AGENT'";
@@ -58,14 +68,14 @@ final class User {
     }
     $leads = (string)($filters['leads'] ?? '');
     if ($leads === '0') {
-      $where .= " AND (SELECT COUNT(*) FROM leads l WHERE l.assigned_agent_user_id=u.id)=0";
+      $where .= " AND (SELECT COUNT(*) FROM leads l WHERE l.assigned_agent_user_id=u.id AND l.is_active=1)=0";
     } elseif ($leads === '1-5') {
-      $where .= " AND (SELECT COUNT(*) FROM leads l WHERE l.assigned_agent_user_id=u.id) BETWEEN 1 AND 5";
+      $where .= " AND (SELECT COUNT(*) FROM leads l WHERE l.assigned_agent_user_id=u.id AND l.is_active=1) BETWEEN 1 AND 5";
     } elseif ($leads === '6+') {
-      $where .= " AND (SELECT COUNT(*) FROM leads l WHERE l.assigned_agent_user_id=u.id) >= 6";
+      $where .= " AND (SELECT COUNT(*) FROM leads l WHERE l.assigned_agent_user_id=u.id AND l.is_active=1) >= 6";
     }
     $sql = "SELECT u.*, e.employee_name,
-      (SELECT COUNT(*) FROM leads l WHERE l.assigned_agent_user_id=u.id) as leads_count,
+      (SELECT COUNT(*) FROM leads l WHERE l.assigned_agent_user_id=u.id AND l.is_active=1) as leads_count,
       (SELECT COUNT(*) FROM lead_followups f WHERE f.agent_user_id=u.id) as followups_count,
       (SELECT MAX(f.contact_datetime) FROM lead_followups f WHERE f.agent_user_id=u.id) as last_contact
       FROM users u
@@ -80,7 +90,7 @@ final class User {
   public static function agentWithStats(int $id): ?array {
     $pdo = DB::conn();
     $sql = "SELECT u.*, e.employee_name,
-      (SELECT COUNT(*) FROM leads l WHERE l.assigned_agent_user_id=u.id) as leads_count,
+      (SELECT COUNT(*) FROM leads l WHERE l.assigned_agent_user_id=u.id AND l.is_active=1) as leads_count,
       (SELECT COUNT(*) FROM lead_followups f WHERE f.agent_user_id=u.id) as followups_count,
       (SELECT MAX(f.contact_datetime) FROM lead_followups f WHERE f.agent_user_id=u.id) as last_contact
       FROM users u
