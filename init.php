@@ -30,6 +30,16 @@ require_once __DIR__ . '/app/Models/AuditLog.php';
 require_once __DIR__ . '/app/Models/Lead.php';
 require_once __DIR__ . '/app/Models/Followup.php';
 require_once __DIR__ . '/app/Models/Notification.php';
+require_once __DIR__ . '/app/Models/Listing.php';
+require_once __DIR__ . '/app/Models/ListingDataset.php';
+
+/*
+|--------------------------------------------------------------------------
+| Load Middleware
+|--------------------------------------------------------------------------
+*/
+require_once __DIR__ . '/app/Middleware/AuthMiddleware.php';
+require_once __DIR__ . '/app/Middleware/CsrfMiddleware.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -44,6 +54,8 @@ require_once __DIR__ . '/app/Controllers/CeoController.php';
 require_once __DIR__ . '/app/Controllers/ProfileController.php';
 require_once __DIR__ . '/app/Controllers/NotificationsController.php';
 require_once __DIR__ . '/app/Controllers/SystemTasksController.php';
+require_once __DIR__ . '/app/Controllers/ListingsController.php';
+require_once __DIR__ . '/app/Controllers/ListingDatasetsController.php';
 
 /*
 |--------------------------------------------------------------------------

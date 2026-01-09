@@ -149,3 +149,62 @@ CREATE TABLE IF NOT EXISTS notifications (
   CONSTRAINT fk_notifications_user FOREIGN KEY (user_id)
     REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS listing_datasets (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  uploaded_by_user_id INT UNSIGNED NULL,
+  original_filename VARCHAR(255) NOT NULL,
+  stored_filename VARCHAR(255) NOT NULL,
+  file_hash CHAR(64) NULL,
+  file_size_bytes INT NULL,
+  mime_type VARCHAR(100) NULL,
+  status ENUM('UPLOADED','PROCESSING','COMPLETED','FAILED') NOT NULL DEFAULT 'UPLOADED',
+  parsed_count INT NOT NULL DEFAULT 0,
+  failed_count INT NOT NULL DEFAULT 0,
+  error_message TEXT NULL,
+  extracted_text_path VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_listing_datasets_user (uploaded_by_user_id),
+  KEY idx_listing_datasets_status (status),
+  KEY idx_listing_datasets_created (created_at),
+  KEY idx_listing_datasets_hash (file_hash)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS listings (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  project_name VARCHAR(255) NOT NULL,
+  area VARCHAR(255) NOT NULL,
+  developer VARCHAR(255) NULL,
+  unit_ref VARCHAR(120) NULL,
+  property_type VARCHAR(120) NULL,
+  beds_raw VARCHAR(50) NULL,
+  beds TINYINT NULL,
+  baths_raw VARCHAR(50) NULL,
+  baths TINYINT NULL,
+  size_raw VARCHAR(50) NULL,
+  size_sqft DECIMAL(10,2) NULL,
+  price_raw VARCHAR(80) NULL,
+  price_amount DECIMAL(14,2) NULL,
+  status VARCHAR(80) NULL,
+  payment_plan TEXT NULL,
+  brochure_url VARCHAR(500) NULL,
+  maps_url VARCHAR(500) NULL,
+  media_url VARCHAR(500) NULL,
+  notes TEXT NULL,
+  source ENUM('MANUAL','PDF') NOT NULL DEFAULT 'MANUAL',
+  dataset_id INT UNSIGNED NULL,
+  raw_data JSON NULL,
+  created_by_user_id INT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_listings_dataset (dataset_id),
+  KEY idx_listings_source (source),
+  KEY idx_listings_project (project_name),
+  KEY idx_listings_area (area),
+  KEY idx_listings_status (status),
+  KEY idx_listings_created (created_at),
+  KEY idx_listings_created_by (created_by_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

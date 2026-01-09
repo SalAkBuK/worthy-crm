@@ -16,6 +16,8 @@ use App\Controllers\CeoController;
 use App\Controllers\ProfileController;
 use App\Controllers\NotificationsController;
 use App\Controllers\SystemTasksController;
+use App\Controllers\ListingsController;
+use App\Controllers\ListingDatasetsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,6 +38,8 @@ $ceo   = new CeoController();
 $profile = new ProfileController();
 $notifications = new NotificationsController();
 $tasks = new SystemTasksController();
+$listings = new ListingsController();
+$datasets = new ListingDatasetsController();
 
 /*
 |--------------------------------------------------------------------------
@@ -109,6 +113,22 @@ $router->get('/ceo/dashboard', function () use ($ceo) { $ceo->dashboard(); });
 $router->get('/ceo/summary', function () use ($ceo) { $ceo->summary(); });
 $router->get('/ceo/agent', function () use ($ceo) { $ceo->agentPerformance(); });
 $router->get('/ceo/export', function () use ($ceo) { $ceo->exportCsv(); });
+
+// Listings
+$router->get('/listings', function () use ($listings) { $listings->index(); });
+$router->get('/listings/show', function () use ($listings) { $listings->show(); });
+$router->get('/listings/create', function () use ($listings) { $listings->create(); });
+$router->post('/listings/store', function () use ($listings) { $listings->store(); });
+$router->get('/listings/edit', function () use ($listings) { $listings->edit(); });
+$router->post('/listings/update', function () use ($listings) { $listings->update(); });
+
+// Listing datasets
+$router->get('/listings/datasets', function () use ($datasets) { $datasets->index(); });
+$router->get('/listings/datasets/upload', function () use ($datasets) { $datasets->upload(); });
+$router->post('/listings/datasets/import', function () use ($datasets) { $datasets->import(); });
+$router->get('/listings/datasets/show', function () use ($datasets) { $datasets->show(); });
+$router->get('/listings/datasets/download', function () use ($datasets) { $datasets->download(); });
+$router->post('/listings/datasets/delete', function () use ($datasets) { $datasets->delete(); });
 
 // System tasks (cron)
 $router->get('/tasks/notifications', function () use ($tasks) { $tasks->runNotifications(); });

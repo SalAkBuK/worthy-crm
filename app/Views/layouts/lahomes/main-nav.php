@@ -11,6 +11,8 @@ $isAdminLeadsAssigned = str_contains($uri, '/admin/leads/assigned');
 $isAgentLeads = str_contains($uri, '/agent/leads');
 $isAgentLeadsAdd = str_contains($uri, '/agent/leads/add');
 $isAgentLeadsList = str_contains($uri, '/agent/leads') && !$isAgentLeadsAdd;
+$isListings = str_contains($uri, '/listings');
+$isListingsDatasets = str_contains($uri, '/listings/datasets');
 ?>
 <div class="main-nav">
   <div class="logo-box">
@@ -88,6 +90,34 @@ $isAgentLeadsList = str_contains($uri, '/agent/leads') && !$isAgentLeadsAdd;
             </ul>
           </div>
         </li>
+      <?php endif; ?>
+
+      <?php if (in_array($role, ['ADMIN','CEO','AGENT'], true)): ?>
+        <?php if (in_array($role, ['ADMIN','CEO'], true)): ?>
+          <li class="nav-item">
+            <a class="nav-link menu-arrow <?= $isListings ? 'active' : '' ?>" href="#sidebarListings" data-bs-toggle="collapse" role="button" aria-expanded="<?= $isListings ? 'true' : 'false' ?>" aria-controls="sidebarListings">
+              <span class="nav-icon"><i class="ri-building-2-line"></i></span>
+              <span class="nav-text">Listings</span>
+            </a>
+            <div class="collapse <?= $isListings ? 'show' : '' ?>" id="sidebarListings">
+              <ul class="nav sub-navbar-nav">
+                <li class="sub-nav-item">
+                  <a class="sub-nav-link <?= $isListings && !$isListingsDatasets ? 'active' : '' ?>" href="<?= e(url('listings')) ?>">All Listings</a>
+                </li>
+                <li class="sub-nav-item">
+                  <a class="sub-nav-link <?= $isListingsDatasets ? 'active' : '' ?>" href="<?= e(url('listings/datasets')) ?>">Datasets</a>
+                </li>
+              </ul>
+            </div>
+          </li>
+        <?php else: ?>
+          <li class="nav-item">
+            <a class="nav-link <?= $isListings ? 'active' : '' ?>" href="<?= e(url('listings')) ?>">
+              <span class="nav-icon"><i class="ri-building-2-line"></i></span>
+              <span class="nav-text">Listings</span>
+            </a>
+          </li>
+        <?php endif; ?>
       <?php endif; ?>
 
       <li class="nav-item">
