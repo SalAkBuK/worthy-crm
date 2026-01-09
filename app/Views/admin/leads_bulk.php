@@ -112,9 +112,9 @@ $agents = $agents ?? [];
                 <th class="form-required">Name</th>
                 <th class="form-required">Email</th>
                 <th class="form-required">Phone</th>
-                <th class="form-required">Interested In Property</th>
+                <th>Interested In Property</th>
                 <th>Interest Types</th>
-                <th class="form-required">Type</th>
+                <th>Type</th>
                 <th>Area</th>
                 <th>Budget (AED)</th>
                 <th>Lead Status</th>

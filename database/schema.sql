@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS leads (
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_by_user_id INT UNSIGNED NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  status_overall ENUM('NEW','IN_PROGRESS','CLOSED') NOT NULL DEFAULT 'NEW',
+  status_overall ENUM('NEW','IN_PROGRESS','50/50','CLOSED') NOT NULL DEFAULT 'NEW',
   PRIMARY KEY (id),
   KEY idx_leads_assigned_agent (assigned_agent_user_id),
   KEY idx_leads_active (is_active),

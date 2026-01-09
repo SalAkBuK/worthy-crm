@@ -59,8 +59,22 @@ $meta = $meta ?? ['page' => 1, 'pages' => 1];
           <td>
             <?php
               $s = $l['status_overall'];
-              $cls = $s === 'CLOSED' ? 'success' : ($s === 'IN_PROGRESS' ? 'warning' : 'secondary');
-              $label = $s === 'IN_PROGRESS' ? 'In Progress' : ($s === 'NEW' ? 'New' : 'Closed');
+              if ($s === 'CLOSED') {
+                $cls = 'success';
+                $label = 'Closed';
+              } elseif ($s === 'IN_PROGRESS') {
+                $cls = 'warning';
+                $label = 'In Progress';
+              } elseif ($s === '50/50') {
+                $cls = 'info';
+                $label = '50/50';
+              } elseif ($s === 'NEW') {
+                $cls = 'secondary';
+                $label = 'New';
+              } else {
+                $cls = 'secondary';
+                $label = $s ?: 'New';
+              }
             ?>
             <span class="badge bg-<?= e($cls) ?>-subtle text-<?= e($cls) ?> fw-medium fs-13 px-2 py-1"><?= e($label) ?></span>
           </td>

@@ -47,9 +47,9 @@ $leadDisplayName = function (?string $name): string {
                 <th class="form-required">Name</th>
                 <th class="form-required">Email</th>
                 <th class="form-required">Phone</th>
-                <th class="form-required">Interested In Property</th>
+                <th>Interested In Property</th>
                 <th>Interest Types</th>
-                <th class="form-required">Type</th>
+                <th>Type</th>
                 <th>Area</th>
                 <th>Budget (AED)</th>
                 <th>Lead Status</th>
@@ -228,7 +228,15 @@ $leadDisplayName = function (?string $name): string {
                 <td>
                   <?php
                     $s = $l['status_overall'];
-                    $cls = $s==='CLOSED'?'success':($s==='IN_PROGRESS'?'warning':'secondary');
+                    if ($s === 'CLOSED') {
+                      $cls = 'success';
+                    } elseif ($s === 'IN_PROGRESS') {
+                      $cls = 'warning';
+                    } elseif ($s === '50/50') {
+                      $cls = 'info';
+                    } else {
+                      $cls = 'secondary';
+                    }
                   ?>
                   <span class="badge bg-<?= e($cls) ?>-subtle text-<?= e($cls) ?> py-1 px-2 fs-13"><?= e($s) ?></span>
                 </td>

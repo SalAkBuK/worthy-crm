@@ -43,15 +43,14 @@ final class Lead {
         } elseif (!preg_match('/^[0-9 +().-]{6,20}$/', $phone)) {
           $errs[] = 'Phone number must be 6-20 chars and digits/+()-.';
         }
-        if ($prop === '') $errs[] = 'Interested property required';
         if ($type === '' || $type === null) {
           if ($allowMissingType) {
             $type = 'NONE';
           } else {
-            $errs[] = 'Property type required';
+            $type = null;
           }
         } elseif (!in_array($type, ['OFF_PLAN','READY_TO_MOVE','NONE'], true)) {
-          $errs[] = 'Property type required';
+          $errs[] = 'Property type must be Off Plan or Ready To Move';
         }
         if ($agentId <= 0 && !$allowUnassigned) $errs[] = 'Agent required';
         if ($errs) { $rowErrors[$i] = $errs; continue; }

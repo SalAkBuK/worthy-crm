@@ -108,7 +108,15 @@ $leadDisplayName = function (?string $name): string {
             <td>
               <?php
                 $s = $l['status_overall'];
-                $cls = $s==='CLOSED'?'success':($s==='IN_PROGRESS'?'warning':'secondary');
+                if ($s === 'CLOSED') {
+                  $cls = 'success';
+                } elseif ($s === 'IN_PROGRESS') {
+                  $cls = 'warning';
+                } elseif ($s === '50/50') {
+                  $cls = 'info';
+                } else {
+                  $cls = 'secondary';
+                }
               ?>
               <span class="badge bg-<?= e($cls) ?>-subtle text-<?= e($cls) ?> py-1 px-2 fs-13"><?= e($s) ?></span>
             </td>

@@ -24,6 +24,7 @@ $leadDisplayName = function (?string $name): string {
         <a class="btn btn-outline-secondary <?= $currentStatus === '' ? 'active' : '' ?>" href="?<?= e(build_query(['status' => null, 'page' => 1])) ?>">All</a>
         <a class="btn btn-outline-secondary <?= $currentStatus === 'NEW' ? 'active' : '' ?>" href="?<?= e(build_query(['status' => 'NEW', 'page' => 1])) ?>">New</a>
         <a class="btn btn-outline-secondary <?= $currentStatus === 'IN_PROGRESS' ? 'active' : '' ?>" href="?<?= e(build_query(['status' => 'IN_PROGRESS', 'page' => 1])) ?>">In Progress</a>
+        <a class="btn btn-outline-secondary <?= $currentStatus === '50/50' ? 'active' : '' ?>" href="?<?= e(build_query(['status' => '50/50', 'page' => 1])) ?>">50/50</a>
         <a class="btn btn-outline-secondary <?= $currentStatus === 'CLOSED' ? 'active' : '' ?>" href="?<?= e(build_query(['status' => 'CLOSED', 'page' => 1])) ?>">Closed</a>
       </div>
     </div>
@@ -46,6 +47,7 @@ $leadDisplayName = function (?string $name): string {
           <option value="">All statuses</option>
           <option value="NEW" <?= (($filters['status'] ?? '')==='NEW')?'selected':'' ?>>New</option>
           <option value="IN_PROGRESS" <?= (($filters['status'] ?? '')==='IN_PROGRESS')?'selected':'' ?>>In Progress</option>
+          <option value="50/50" <?= (($filters['status'] ?? '')==='50/50')?'selected':'' ?>>50/50</option>
           <option value="CLOSED" <?= (($filters['status'] ?? '')==='CLOSED')?'selected':'' ?>>Closed</option>
         </select>
       </div>

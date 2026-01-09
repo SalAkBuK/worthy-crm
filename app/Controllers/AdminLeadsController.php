@@ -107,12 +107,10 @@ final class AdminLeadsController extends BaseController {
         redirect($formType === 'individual' ? 'admin/leads/individual' : 'admin/leads/bulk');
       }
       $rowErrors = [];
-      if ($formType === 'bulk') {
-        foreach ($rows as $i => $row) {
-          $type = trim((string)($row['property_type'] ?? ''));
-          if ($type === '') {
-            $rows[$i]['allow_missing_type'] = true;
-          }
+      foreach ($rows as $i => $row) {
+        $type = trim((string)($row['property_type'] ?? ''));
+        if ($type === '') {
+          $rows[$i]['allow_missing_type'] = true;
         }
       }
       $ok = Lead::createBulk($rows, (int)current_user()['id'], $rowErrors);
@@ -244,8 +242,8 @@ final class AdminLeadsController extends BaseController {
       $colAgentUser = $getIdx($headerMap, ['agent_username','username','agent_user']);
       $colAgentEmail = $getIdx($headerMap, ['agent_email','agent_mail']);
 
-      if ($colName === null || $colEmail === null || $colPhone === null || $colInterested === null) {
-        flash('danger', 'CSV must include columns for lead_name/name, contact_email/email, contact_phone/phone, interested_in_property/service category.');
+      if ($colName === null || $colEmail === null || $colPhone === null) {
+        flash('danger', 'CSV must include columns for lead_name/name, contact_email/email, contact_phone/phone.');
         redirect('admin/leads/bulk');
       }
       if ($assignMode === 'per_row' && $colAgentId === null && $colAgentUser === null && $colAgentEmail === null) {

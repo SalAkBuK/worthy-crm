@@ -14,7 +14,15 @@ $safeReturn = str_starts_with($returnPath, 'http') ? 'admin/leads' : ltrim($retu
         <span class="badge bg-light-subtle text-muted border fw-medium fs-13 px-2 py-1"><?= e($lead['property_type']) ?></span>
         <?php
           $s = $lead['status_overall'];
-          $cls = $s==='CLOSED'?'success':($s==='IN_PROGRESS'?'warning':'secondary');
+          if ($s === 'CLOSED') {
+            $cls = 'success';
+          } elseif ($s === 'IN_PROGRESS') {
+            $cls = 'warning';
+          } elseif ($s === '50/50') {
+            $cls = 'info';
+          } else {
+            $cls = 'secondary';
+          }
         ?>
         <span class="badge bg-<?= e($cls) ?>-subtle text-<?= e($cls) ?> fw-medium fs-13 px-2 py-1"><?= e($s) ?></span>
       </div>

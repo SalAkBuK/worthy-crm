@@ -6,12 +6,16 @@ $adminUsers = array_filter($users, fn($u) => ($u['role'] ?? '') === 'ADMIN');
 $agentUsers = array_filter($users, fn($u) => ($u['role'] ?? '') === 'AGENT');
 $leads = $leads ?? [];
 $followups = $followups ?? [];
-$leadStatuses = ['NEW', 'IN_PROGRESS', 'CLOSED'];
+$leadStatuses = ['NEW', 'IN_PROGRESS', '50/50', 'CLOSED'];
 $leadsByStatus = [
   'NEW' => array_values(array_filter($leads, fn($l) => ($l['status_overall'] ?? '') === 'NEW')),
   'IN_PROGRESS' => array_values(array_filter($leads, fn($l) => ($l['status_overall'] ?? '') === 'IN_PROGRESS')),
+  '50/50' => array_values(array_filter($leads, fn($l) => ($l['status_overall'] ?? '') === '50/50')),
   'CLOSED' => array_values(array_filter($leads, fn($l) => ($l['status_overall'] ?? '') === 'CLOSED')),
 ];
+  $leadStatusTabId = function (string $status): string {
+    return strtolower(preg_replace('/[^a-z0-9]+/', '-', $status));
+  };
 $followupStatuses = ['INTERESTED', 'NOT_INTERESTED'];
 $followupsByStatus = [
   'INTERESTED' => array_values(array_filter($followups, fn($f) => ($f['interested_status'] ?? '') === 'INTERESTED')),
@@ -222,7 +226,7 @@ $renderFollowupsTable = function(array $rows): void {
               <ul class="nav nav-pills nav-pills-sm gap-2 mb-3" role="tablist">
                 <?php foreach ($leadStatuses as $i => $st): ?>
                   <li class="nav-item" role="presentation">
-                    <button class="nav-link <?= $i === 0 ? 'active' : '' ?>" data-bs-toggle="tab" data-bs-target="#summary-leads-<?= e(strtolower($st)) ?>" type="button" role="tab">
+                    <button class="nav-link <?= $i === 0 ? 'active' : '' ?>" data-bs-toggle="tab" data-bs-target="#summary-leads-<?= e($leadStatusTabId($st)) ?>" type="button" role="tab">
                       <?= e(str_replace('_', ' ', $st)) ?>
                       <span class="badge bg-light-subtle text-muted border ms-1"><?= e((string)count($leadsByStatus[$st])) ?></span>
                     </button>
@@ -231,7 +235,7 @@ $renderFollowupsTable = function(array $rows): void {
               </ul>
               <div class="tab-content">
                 <?php foreach ($leadStatuses as $i => $st): ?>
-                  <div class="tab-pane fade <?= $i === 0 ? 'show active' : '' ?>" id="summary-leads-<?= e(strtolower($st)) ?>" role="tabpanel">
+                  <div class="tab-pane fade <?= $i === 0 ? 'show active' : '' ?>" id="summary-leads-<?= e($leadStatusTabId($st)) ?>" role="tabpanel">
                     <?php $renderLeadsTable($leadsByStatus[$st]); ?>
                   </div>
                 <?php endforeach; ?>
