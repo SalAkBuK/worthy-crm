@@ -44,9 +44,9 @@ $leadDisplayName = function (?string $name): string {
             <table class="table align-middle text-nowrap table-hover table-centered mb-0">
               <thead class="bg-light-subtle">
               <tr>
-                <th class="form-required">Name</th>
-                <th class="form-required">Email</th>
-                <th class="form-required">Phone</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
                 <th>Interested In Property</th>
                 <th>Interest Types</th>
                 <th>Type</th>
@@ -219,8 +219,12 @@ $leadDisplayName = function (?string $name): string {
             <?php foreach ($items as $l): ?>
               <tr>
                 <td class="fw-semibold"><?= e($leadDisplayName($l['lead_name'] ?? '')) ?></td>
-                <td><?= e($l['contact_email']) ?></td>
-                <td><?= e($l['contact_phone'] ?? '-') ?></td>
+                <?php
+                  $email = trim((string)($l['contact_email'] ?? ''));
+                  $phone = trim((string)($l['contact_phone'] ?? ''));
+                ?>
+                <td><?= e($email !== '' ? $email : '-') ?></td>
+                <td><?= e($phone !== '' ? $phone : '-') ?></td>
                 <td class="text-muted"><?= e($l['interested_in_property']) ?></td>
                 <?php $ptype = $l['property_type'] !== null && $l['property_type'] !== '' ? (string)$l['property_type'] : 'NONE'; ?>
                 <td><span class="badge bg-light-subtle text-dark py-1 px-2 fs-13"><?= e($ptype) ?></span></td>

@@ -109,9 +109,9 @@ $agents = $agents ?? [];
                   <input class="form-check-input" type="checkbox" data-bulk-select-all>
                 </th>
                 <th style="width:60px;">#</th>
-                <th class="form-required">Name</th>
-                <th class="form-required">Email</th>
-                <th class="form-required">Phone</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
                 <th>Interested In Property</th>
                 <th>Interest Types</th>
                 <th>Type</th>

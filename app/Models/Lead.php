@@ -34,12 +34,21 @@ final class Lead {
         $agentId = (int)($r['assigned_agent_user_id'] ?? 0);
         $allowUnassigned = (bool)($r['allow_unassigned'] ?? false);
         $allowMissingType = (bool)($r['allow_missing_type'] ?? false);
+        $allowMissingName = (bool)($r['allow_missing_name'] ?? false);
+        $allowMissingPhone = (bool)($r['allow_missing_phone'] ?? false);
+        $allowMissingEmail = (bool)($r['allow_missing_email'] ?? false);
 
         $errs = [];
-        if ($name === '') $errs[] = 'Name required';
-        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errs[] = 'Valid email required';
+        if ($name === '' && !$allowMissingName) $errs[] = 'Name required';
+        if ($email === '') {
+          if (!$allowMissingEmail) $errs[] = 'Valid email required';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+          $errs[] = 'Valid email required';
+        }
         if ($phone === '') {
+          if (!$allowMissingPhone) {
           $errs[] = 'Phone number required';
+          }
         } elseif (!preg_match('/^[0-9 +().-]{6,20}$/', $phone)) {
           $errs[] = 'Phone number must be 6-20 chars and digits/+()-.';
         }

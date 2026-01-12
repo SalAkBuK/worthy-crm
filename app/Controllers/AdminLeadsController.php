@@ -112,6 +112,9 @@ final class AdminLeadsController extends BaseController {
         if ($type === '') {
           $rows[$i]['allow_missing_type'] = true;
         }
+        $rows[$i]['allow_missing_name'] = true;
+        $rows[$i]['allow_missing_phone'] = true;
+        $rows[$i]['allow_missing_email'] = true;
       }
       $ok = Lead::createBulk($rows, (int)current_user()['id'], $rowErrors);
 
@@ -242,10 +245,7 @@ final class AdminLeadsController extends BaseController {
       $colAgentUser = $getIdx($headerMap, ['agent_username','username','agent_user']);
       $colAgentEmail = $getIdx($headerMap, ['agent_email','agent_mail']);
 
-      if ($colName === null || $colEmail === null || $colPhone === null) {
-        flash('danger', 'CSV must include columns for lead_name/name, contact_email/email, contact_phone/phone.');
-        redirect('admin/leads/bulk');
-      }
+      // Email/phone/name are optional for bulk imports.
       if ($assignMode === 'per_row' && $colAgentId === null && $colAgentUser === null && $colAgentEmail === null) {
         flash('danger', 'CSV must include agent_id, agent_username, or agent_email when assigning individually.');
         redirect('admin/leads/bulk');
@@ -268,9 +268,9 @@ final class AdminLeadsController extends BaseController {
         if ($allEmpty) continue;
 
         $row = [
-          'lead_name' => $data[$colName] ?? '',
-          'contact_email' => $data[$colEmail] ?? '',
-          'contact_phone' => $data[$colPhone] ?? '',
+          'lead_name' => $colName !== null ? ($data[$colName] ?? '') : '',
+          'contact_email' => $colEmail !== null ? ($data[$colEmail] ?? '') : '',
+          'contact_phone' => $colPhone !== null ? ($data[$colPhone] ?? '') : '',
           'interested_in_property' => $data[$colInterested] ?? '',
           'property_type' => null,
           'property_interest_types' => $colInterestTypes !== null ? ($data[$colInterestTypes] ?? '') : '',
@@ -282,6 +282,9 @@ final class AdminLeadsController extends BaseController {
           'assigned_agent_user_id' => $defaultAgentId,
           'allow_unassigned' => $assignMode === 'unassigned',
           'allow_missing_type' => true,
+          'allow_missing_name' => true,
+          'allow_missing_phone' => true,
+          'allow_missing_email' => true,
         ];
         if ($colBudget !== null) {
           $budget = $this->parseBudgetRange((string)($data[$colBudget] ?? ''));

@@ -23,6 +23,12 @@ final class ListingsController extends BaseController {
         'source' => trim((string)($_GET['source'] ?? '')),
         'dataset_id' => $_GET['dataset_id'] ?? '',
       ];
+      $options = Listing::getFilterOptions();
+      $propertyTypeDefaults = ['Apartment', 'Villa', 'Duplex'];
+      $extraPropertyTypes = array_values(array_diff($options['property_types'], $propertyTypeDefaults));
+      sort($extraPropertyTypes, SORT_NATURAL | SORT_FLAG_CASE);
+      $options['property_types'] = array_values(array_merge($propertyTypeDefaults, $extraPropertyTypes));
+
       $page = max(1, (int)($_GET['page'] ?? 1));
       $perPage = 100;
       $result = Listing::search($filters, $page, $perPage);
@@ -31,6 +37,7 @@ final class ListingsController extends BaseController {
         'filters' => $filters,
         'items' => $result['items'],
         'meta' => $result['meta'],
+        'options' => $options,
       ]);
     } catch (\Throwable $e) {
       $this->handleException($e);

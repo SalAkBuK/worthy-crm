@@ -16,8 +16,12 @@ $blockReason = $blockReason ?? null;
       <div class="card-header bg-light-subtle d-flex justify-content-between align-items-start border-bottom">
         <div>
           <h4 class="card-title mb-1"><?= e($lead['lead_name']) ?></h4>
-          <p class="text-muted mb-0"><?= e($lead['contact_email']) ?></p>
-          <p class="text-muted mb-0"><?= e($lead['contact_phone'] ?? '-') ?></p>
+          <?php
+            $email = trim((string)($lead['contact_email'] ?? ''));
+            $phone = trim((string)($lead['contact_phone'] ?? ''));
+          ?>
+          <p class="text-muted mb-0"><?= e($email !== '' ? $email : '-') ?></p>
+          <p class="text-muted mb-0"><?= e($phone !== '' ? $phone : '-') ?></p>
           <div class="d-flex flex-wrap gap-2 mt-2">
             <span class="badge bg-light-subtle text-muted border fw-medium fs-13 px-2 py-1"><?= e($lead['property_type']) ?></span>
             <?php

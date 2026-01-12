@@ -194,7 +194,8 @@ $dayCounts = array_map(fn($r)=>(int)$r['c'], $byDay);
                 ?>
                   <tr>
                     <td class="fw-semibold"><?= e($leadDisplayName($l['lead_name'] ?? '')) ?></td>
-                    <td><?= e($l['contact_email']) ?></td>
+                    <?php $email = trim((string)($l['contact_email'] ?? '')); ?>
+                    <td><?= e($email !== '' ? $email : '-') ?></td>
                     <td><span class="badge bg-light-subtle text-muted border"><?= e($l['property_type']) ?></span></td>
                     <td class="text-muted"><?= e($l['created_at']) ?></td>
                     <td><?= e((string)$l['followups']) ?></td>

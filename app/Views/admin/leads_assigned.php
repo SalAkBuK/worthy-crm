@@ -99,8 +99,12 @@ $leadDisplayName = function (?string $name): string {
         <?php foreach ($items as $l): ?>
           <tr>
             <td class="fw-semibold"><?= e($leadDisplayName($l['lead_name'] ?? '')) ?></td>
-            <td><?= e($l['contact_email']) ?></td>
-            <td><?= e($l['contact_phone'] ?? '-') ?></td>
+            <?php
+              $email = trim((string)($l['contact_email'] ?? ''));
+              $phone = trim((string)($l['contact_phone'] ?? ''));
+            ?>
+            <td><?= e($email !== '' ? $email : '-') ?></td>
+            <td><?= e($phone !== '' ? $phone : '-') ?></td>
             <td class="text-muted"><?= e($l['interested_in_property']) ?></td>
             <?php $ptype = $l['property_type'] !== null && $l['property_type'] !== '' ? (string)$l['property_type'] : 'NONE'; ?>
             <td><span class="badge bg-light-subtle text-dark py-1 px-2 fs-13"><?= e($ptype) ?></span></td>

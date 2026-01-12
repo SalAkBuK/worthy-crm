@@ -90,6 +90,9 @@ final class AgentLeadsController extends BaseController {
         if ($type === '') {
           $rows[$i]['allow_missing_type'] = true;
         }
+        $rows[$i]['allow_missing_name'] = true;
+        $rows[$i]['allow_missing_phone'] = true;
+        $rows[$i]['allow_missing_email'] = true;
       }
       $rowErrors = [];
       $ok = Lead::createBulk($rows, $agentId, $rowErrors);

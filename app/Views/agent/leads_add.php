@@ -28,9 +28,9 @@ unset($_SESSION['_lead_agent_row_errors'], $_SESSION['_lead_agent_old_rows']);
         <table class="table align-middle text-nowrap table-hover table-centered mb-0">
           <thead class="bg-light-subtle">
           <tr>
-            <th class="form-required">Name</th>
-            <th class="form-required">Email</th>
-            <th class="form-required">Phone</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
             <th class="form-required">Interested In Property</th>
             <th>Interest Types</th>
             <th class="form-required">Type</th>

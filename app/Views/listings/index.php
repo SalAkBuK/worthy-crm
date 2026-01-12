@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../Helpers/functions.php';
 $items = $items ?? [];
 $meta = $meta ?? [];
 $filters = $filters ?? [];
+$options = $options ?? [];
 $user = current_user();
 $role = $user['role'] ?? '';
 $canEdit = in_array($role, ['ADMIN', 'CEO'], true);
@@ -14,6 +15,11 @@ $developer = $filters['developer'] ?? '';
 $propertyType = $filters['property_type'] ?? '';
 $bedrooms = $filters['bedrooms'] ?? '';
 $status = $filters['status'] ?? '';
+$developers = $options['developers'] ?? [];
+$statuses = $options['statuses'] ?? [];
+$propertyTypes = $options['property_types'] ?? [];
+$bedroomOptions = $options['bedrooms'] ?? [];
+$projects = $options['projects'] ?? [];
 ?>
 <div class="row">
   <div class="col-12">
@@ -37,7 +43,12 @@ $status = $filters['status'] ?? '';
           </div>
           <div class="col-md-2">
             <label class="form-label">Project</label>
-            <input class="form-control" type="text" name="project_name" value="<?= e($projectName) ?>">
+            <select class="form-select" name="project_name">
+              <option value="">All</option>
+              <?php foreach ($projects as $option): ?>
+                <option value="<?= e($option) ?>" <?= $option === $projectName ? 'selected' : '' ?>><?= e($option) ?></option>
+              <?php endforeach; ?>
+            </select>
           </div>
           <div class="col-md-2">
             <label class="form-label">Area</label>
@@ -45,19 +56,43 @@ $status = $filters['status'] ?? '';
           </div>
           <div class="col-md-2">
             <label class="form-label">Developer</label>
-            <input class="form-control" type="text" name="developer" value="<?= e($developer) ?>">
+            <select class="form-select" name="developer">
+              <option value="">All</option>
+              <?php foreach ($developers as $option): ?>
+                <option value="<?= e($option) ?>" <?= $option === $developer ? 'selected' : '' ?>><?= e($option) ?></option>
+              <?php endforeach; ?>
+            </select>
           </div>
           <div class="col-md-2">
             <label class="form-label">Apartment Type</label>
-            <input class="form-control" type="text" name="property_type" value="<?= e($propertyType) ?>">
+            <select class="form-select" name="property_type">
+              <option value="">All</option>
+              <?php foreach ($propertyTypes as $option): ?>
+                <option value="<?= e($option) ?>" <?= $option === $propertyType ? 'selected' : '' ?>><?= e($option) ?></option>
+              <?php endforeach; ?>
+            </select>
           </div>
           <div class="col-md-1">
             <label class="form-label">Bedrooms</label>
-            <input class="form-control" type="text" name="bedrooms" value="<?= e($bedrooms) ?>" placeholder="1BDR">
+            <select class="form-select" name="bedrooms">
+              <option value="">All</option>
+              <?php foreach ($bedroomOptions as $option): ?>
+                <?php
+                  $value = (string)$option;
+                  $label = ctype_digit($value) ? ($value . ' BDR') : $value;
+                ?>
+                <option value="<?= e($value) ?>" <?= $value === $bedrooms ? 'selected' : '' ?>><?= e($label) ?></option>
+              <?php endforeach; ?>
+            </select>
           </div>
           <div class="col-md-1">
             <label class="form-label">Status</label>
-            <input class="form-control" type="text" name="status" value="<?= e($status) ?>">
+            <select class="form-select" name="status">
+              <option value="">All</option>
+              <?php foreach ($statuses as $option): ?>
+                <option value="<?= e($option) ?>" <?= $option === $status ? 'selected' : '' ?>><?= e($option) ?></option>
+              <?php endforeach; ?>
+            </select>
           </div>
           <div class="col-12 d-flex gap-2">
             <button class="btn btn-primary" type="submit">Filter</button>

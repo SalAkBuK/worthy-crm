@@ -197,6 +197,61 @@ final class Listing {
     return $st->rowCount();
   }
 
+  public static function getFilterOptions(): array {
+    $pdo = DB::conn();
+    $options = [
+      'developers' => [],
+      'statuses' => [],
+      'property_types' => [],
+      'bedrooms' => [],
+      'projects' => [],
+    ];
+
+    $queries = [
+      'developers' => "SELECT DISTINCT developer AS value FROM listings WHERE developer IS NOT NULL AND TRIM(developer) <> '' ORDER BY developer",
+      'statuses' => "SELECT DISTINCT status AS value FROM listings WHERE status IS NOT NULL AND TRIM(status) <> '' ORDER BY status",
+      'property_types' => "SELECT DISTINCT property_type AS value FROM listings WHERE property_type IS NOT NULL AND TRIM(property_type) <> '' ORDER BY property_type",
+      'projects' => "SELECT DISTINCT project_name AS value FROM listings WHERE project_name IS NOT NULL AND TRIM(project_name) <> '' ORDER BY project_name",
+    ];
+
+    foreach ($queries as $key => $sql) {
+      $st = $pdo->prepare($sql);
+      $st->execute();
+      $options[$key] = array_values(array_filter(array_map(static function ($row) {
+        $value = $row['value'] ?? '';
+        $value = trim((string)$value);
+        return $value === '' ? null : $value;
+      }, $st->fetchAll()), static function ($value) {
+        return $value !== null;
+      }));
+    }
+
+    $bedroomValues = [];
+    $st = $pdo->prepare("SELECT DISTINCT beds_raw AS value FROM listings WHERE beds_raw IS NOT NULL AND TRIM(beds_raw) <> '' ORDER BY beds_raw");
+    $st->execute();
+    foreach ($st->fetchAll() as $row) {
+      $value = trim((string)($row['value'] ?? ''));
+      if ($value !== '') {
+        $bedroomValues[$value] = true;
+      }
+    }
+    $st = $pdo->prepare("SELECT DISTINCT beds AS value FROM listings WHERE beds IS NOT NULL ORDER BY beds");
+    $st->execute();
+    foreach ($st->fetchAll() as $row) {
+      $value = (string)($row['value'] ?? '');
+      $value = trim($value);
+      if ($value !== '') {
+        $bedroomValues[$value] = true;
+      }
+    }
+    $options['bedrooms'] = array_keys($bedroomValues);
+    if ($options['bedrooms']) {
+      sort($options['bedrooms'], SORT_NATURAL | SORT_FLAG_CASE);
+    }
+
+    return $options;
+  }
+
   public static function search(array $filters, int $page, int $perPage): array {
     $pdo = DB::conn();
     $where = [];
