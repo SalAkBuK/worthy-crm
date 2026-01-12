@@ -105,7 +105,11 @@ $leadDisplayName = function (?string $name): string {
             ?>
             <td><?= e($email !== '' ? $email : '-') ?></td>
             <td><?= e($phone !== '' ? $phone : '-') ?></td>
-            <td class="text-muted"><?= e($l['interested_in_property']) ?></td>
+            <?php
+              $interest = trim((string)($l['interested_in_property'] ?? ''));
+              $interestShort = $interest !== '' ? mb_strimwidth($interest, 0, 24, '...') : '-';
+            ?>
+            <td class="text-muted" title="<?= e($interest) ?>"><?= e($interestShort) ?></td>
             <?php $ptype = $l['property_type'] !== null && $l['property_type'] !== '' ? (string)$l['property_type'] : 'NONE'; ?>
             <td><span class="badge bg-light-subtle text-dark py-1 px-2 fs-13"><?= e($ptype) ?></span></td>
             <td><?= e($l['agent_name'] ?: '-') ?></td>
