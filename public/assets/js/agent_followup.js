@@ -19,6 +19,13 @@
     var unitBuy = document.getElementById('unit_type_buy');
     var unitRent = document.getElementById('unit_type_rent');
     var nextHint = document.getElementById('nextFollowupHint');
+    function syncPickerState(input, enabled){
+      if (!input) return;
+      input.disabled = !enabled;
+      if (input._flatpickr && input._flatpickr.altInput) {
+        input._flatpickr.altInput.disabled = !enabled;
+      }
+    }
     function toggleSection(section, enabled){
       if (!section) return;
       section.classList.toggle('d-none', !enabled);
@@ -32,8 +39,11 @@
       var showNext = callStatus === 'ASK_CONTACT_LATER' || (callStatus === 'RESPONDED' && (interested === '50/50' || interested === 'FUTURE_INTEREST'));
       nextWrap.classList.toggle('d-none', !showNext);
       nextInput.required = showNext;
-      nextInput.disabled = !showNext;
-      if (!showNext) nextInput.value = '';
+      syncPickerState(nextInput, showNext);
+      if (!showNext) {
+        if (nextInput._flatpickr) nextInput._flatpickr.clear();
+        else nextInput.value = '';
+      }
     }
     if (interestedWrap) {
       interestedWrap.classList.toggle('d-none', !shouldShowInterested);
@@ -62,8 +72,11 @@
       var showFuture = interested === 'FUTURE_INTEREST';
       futureWrap.classList.toggle('d-none', !showFuture);
       launchInput.required = showFuture;
-      launchInput.disabled = !showFuture;
-      if (!showFuture) launchInput.value = '';
+      syncPickerState(launchInput, showFuture);
+      if (!showFuture) {
+        if (launchInput._flatpickr) launchInput._flatpickr.clear();
+        else launchInput.value = '';
+      }
       var useLaunch = document.getElementById('use_launch_as_followup');
       if (!showFuture && useLaunch) useLaunch.checked = false;
       if (nextInput) nextInput.readOnly = false;

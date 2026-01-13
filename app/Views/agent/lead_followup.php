@@ -192,7 +192,7 @@ $blockReason = $blockReason ?? null;
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label form-required">Contact Date & Time</label>
-              <input type="datetime-local" class="form-control flatpickr-datetime" name="contact_datetime" placeholder="Select date & time" required <?= $followupBlocked ? 'disabled' : '' ?>>
+              <input type="text" class="form-control flatpickr-datetime" name="contact_datetime" placeholder="Select date & time" required <?= $followupBlocked ? 'disabled' : '' ?>>
             </div>
 
             <div class="col-md-6">
