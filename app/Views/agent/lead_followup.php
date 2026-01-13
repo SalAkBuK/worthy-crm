@@ -192,7 +192,7 @@ $blockReason = $blockReason ?? null;
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label form-required">Contact Date & Time</label>
-              <input type="text" class="form-control flatpickr-datetime" name="contact_datetime" placeholder="Select date & time" required <?= $followupBlocked ? 'disabled' : '' ?>>
+              <input type="datetime-local" class="form-control" name="contact_datetime" placeholder="Select date & time" required <?= $followupBlocked ? 'disabled' : '' ?>>
             </div>
 
             <div class="col-md-6">
@@ -207,7 +207,7 @@ $blockReason = $blockReason ?? null;
 
             <div class="col-md-6 d-none" id="nextFollowupWrap">
               <label class="form-label form-required">Next Follow-up Date & Time</label>
-              <input type="text" class="form-control flatpickr-datetime" name="next_followup_at" id="next_followup_at" placeholder="Select date & time" <?= $followupBlocked ? 'disabled' : '' ?>>
+              <input type="datetime-local" class="form-control" name="next_followup_at" id="next_followup_at" placeholder="Select date & time" <?= $followupBlocked ? 'disabled' : '' ?>>
               <div class="form-text">
                 <span>Set this for 50/50, future interest, or when asked to contact later.</span>
               </div>
@@ -226,7 +226,7 @@ $blockReason = $blockReason ?? null;
 
             <div class="col-md-6 d-none" id="futureInterestWrap">
               <label class="form-label form-required">Project Launch Date & Time</label>
-              <input type="text" class="form-control flatpickr-datetime" name="launch_at" id="launch_at" placeholder="Select date & time" <?= $followupBlocked ? 'disabled' : '' ?>>
+              <input type="datetime-local" class="form-control" name="launch_at" id="launch_at" placeholder="Select date & time" <?= $followupBlocked ? 'disabled' : '' ?>>
               <div class="form-text">Track the actual launch date for this project.</div>
               <div class="form-check mt-2">
                 <input class="form-check-input" type="checkbox" id="use_launch_as_followup" name="use_launch_as_followup" value="1" <?= $followupBlocked ? 'disabled' : '' ?>>

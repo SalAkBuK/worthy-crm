@@ -346,8 +346,15 @@ final class Listing {
     $st->execute();
     foreach ($st->fetchAll() as $row) {
       $value = trim((string)($row['value'] ?? ''));
-      if ($value !== '') {
-        $bedroomValues[$value] = true;
+      if ($value === '') continue;
+      $label = null;
+      if (stripos($value, 'studio') !== false) {
+        $label = 'Studio';
+      } elseif (preg_match('/\d+/', $value, $m)) {
+        $label = ((int)$m[0]) . ' BDR';
+      }
+      if ($label !== null) {
+        $bedroomValues[$label] = true;
       }
     }
     $st = $pdo->prepare("SELECT DISTINCT beds AS value FROM listings WHERE beds IS NOT NULL ORDER BY beds");
@@ -356,12 +363,21 @@ final class Listing {
       $value = (string)($row['value'] ?? '');
       $value = trim($value);
       if ($value !== '') {
-        $bedroomValues[$value] = true;
+        $bedroomValues[((int)$value) . ' BDR'] = true;
       }
     }
     $options['bedrooms'] = array_keys($bedroomValues);
     if ($options['bedrooms']) {
-      sort($options['bedrooms'], SORT_NATURAL | SORT_FLAG_CASE);
+      usort($options['bedrooms'], static function ($a, $b) {
+        $aLower = strtolower($a);
+        $bLower = strtolower($b);
+        if ($aLower === 'studio' && $bLower !== 'studio') return -1;
+        if ($bLower === 'studio' && $aLower !== 'studio') return 1;
+        $aNum = preg_match('/\d+/', $a, $am) ? (int)$am[0] : 0;
+        $bNum = preg_match('/\d+/', $b, $bm) ? (int)$bm[0] : 0;
+        if ($aNum === $bNum) return strcasecmp($a, $b);
+        return $aNum <=> $bNum;
+      });
     }
 
     return $options;
@@ -397,10 +413,18 @@ final class Listing {
       $params[':property_type'] = '%' . $filters['property_type'] . '%';
     }
     if (!empty($filters['bedrooms'])) {
-      $where[] = "(l.beds_raw LIKE :beds_raw" . (is_numeric($filters['bedrooms']) ? " OR l.beds = :beds_int" : "") . ")";
-      $params[':beds_raw'] = '%' . $filters['bedrooms'] . '%';
-      if (is_numeric($filters['bedrooms'])) {
-        $params[':beds_int'] = (int)$filters['bedrooms'];
+      $bedrooms = trim((string)$filters['bedrooms']);
+      if (strcasecmp($bedrooms, 'Studio') === 0) {
+        $where[] = "(LOWER(l.beds_raw) LIKE :beds_raw OR l.beds = 0)";
+        $params[':beds_raw'] = '%studio%';
+      } elseif (preg_match('/^(\\d+)\\s*BDR$/i', $bedrooms, $m)) {
+        $bedsInt = (int)$m[1];
+        $where[] = "(l.beds = :beds_int OR l.beds_raw REGEXP :beds_regex)";
+        $params[':beds_int'] = $bedsInt;
+        $params[':beds_regex'] = '(^|[^0-9])' . $bedsInt . '([^0-9]|$)';
+      } else {
+        $where[] = "l.beds_raw LIKE :beds_raw";
+        $params[':beds_raw'] = '%' . $bedrooms . '%';
       }
     }
     if (!empty($filters['status'])) {
