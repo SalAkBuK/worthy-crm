@@ -14,6 +14,7 @@ $isAgentLeadsList = str_contains($uri, '/agent/leads') && !$isAgentLeadsAdd;
 $isAgentFollowups = str_contains($uri, '/agent/followups');
 $isListings = str_contains($uri, '/listings');
 $isListingsDatasets = str_contains($uri, '/listings/datasets');
+$isExternalProjects = str_contains($uri, '/external_projects.php');
 ?>
 <div class="main-nav">
   <div class="logo-box">
@@ -122,6 +123,12 @@ $isListingsDatasets = str_contains($uri, '/listings/datasets');
             </a>
           </li>
         <?php endif; ?>
+        <li class="nav-item">
+          <a class="nav-link <?= $isExternalProjects ? 'active' : '' ?>" href="<?= e(url('external_projects.php')) ?>">
+            <span class="nav-icon"><i class="ri-links-line"></i></span>
+            <span class="nav-text">External Projects</span>
+          </a>
+        </li>
       <?php endif; ?>
 
       <li class="nav-item">
