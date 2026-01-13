@@ -38,6 +38,9 @@ Copy `.env.example` to `.env` and set:
 - `DB_NAME`
 - `DB_USER`
 - `DB_PASS`
+Optional:
+- `FOLLOWUP_DUE_SOON_HOURS` (default 48)
+- `FOLLOWUP_TZ` (default Asia/Dubai)
 
 Default dummy values (as you provided) already exist in `.env.example` and `config/database.php`.
 
@@ -45,6 +48,36 @@ Default dummy values (as you provided) already exist in `.env.example` and `conf
 In phpMyAdmin (database: `wortuckd_attendance`):
 1. Import `database/schema.sql`
 2. Import `database/seed.sql`
+
+If you already have an existing install, apply this migration SQL:
+```sql
+ALTER TABLE leads
+  ADD COLUMN next_followup_at DATETIME NULL,
+  ADD COLUMN next_followup_note VARCHAR(255) NULL,
+  ADD COLUMN next_followup_set_by_user_id INT UNSIGNED NULL,
+  ADD COLUMN next_followup_status ENUM('scheduled','cleared') NULL,
+  ADD KEY idx_leads_next_followup (next_followup_at),
+  ADD CONSTRAINT fk_leads_next_followup_set_by
+    FOREIGN KEY (next_followup_set_by_user_id)
+    REFERENCES users(id) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+CREATE TABLE IF NOT EXISTS lead_followup_remarks (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  lead_id INT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NULL,
+  remark TEXT NOT NULL,
+  outcome VARCHAR(80) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_followup_remarks_lead (lead_id),
+  KEY idx_followup_remarks_user (user_id),
+  KEY idx_followup_remarks_created (created_at),
+  CONSTRAINT fk_followup_remarks_lead FOREIGN KEY (lead_id)
+    REFERENCES leads(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_followup_remarks_user FOREIGN KEY (user_id)
+    REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
 
 Then open:
 - `http://localhost/agent_performance_app/public/login`
@@ -118,6 +151,7 @@ When building new modules, pick the closest Lahomes page and adapt its structure
 - File uploads validated (mime/type/size), random filenames
 - Output escaped in views to prevent XSS
 - App logs: `storage/logs/app.log`
+- Daily follow-up summary notifications use `NOTIFY_DAILY_SUMMARY_HOUR` and `NOTIFY_DAILY_SUMMARY_TZ` (default Asia/Dubai)
 
 ---
 

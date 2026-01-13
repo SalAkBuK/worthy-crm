@@ -80,6 +80,7 @@ $router->get('/admin/leads', function () use ($admin) { $admin->index(); });
 $router->get('/admin/leads/individual', function () use ($admin) { $admin->individual(); });
 $router->get('/admin/leads/bulk', function () use ($admin) { $admin->bulk(); });
 $router->get('/admin/leads/assigned', function () use ($admin) { $admin->assigned(); });
+$router->get('/admin/followups/inbox', function () use ($admin) { $admin->followupInbox(); });
 $router->post('/admin/leads', function () use ($admin) { $admin->storeBulk(); });
 $router->post('/admin/leads/import', function () use ($admin) { $admin->importCsv(); });
 $router->post('/admin/leads/assign-bulk', function () use ($admin) { $admin->assignBulk(); });
@@ -105,8 +106,11 @@ $router->get('/agent/leads', function () use ($agent) { $agent->index(); });
 $router->get('/agent/leads/partial', function () use ($agent) { $agent->partial(); });
 $router->get('/agent/leads/add', function () use ($agent) { $agent->addLead(); });
 $router->post('/agent/leads/create', function () use ($agent) { $agent->createLead(); });
+$router->get('/agent/followups', function () use ($agent) { $agent->followupInboxPage(); });
 $router->get('/agent/lead', function () use ($agent) { $agent->openLead(); });
 $router->post('/agent/followup', function () use ($agent) { $agent->storeFollowup(); });
+$router->get('/agent/followup', function () { redirect('agent/followups'); });
+$router->get('/agent/followups/inbox', function () use ($agent) { $agent->followupInbox(); });
 
 // CEO
 $router->get('/ceo/dashboard', function () use ($ceo) { $ceo->dashboard(); });

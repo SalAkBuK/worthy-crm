@@ -288,8 +288,13 @@ final class Lead {
     if ($last) {
       $attempt = (int)$last['attempt_no'];
       $call = (string)$last['call_status'];
+      $interested = (string)($last['interested_status'] ?? '');
       if ($call === 'NO_RESPONSE' || $call === 'ASK_CONTACT_LATER') {
         $status = ($attempt >= 3) ? 'CLOSED' : 'IN_PROGRESS';
+      } elseif ($call === 'RESPONDED' && $interested === '50/50') {
+        $status = '50/50';
+      } elseif ($call === 'RESPONDED' && $interested === 'FUTURE_INTEREST') {
+        $status = 'ON_HOLD';
       } else {
         $status = 'CLOSED';
       }
@@ -302,5 +307,151 @@ final class Lead {
     $pdo = DB::conn();
     $up = $pdo->prepare("UPDATE leads SET status_overall=:s WHERE id=:id");
     $up->execute([':s'=>$status, ':id'=>$leadId]);
+  }
+
+  public static function updateNextFollowup(int $leadId, ?string $nextAt, ?string $note, int $userId): void {
+    $pdo = DB::conn();
+    $nextAt = $nextAt !== null && trim($nextAt) !== '' ? $nextAt : null;
+    $note = $note !== null ? trim($note) : null;
+    if ($note === '') $note = null;
+    if ($note !== null && mb_strlen($note) > 255) {
+      $note = mb_substr($note, 0, 255);
+    }
+    $status = $nextAt ? 'scheduled' : 'cleared';
+
+    $st = $pdo->prepare("UPDATE leads
+      SET next_followup_at=:next_at,
+          next_followup_note=:note,
+          next_followup_set_by_user_id=:user_id,
+          next_followup_status=:status
+      WHERE id=:id");
+    $st->execute([
+      ':next_at' => $nextAt,
+      ':note' => $note,
+      ':user_id' => $userId,
+      ':status' => $status,
+      ':id' => $leadId,
+    ]);
+  }
+
+  public static function followupInbox(string $tab, array $filters, int $page, int $perPage): array {
+    $pdo = DB::conn();
+    $tzName = getenv('FOLLOWUP_TZ') ?: (getenv('NOTIFY_DAILY_SUMMARY_TZ') ?: 'Asia/Karachi');
+    try {
+      $tz = new \DateTimeZone($tzName);
+    } catch (\Throwable $e) {
+      $tz = new \DateTimeZone('UTC');
+    }
+    $now = new \DateTimeImmutable('now', $tz);
+    $todayStart = $now->setTime(0, 0, 0);
+    $tomorrowStart = $todayStart->modify('+1 day');
+    $defaultHours = (int)(getenv('FOLLOWUP_DUE_SOON_HOURS') ?: 48);
+    $dueSoonHours = (int)($filters['due_soon_hours'] ?? $defaultHours);
+    if ($dueSoonHours <= 0) $dueSoonHours = $defaultHours;
+    $dueSoonEnd = $now->modify('+' . $dueSoonHours . ' hours');
+
+    $params = [];
+    $where = ["l.is_active = 1", "l.next_followup_at IS NOT NULL", "l.assigned_agent_user_id > 0"];
+
+    if (!empty($filters['agent_id'])) {
+      $where[] = "l.assigned_agent_user_id = :agent";
+      $params[':agent'] = (int)$filters['agent_id'];
+    }
+    if (!empty($filters['q'])) {
+      $where[] = "(l.lead_name LIKE :q OR l.contact_email LIKE :q OR l.contact_phone LIKE :q)";
+      $params[':q'] = '%' . $filters['q'] . '%';
+    }
+
+    $tabWhere = [];
+    if ($tab === 'due_today') {
+      $tabWhere[] = "l.next_followup_at >= :today_start AND l.next_followup_at < :tomorrow_start";
+      $params[':today_start'] = $todayStart->format('Y-m-d H:i:s');
+      $params[':tomorrow_start'] = $tomorrowStart->format('Y-m-d H:i:s');
+    } elseif ($tab === 'due_soon') {
+      $tabWhere[] = "l.next_followup_at >= :due_soon_start AND l.next_followup_at <= :due_soon_end";
+      $params[':due_soon_start'] = $tomorrowStart->format('Y-m-d H:i:s');
+      $params[':due_soon_end'] = $dueSoonEnd->format('Y-m-d H:i:s');
+    } else {
+      $tabWhere[] = "l.next_followup_at >= :tomorrow_start";
+      $params[':tomorrow_start'] = $tomorrowStart->format('Y-m-d H:i:s');
+    }
+
+    $whereSql = 'WHERE ' . implode(' AND ', array_merge($where, $tabWhere));
+    $baseFrom = "FROM leads l JOIN users u ON u.id = l.assigned_agent_user_id AND u.is_active = 1";
+
+    $count = $pdo->prepare("SELECT COUNT(*) $baseFrom $whereSql");
+    $count->execute($params);
+    $total = (int)$count->fetchColumn();
+    $meta = \paginate_meta($total, $page, $perPage);
+
+    $sql = "SELECT l.*, u.username as agent_username, COALESCE(e.employee_name, u.username) as agent_name
+      $baseFrom
+      LEFT JOIN employees e ON e.employee_code = u.employee_code
+      $whereSql
+      ORDER BY l.next_followup_at ASC
+      LIMIT :limit OFFSET :offset";
+    $st = $pdo->prepare($sql);
+    foreach ($params as $k => $v) $st->bindValue($k, $v);
+    $st->bindValue(':limit', $meta['perPage'], \PDO::PARAM_INT);
+    $st->bindValue(':offset', $meta['offset'], \PDO::PARAM_INT);
+    $st->execute();
+    $items = $st->fetchAll();
+    foreach ($items as &$item) {
+      $raw = (string)($item['next_followup_at'] ?? '');
+      if ($raw !== '') {
+        try {
+          $dt = new \DateTimeImmutable($raw, $tz);
+          $item['next_followup_at_display'] = $dt->format('M d, H:i');
+        } catch (\Throwable $e) {
+          $item['next_followup_at_display'] = $raw;
+        }
+      } else {
+        $item['next_followup_at_display'] = null;
+      }
+    }
+    unset($item);
+
+    $baseWhereSql = 'WHERE ' . implode(' AND ', $where);
+    $baseParams = $params;
+    unset($baseParams[':today_start'], $baseParams[':tomorrow_start'], $baseParams[':due_soon_start'], $baseParams[':due_soon_end']);
+
+    $counts = [
+      'due_today' => 0,
+      'due_soon' => 0,
+      'scheduled' => 0,
+    ];
+
+    $countDueToday = $pdo->prepare("SELECT COUNT(*) $baseFrom
+      $baseWhereSql AND l.next_followup_at >= :today_start AND l.next_followup_at < :tomorrow_start");
+    $countDueToday->execute($baseParams + [
+      ':today_start' => $todayStart->format('Y-m-d H:i:s'),
+      ':tomorrow_start' => $tomorrowStart->format('Y-m-d H:i:s'),
+    ]);
+    $counts['due_today'] = (int)$countDueToday->fetchColumn();
+
+    $countDueSoon = $pdo->prepare("SELECT COUNT(*) $baseFrom
+      $baseWhereSql AND l.next_followup_at >= :due_soon_start AND l.next_followup_at <= :due_soon_end");
+    $countDueSoon->execute($baseParams + [
+      ':due_soon_start' => $tomorrowStart->format('Y-m-d H:i:s'),
+      ':due_soon_end' => $dueSoonEnd->format('Y-m-d H:i:s'),
+    ]);
+    $counts['due_soon'] = (int)$countDueSoon->fetchColumn();
+
+    $countScheduled = $pdo->prepare("SELECT COUNT(*) $baseFrom
+      $baseWhereSql AND l.next_followup_at >= :tomorrow_start");
+    $countScheduled->execute($baseParams + [
+      ':tomorrow_start' => $tomorrowStart->format('Y-m-d H:i:s'),
+    ]);
+    $counts['scheduled'] = (int)$countScheduled->fetchColumn();
+
+    $counts['total_inbox'] = $counts['due_today'] + $counts['due_soon'];
+
+    return [
+      'items' => $items,
+      'meta' => $meta,
+      'counts' => $counts,
+      'due_soon_hours' => $dueSoonHours,
+      'timezone' => $tz->getName(),
+    ];
   }
 }

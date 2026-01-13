@@ -8,6 +8,7 @@ use App\Helpers\Logger;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\CsrfMiddleware;
 use App\Models\ListingDataset;
+use App\Models\Listing;
 use App\Helpers\DB;
 
 final class ListingDatasetsController extends BaseController {
@@ -383,6 +384,7 @@ final class ListingDatasetsController extends BaseController {
     $cols = array_values(array_map('trim', $cols));
     $sizeRaw = $cols[7] ?? null;
     $priceRaw = $cols[8] ?? null;
+    $priceVariants = $this->parsePriceVariants($priceRaw);
     return [
       'project_name' => $cols[0] ?? '',
       'area' => $cols[1] ?? '',
@@ -397,6 +399,10 @@ final class ListingDatasetsController extends BaseController {
       'size_sqft' => $this->parseSize($sizeRaw),
       'price_raw' => $priceRaw,
       'price_amount' => $this->parseAmount($priceRaw),
+      'price_furnished_raw' => $priceVariants['furnished_raw'],
+      'price_unfurnished_raw' => $priceVariants['unfurnished_raw'],
+      'price_furnished_amount' => $priceVariants['furnished_amount'],
+      'price_unfurnished_amount' => $priceVariants['unfurnished_amount'],
       'status' => $cols[9] ?? null,
     ];
   }
@@ -408,6 +414,7 @@ final class ListingDatasetsController extends BaseController {
     $area = $parts[1] ?? 'Unknown';
     $sizeRaw = $this->extractSizeRaw($block);
     $priceRaw = $this->extractPriceRaw($block);
+    $priceVariants = $this->parsePriceVariants($priceRaw);
     return [
       'project_name' => $projectName,
       'area' => $area,
@@ -415,6 +422,10 @@ final class ListingDatasetsController extends BaseController {
       'size_sqft' => $this->parseSize($sizeRaw),
       'price_raw' => $priceRaw,
       'price_amount' => $this->parseAmount($priceRaw),
+      'price_furnished_raw' => $priceVariants['furnished_raw'],
+      'price_unfurnished_raw' => $priceVariants['unfurnished_raw'],
+      'price_furnished_amount' => $priceVariants['furnished_amount'],
+      'price_unfurnished_amount' => $priceVariants['unfurnished_amount'],
       'notes' => $block,
     ];
   }
@@ -435,12 +446,60 @@ final class ListingDatasetsController extends BaseController {
     return (int)$value;
   }
 
-  private function parseAmount(?string $raw): ?string {
-    if (!$raw) return null;
-    if (preg_match('/\d[\d,]*(\.\d+)?/', $raw, $m)) {
-      return str_replace(',', '', $m[0]);
+  private function parseAmount(?string $raw): ?int {
+    return parse_aed_amount($raw);
+  }
+
+  private function parsePriceVariants(?string $raw): array {
+    $result = [
+      'furnished_raw' => null,
+      'unfurnished_raw' => null,
+      'furnished_amount' => null,
+      'unfurnished_amount' => null,
+    ];
+    if (!$raw) return $result;
+
+    if (preg_match('/furnish(?:ed)?[^0-9]*([\d, ]+)/i', $raw, $m)) {
+      $result['furnished_raw'] = trim($m[1]);
+      $result['furnished_amount'] = parse_aed_amount($m[1]);
     }
-    return null;
+    if (preg_match('/unfurnish(?:ed)?[^0-9]*([\d, ]+)/i', $raw, $m)) {
+      $result['unfurnished_raw'] = trim($m[1]);
+      $result['unfurnished_amount'] = parse_aed_amount($m[1]);
+    }
+
+    return $result;
+  }
+
+  private function buildDetailsPayload(array $parsed): ?array {
+    $details = [];
+    $handover = trim((string)($parsed['handover'] ?? ''));
+    $view = trim((string)($parsed['view'] ?? ''));
+    $amenities = $this->parseList($parsed['amenities'] ?? null);
+    $features = $this->parseList($parsed['features'] ?? null);
+    $paymentPlan = trim((string)($parsed['payment_plan'] ?? ''));
+    $commission = trim((string)($parsed['commission_pct'] ?? ''));
+
+    if ($handover !== '') $details['handover'] = $handover;
+    if ($view !== '') $details['view'] = $view;
+    if ($amenities) $details['amenities'] = $amenities;
+    if ($features) $details['features'] = $features;
+    if ($paymentPlan !== '') $details['payment_plan'] = $paymentPlan;
+    if ($commission !== '' && is_numeric($commission)) {
+      $details['commission_pct'] = $commission + 0;
+    }
+    if (!empty($parsed['media_url'])) $details['media_note'] = 'Click to Open Media File';
+
+    return $details ?: null;
+  }
+
+  private function parseList($value): array {
+    if ($value === null) return [];
+    $value = trim((string)$value);
+    if ($value === '') return [];
+    $parts = array_map('trim', explode(',', $value));
+    $parts = array_values(array_filter($parts, static fn($item) => $item !== ''));
+    return $parts;
   }
 
   private function parseSize(?string $raw): ?string {
@@ -557,7 +616,10 @@ final class ListingDatasetsController extends BaseController {
             $bedsValue = null;
           }
 
-          \App\Models\Listing::create([
+          $priceData = Listing::resolvePriceData($parsed);
+          $details = $this->buildDetailsPayload($parsed);
+
+          Listing::create([
             'project_name' => $projectName,
             'area' => $area,
             'developer' => $parsed['developer'] ?? null,
@@ -569,14 +631,21 @@ final class ListingDatasetsController extends BaseController {
             'baths' => $parsed['baths'] ?? null,
             'size_raw' => $parsed['size_raw'] ?? null,
             'size_sqft' => $parsed['size_sqft'] ?? null,
-            'price_raw' => $parsed['price_raw'] ?? null,
-            'price_amount' => $parsed['price_amount'] ?? null,
+            'price_raw' => $priceData['price_raw'] ?? null,
+            'price_amount' => $priceData['price_amount'] ?? null,
+            'price_furnished_raw' => $priceData['price_furnished_raw'] ?? null,
+            'price_unfurnished_raw' => $priceData['price_unfurnished_raw'] ?? null,
+            'price_furnished_amount' => $priceData['price_furnished_amount'] ?? null,
+            'price_unfurnished_amount' => $priceData['price_unfurnished_amount'] ?? null,
+            'price_display_type' => $priceData['price_display_type'] ?? null,
+            'price_display_label' => $priceData['price_display_label'] ?? null,
             'status' => $parsed['status'] ?? null,
             'payment_plan' => $parsed['payment_plan'] ?? null,
             'brochure_url' => $parsed['brochure_url'] ?? null,
             'maps_url' => $parsed['maps_url'] ?? null,
             'media_url' => $parsed['media_url'] ?? null,
             'notes' => $parsed['notes'] ?? null,
+            'details_json' => $details,
             'source' => 'PDF',
             'dataset_id' => $datasetId,
             'raw_data' => [
@@ -677,8 +746,17 @@ final class ListingDatasetsController extends BaseController {
       'size_sqft' => $getAny(['size_sqft', 'size']),
       'price_raw' => $getAny(['price_raw', 'price']),
       'price_amount' => $getAny(['price_amount', 'price']),
+      'price_furnished_raw' => $getAny(['price_furnished_raw', 'price_furnished', 'furnished_price', 'furnished']),
+      'price_unfurnished_raw' => $getAny(['price_unfurnished_raw', 'price_unfurnished', 'unfurnished_price', 'unfurnished']),
+      'price_furnished_amount' => $getAny(['price_furnished_amount', 'furnished_amount']),
+      'price_unfurnished_amount' => $getAny(['price_unfurnished_amount', 'unfurnished_amount']),
       'status' => $get('status'),
       'payment_plan' => $getAny(['payment_plan', 'payment']),
+      'handover' => $getAny(['handover', 'handover_date']),
+      'view' => $get('view'),
+      'amenities' => $getAny(['amenities', 'amenity']),
+      'features' => $getAny(['features', 'feature']),
+      'commission_pct' => $getAny(['commission_pct', 'commission']),
       'brochure_url' => $getAny(['brochure_url', 'brochure', 'listing_url']),
       'maps_url' => $getAny(['maps_url', 'maps']),
       'media_url' => $getAny(['media_url', 'media']),
@@ -772,7 +850,10 @@ final class ListingDatasetsController extends BaseController {
             continue;
           }
 
-          \App\Models\Listing::create([
+          $priceData = Listing::resolvePriceData($parsed);
+          $details = $this->buildDetailsPayload($parsed);
+
+          Listing::create([
             'project_name' => $projectName,
             'area' => $area,
             'developer' => $parsed['developer'] ?? null,
@@ -784,14 +865,21 @@ final class ListingDatasetsController extends BaseController {
             'baths' => $parsed['baths'] ?? null,
             'size_raw' => $parsed['size_raw'] ?? null,
             'size_sqft' => $parsed['size_sqft'] ?? null,
-            'price_raw' => $parsed['price_raw'] ?? null,
-            'price_amount' => $parsed['price_amount'] ?? null,
+            'price_raw' => $priceData['price_raw'] ?? null,
+            'price_amount' => $priceData['price_amount'] ?? null,
+            'price_furnished_raw' => $priceData['price_furnished_raw'] ?? null,
+            'price_unfurnished_raw' => $priceData['price_unfurnished_raw'] ?? null,
+            'price_furnished_amount' => $priceData['price_furnished_amount'] ?? null,
+            'price_unfurnished_amount' => $priceData['price_unfurnished_amount'] ?? null,
+            'price_display_type' => $priceData['price_display_type'] ?? null,
+            'price_display_label' => $priceData['price_display_label'] ?? null,
             'status' => $parsed['status'] ?? null,
             'payment_plan' => $parsed['payment_plan'] ?? null,
             'brochure_url' => $parsed['brochure_url'] ?? null,
             'maps_url' => $parsed['maps_url'] ?? null,
             'media_url' => $parsed['media_url'] ?? null,
             'notes' => $parsed['notes'] ?? null,
+            'details_json' => $details,
             'source' => 'MANUAL',
             'dataset_id' => $datasetId,
             'raw_data' => [

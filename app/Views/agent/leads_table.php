@@ -68,6 +68,9 @@ $meta = $meta ?? ['page' => 1, 'pages' => 1];
               } elseif ($s === '50/50') {
                 $cls = 'info';
                 $label = '50/50';
+              } elseif ($s === 'ON_HOLD') {
+                $cls = 'primary';
+                $label = 'On Hold';
               } elseif ($s === 'NEW') {
                 $cls = 'secondary';
                 $label = 'New';

@@ -32,6 +32,8 @@ $blockReason = $blockReason ?? null;
                 $cls = 'warning';
               } elseif ($s === '50/50') {
                 $cls = 'info';
+              } elseif ($s === 'ON_HOLD') {
+                $cls = 'primary';
               } else {
                 $cls = 'secondary';
               }
@@ -130,12 +132,17 @@ $blockReason = $blockReason ?? null;
                 if (!empty($f['rent_per_year_budget'])) $details[] = 'Rent/Y: ' . $f['rent_per_year_budget'] . ' AED';
                 if (!empty($f['cheques'])) $details[] = 'Cheques: ' . $f['cheques'];
                 if (!empty($f['next_followup_at'])) $details[] = 'Next: ' . $f['next_followup_at'];
+                if (!empty($f['launch_at'])) $details[] = 'Launch: ' . $f['launch_at'];
                 $detailsStr = $details ? implode(' | ', $details) : '';
               ?>
               <?php if ($detailsStr): ?>
                 <div class="small text-muted mt-2"><?= e($detailsStr) ?></div>
               <?php endif; ?>
-              <div class="text-muted small mt-2"><?= e(mb_strimwidth($f['notes'], 0, 120, '...')) ?></div>
+              <?php
+                $notes = (string)($f['notes'] ?? '');
+                $notesShort = mb_strimwidth($notes, 0, 80, '...');
+              ?>
+              <div class="text-muted small mt-2" title="<?= e($notes) ?>"><?= e($notesShort) ?></div>
               <div class="mt-2 d-flex flex-wrap gap-2">
                 <a class="btn btn-sm btn-soft-primary" target="_blank" href="<?= e(url($f['call_screenshot_path'])) ?>">
                   <i class="ri-image-line me-1"></i>Call
@@ -185,7 +192,7 @@ $blockReason = $blockReason ?? null;
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label form-required">Contact Date & Time</label>
-              <input type="datetime-local" class="form-control" name="contact_datetime" required <?= $followupBlocked ? 'disabled' : '' ?>>
+              <input type="text" class="form-control flatpickr-datetime" name="contact_datetime" placeholder="Select date & time" required <?= $followupBlocked ? 'disabled' : '' ?>>
             </div>
 
             <div class="col-md-6">
@@ -200,7 +207,10 @@ $blockReason = $blockReason ?? null;
 
             <div class="col-md-6 d-none" id="nextFollowupWrap">
               <label class="form-label form-required">Next Follow-up Date & Time</label>
-              <input type="datetime-local" class="form-control" name="next_followup_at" id="next_followup_at" <?= $followupBlocked ? 'disabled' : '' ?>>
+              <input type="text" class="form-control flatpickr-datetime" name="next_followup_at" id="next_followup_at" placeholder="Select date & time" <?= $followupBlocked ? 'disabled' : '' ?>>
+              <div class="form-text">
+                <span>Set this for 50/50, future interest, or when asked to contact later.</span>
+              </div>
             </div>
 
             <div class="col-md-6" id="interestedStatusWrap">
@@ -208,8 +218,20 @@ $blockReason = $blockReason ?? null;
               <select class="form-select" name="interested_status" id="interested_status" required <?= $followupBlocked ? 'disabled' : '' ?>>
                 <option value="">Select</option>
                 <option value="INTERESTED">Interested</option>
+                <option value="50/50">50/50</option>
+                <option value="FUTURE_INTEREST">Future interest</option>
                 <option value="NOT_INTERESTED">Not interested</option>
               </select>
+            </div>
+
+            <div class="col-md-6 d-none" id="futureInterestWrap">
+              <label class="form-label form-required">Project Launch Date & Time</label>
+              <input type="text" class="form-control flatpickr-datetime" name="launch_at" id="launch_at" placeholder="Select date & time" <?= $followupBlocked ? 'disabled' : '' ?>>
+              <div class="form-text">Track the actual launch date for this project.</div>
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" id="use_launch_as_followup" name="use_launch_as_followup" value="1" <?= $followupBlocked ? 'disabled' : '' ?>>
+                <label class="form-check-label" for="use_launch_as_followup">Use launch date as next follow-up</label>
+              </div>
             </div>
 
             <div class="col-md-6">
@@ -399,16 +421,19 @@ $blockReason = $blockReason ?? null;
 <script src="<?= e(url('assets/js/agent_followup.js')) ?>"></script>
 <script>
   (function(){
-    var tz = document.getElementById('tz_offset');
-    var now = document.getElementById('client_now');
-    if (tz) tz.value = String(new Date().getTimezoneOffset());
-    if (now) now.value = String(Date.now());
+    function updateTimeInputs(){
+      var tzVal = String(new Date().getTimezoneOffset());
+      var nowVal = String(Date.now());
+      var tz = document.getElementById('tz_offset');
+      var now = document.getElementById('client_now');
+      if (tz) tz.value = tzVal;
+      if (now) now.value = nowVal;
+    }
+    updateTimeInputs();
     var form = document.querySelector('form[action="<?= e(url('agent/followup')) ?>"]');
     if (form) {
-      form.addEventListener('submit', function(){
-        if (tz) tz.value = String(new Date().getTimezoneOffset());
-        if (now) now.value = String(Date.now());
-      });
+      form.addEventListener('submit', updateTimeInputs);
     }
   })();
 </script>
+

@@ -42,6 +42,8 @@ $notifStyle = static function(string $type): array {
       return ['icon' => 'ri-user-unfollow-line', 'class' => 'bg-soft-danger text-danger'];
     case 'weekly_summary':
       return ['icon' => 'ri-calendar-check-line', 'class' => 'bg-soft-info text-info'];
+    case 'daily_followup_summary':
+      return ['icon' => 'ri-sun-line', 'class' => 'bg-soft-primary text-primary'];
     case 'daily_closed_milestone':
       return ['icon' => 'ri-trophy-line', 'class' => 'bg-soft-success text-success'];
     default:
@@ -83,6 +85,15 @@ $notifStyle = static function(string $type): array {
             </button>
           </div>
 
+          <?php if ($role === 'AGENT'): ?>
+            <div class="topbar-item">
+              <a class="topbar-button position-relative" href="<?= e(url('agent/followups')) ?>" aria-label="Follow-up Inbox">
+                <i class="ri-inbox-2-line fs-24"></i>
+                <span id="followupInboxBadgeTopbar" class="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill d-none">0</span>
+              </a>
+            </div>
+          <?php endif; ?>
+
           <div class="dropdown topbar-item">
             <button type="button" class="topbar-button position-relative" id="page-header-notifications-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
               <i class="ri-notification-3-line fs-24"></i>
@@ -98,7 +109,7 @@ $notifStyle = static function(string $type): array {
                     <h6 class="m-0 fs-16 fw-semibold">Notifications</h6>
                   </div>
                   <div class="col-auto">
-                    <form method="post" action="<?= e(url('notifications/read-all')) ?>">
+                    <form method="post" action="<?= e(url('notifications/read-all')) ?>" id="notificationsClearAllForm">
                       <?= csrf_field() ?>
                       <button class="btn btn-link p-0 text-dark text-decoration-underline" type="submit">
                         <small>Clear All</small>
@@ -107,7 +118,7 @@ $notifStyle = static function(string $type): array {
                   </div>
                 </div>
               </div>
-              <div data-simplebar style="max-height: 280px;">
+              <div data-simplebar style="max-height: 280px;" id="notificationsListTopbar">
                 <?php if (!$notifications): ?>
                   <div class="dropdown-item py-3 text-muted">No notifications yet.</div>
                 <?php else: ?>
@@ -181,3 +192,20 @@ $notifStyle = static function(string $type): array {
     </div>
   </div>
 </header>
+<?php if ($role === 'AGENT'): ?>
+  <script>
+  (function(){
+    var badge = document.getElementById('followupInboxBadgeTopbar');
+    if (!badge) return;
+    var url = '<?= e(url('agent/followups/inbox')) ?>?tab=due_today&per_page=1';
+    fetch(url, { credentials: 'same-origin' })
+      .then(function(res){ return res.json(); })
+      .then(function(payload){
+        var total = (payload.counts && payload.counts.total_inbox) ? payload.counts.total_inbox : 0;
+        badge.textContent = String(total);
+        badge.classList.toggle('d-none', total <= 0);
+      })
+      .catch(function(){});
+  })();
+  </script>
+<?php endif; ?>

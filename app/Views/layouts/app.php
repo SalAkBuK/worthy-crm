@@ -211,5 +211,54 @@ $page_subtitle = $page_subtitle ?? $title;
       };
     })();
   </script>
+  <script>
+    (function () {
+      var form = document.getElementById('notificationsClearAllForm');
+      if (!form || !window.fetch) {
+        return;
+      }
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var btn = form.querySelector('button[type="submit"]');
+        if (btn) {
+          btn.disabled = true;
+        }
+        var data = new FormData(form);
+        fetch(form.action, {
+          method: 'POST',
+          body: data,
+          credentials: 'same-origin',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+          .then(function (res) {
+            if (!res.ok) {
+              throw new Error('Failed to clear notifications');
+            }
+            var badgeTopbar = document.getElementById('notificationsBadgeTopbar');
+            var badgeMenu = document.getElementById('notificationsBadgeMenu');
+            if (badgeTopbar) {
+              badgeTopbar.textContent = '0';
+              badgeTopbar.classList.add('d-none');
+            }
+            if (badgeMenu) {
+              badgeMenu.textContent = '0';
+              badgeMenu.classList.add('d-none');
+            }
+            var list = document.getElementById('notificationsListTopbar');
+            if (list) {
+              list.innerHTML = '<div class="dropdown-item py-3 text-muted">No notifications yet.</div>';
+            }
+          })
+          .catch(function () {
+            form.submit();
+          })
+          .finally(function () {
+            if (btn) {
+              btn.disabled = false;
+            }
+          });
+      });
+    })();
+  </script>
 </body>
 </html>

@@ -95,6 +95,28 @@ final class AdminLeadsController extends BaseController {
     }
   }
 
+  public function followupInbox(): void {
+    try {
+      \require_role(['ADMIN', 'CEO']);
+      $tab = (string)($_GET['tab'] ?? 'due_today');
+      $allowedTabs = ['due_today', 'due_soon', 'scheduled'];
+      if (!in_array($tab, $allowedTabs, true)) $tab = 'due_today';
+      $page = max(1, (int)($_GET['page'] ?? 1));
+      $perPage = max(1, min(100, (int)($_GET['per_page'] ?? 20)));
+      $filters = [
+        'agent_id' => (int)($_GET['agent_id'] ?? 0),
+        'q' => trim((string)($_GET['q'] ?? '')),
+        'due_soon_hours' => (int)($_GET['due_soon_hours'] ?? 0),
+      ];
+      if ($filters['agent_id'] <= 0) {
+        $filters['agent_id'] = null;
+      }
+      $result = Lead::followupInbox($tab, $filters, $page, $perPage);
+      header('Content-Type: application/json; charset=utf-8');
+      echo json_encode($result, JSON_UNESCAPED_SLASHES);
+    } catch (\Throwable $e) { $this->handleException($e); }
+  }
+
   public function storeBulk(): void {
     try {
       \require_role(['ADMIN', 'CEO']);

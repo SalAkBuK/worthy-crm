@@ -19,6 +19,8 @@ final class SystemTasksController extends BaseController {
       $missedHours = $this->getIntEnv('NOTIFY_MISSED_HOURS', 24);
       $inactiveDays = $this->getIntEnv('NOTIFY_AGENT_INACTIVE_DAYS', 7);
       $weeklyDigestDay = $this->getIntEnv('NOTIFY_WEEKLY_DIGEST_DAY', 1);
+      $dailySummaryHour = $this->getIntEnv('NOTIFY_DAILY_SUMMARY_HOUR', 9);
+      $dailySummaryTz = $this->getStringEnv('NOTIFY_DAILY_SUMMARY_TZ', 'Asia/Karachi');
       $weeklyClosedThresholds = $this->getThresholdsEnv('NOTIFY_WEEKLY_CLOSED_THRESHOLDS', []);
       if (!$weeklyClosedThresholds) {
         $weeklyClosedThresholds = $this->getThresholdsEnv('NOTIFY_DAILY_CLOSED_THRESHOLDS', [5, 10, 20]);
@@ -32,6 +34,7 @@ final class SystemTasksController extends BaseController {
         'overdue_escalated' => 0,
         'missed' => 0,
         'inactive_agents' => 0,
+        'daily_summary' => 0,
         'weekly_milestones' => 0,
         'weekly_summary' => 0,
         'purged' => 0,
@@ -40,6 +43,7 @@ final class SystemTasksController extends BaseController {
       $this->notifyIdleLeads($idleDays, $counts);
       $this->notifyFollowups($dueSoonHours, $overdueGraceHours, $missedHours, $counts);
       $this->notifyInactiveAgents($inactiveDays, $counts);
+      $this->notifyDailyFollowupSummary($dailySummaryHour, $dailySummaryTz, $counts);
       if ($this->isWeeklyDigestDay($weeklyDigestDay)) {
         $this->notifyWeeklyClosedMilestones($weeklyClosedThresholds, $counts);
         $this->notifyWeeklySummary($idleDays, $counts);
@@ -229,6 +233,60 @@ final class SystemTasksController extends BaseController {
     }
   }
 
+  private function notifyDailyFollowupSummary(int $hour, string $tzName, array &$counts): void {
+    if ($hour < 0 || $hour > 23) return;
+    try {
+      $tz = new \DateTimeZone($tzName);
+    } catch (\Throwable $e) {
+      $tz = new \DateTimeZone('UTC');
+    }
+
+    $now = new \DateTimeImmutable('now', $tz);
+    if ((int)$now->format('G') !== $hour) return;
+
+    $dayStart = $now->setTime(0, 0, 0);
+    $dayEnd = $dayStart->modify('+1 day');
+    $dateKey = $dayStart->format('Y-m-d');
+
+    $pdo = DB::conn();
+    $st = $pdo->prepare("SELECT assigned_agent_user_id AS agent_id, COUNT(*) AS due_count
+      FROM leads
+      WHERE assigned_agent_user_id IS NOT NULL
+        AND assigned_agent_user_id > 0
+        AND is_active = 1
+        AND status_overall <> 'CLOSED'
+        AND next_followup_at >= :start
+        AND next_followup_at < :end
+      GROUP BY assigned_agent_user_id");
+    $st->execute([
+      ':start' => $dayStart->format('Y-m-d H:i:s'),
+      ':end' => $dayEnd->format('Y-m-d H:i:s'),
+    ]);
+    $rows = $st->fetchAll();
+    $countsByAgent = [];
+    foreach ($rows as $row) {
+      $countsByAgent[(int)$row['agent_id']] = (int)$row['due_count'];
+    }
+
+    $agents = User::activeAgents();
+    foreach ($agents as $agent) {
+      $agentId = (int)($agent['id'] ?? 0);
+      if ($agentId <= 0) continue;
+      $dueCount = $countsByAgent[$agentId] ?? 0;
+      $dedupKey = 'daily_followup_summary:' . $agentId . ':' . $dateKey;
+      Notification::create(
+        $agentId,
+        'daily_followup_summary',
+        'Daily follow-up summary',
+        'You have ' . $dueCount . ' follow-up(s) due today.',
+        'agent/followups?tab=due_today',
+        ['due_today' => $dueCount, 'date' => $dateKey, 'tz' => $tz->getName()],
+        $dedupKey
+      );
+      $counts['daily_summary']++;
+    }
+  }
+
   private function notifyWeeklyClosedMilestones(array $thresholds, array &$counts): void {
     if (!$thresholds) return;
     $pdo = DB::conn();
@@ -379,6 +437,12 @@ final class SystemTasksController extends BaseController {
     $nums = array_values(array_unique($nums));
     sort($nums);
     return $nums;
+  }
+
+  private function getStringEnv(string $key, string $default): string {
+    $val = getenv($key);
+    if ($val === false || trim($val) === '') return $default;
+    return trim((string)$val);
   }
 
   private function weeklyWindow(): array {

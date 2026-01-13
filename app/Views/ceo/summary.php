@@ -6,11 +6,12 @@ $adminUsers = array_filter($users, fn($u) => ($u['role'] ?? '') === 'ADMIN');
 $agentUsers = array_filter($users, fn($u) => ($u['role'] ?? '') === 'AGENT');
 $leads = $leads ?? [];
 $followups = $followups ?? [];
-$leadStatuses = ['NEW', 'IN_PROGRESS', '50/50', 'CLOSED'];
+$leadStatuses = ['NEW', 'IN_PROGRESS', '50/50', 'ON_HOLD', 'CLOSED'];
 $leadsByStatus = [
   'NEW' => array_values(array_filter($leads, fn($l) => ($l['status_overall'] ?? '') === 'NEW')),
   'IN_PROGRESS' => array_values(array_filter($leads, fn($l) => ($l['status_overall'] ?? '') === 'IN_PROGRESS')),
   '50/50' => array_values(array_filter($leads, fn($l) => ($l['status_overall'] ?? '') === '50/50')),
+  'ON_HOLD' => array_values(array_filter($leads, fn($l) => ($l['status_overall'] ?? '') === 'ON_HOLD')),
   'CLOSED' => array_values(array_filter($leads, fn($l) => ($l['status_overall'] ?? '') === 'CLOSED')),
 ];
   $leadStatusTabId = function (string $status): string {

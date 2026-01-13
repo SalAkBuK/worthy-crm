@@ -8,6 +8,8 @@
     var interestedBox = document.getElementById('ifInterested');
     var nextWrap = document.getElementById('nextFollowupWrap');
     var nextInput = document.getElementById('next_followup_at');
+    var futureWrap = document.getElementById('futureInterestWrap');
+    var launchInput = document.getElementById('launch_at');
     var intentSel = document.getElementById('intent');
     var buyTypeWrap = document.getElementById('buyPropertyTypeWrap');
     var buyTypeSel = document.getElementById('buy_property_type');
@@ -16,6 +18,7 @@
     var rentFields = document.getElementById('rentFields');
     var unitBuy = document.getElementById('unit_type_buy');
     var unitRent = document.getElementById('unit_type_rent');
+    var nextHint = document.getElementById('nextFollowupHint');
     function toggleSection(section, enabled){
       if (!section) return;
       section.classList.toggle('d-none', !enabled);
@@ -26,7 +29,7 @@
 
     var shouldShowInterested = callStatus === 'RESPONDED';
     if (nextWrap && nextInput) {
-      var showNext = callStatus === 'ASK_CONTACT_LATER';
+      var showNext = callStatus === 'ASK_CONTACT_LATER' || (callStatus === 'RESPONDED' && (interested === '50/50' || interested === 'FUTURE_INTEREST'));
       nextWrap.classList.toggle('d-none', !showNext);
       nextInput.required = showNext;
       nextInput.disabled = !showNext;
@@ -41,6 +44,8 @@
       if (buyTypeSel) { buyTypeSel.value = ''; buyTypeSel.required = false; }
       if (unitBuy) unitBuy.value = '';
       if (unitRent) unitRent.value = '';
+      if (launchInput) { launchInput.value = ''; launchInput.required = false; }
+      if (futureWrap) futureWrap.classList.add('d-none');
       if (interestedBox) interestedBox.classList.add('d-none');
       if (buyTypeWrap) { buyTypeWrap.classList.add('d-none'); if (buyTypeSel) buyTypeSel.disabled = true; }
       toggleSection(buyReady, false);
@@ -50,6 +55,19 @@
     }
 
     if (interestedSel) interestedSel.required = true;
+    if (nextHint) {
+      nextHint.classList.toggle('d-none', interested !== '50/50');
+    }
+    if (futureWrap && launchInput) {
+      var showFuture = interested === 'FUTURE_INTEREST';
+      futureWrap.classList.toggle('d-none', !showFuture);
+      launchInput.required = showFuture;
+      launchInput.disabled = !showFuture;
+      if (!showFuture) launchInput.value = '';
+      var useLaunch = document.getElementById('use_launch_as_followup');
+      if (!showFuture && useLaunch) useLaunch.checked = false;
+      if (nextInput) nextInput.readOnly = false;
+    }
     if (interested === 'INTERESTED') {
       if (interestedBox) interestedBox.classList.remove('d-none');
       if (intentSel) intentSel.required = true;
@@ -154,8 +172,21 @@
       text.textContent = 'Select call status to see recommended action.';
     }
   }
+  function initDateTimePickers(){
+    if (!window.flatpickr) return;
+    document.querySelectorAll('.flatpickr-datetime').forEach(function(input){
+      window.flatpickr(input, {
+        enableTime: true,
+        dateFormat: "Y-m-d\\TH:i",
+        altInput: true,
+        altFormat: "M d, Y h:i K",
+        time_24hr: false,
+        allowInput: true
+      });
+    });
+  }
   document.addEventListener('DOMContentLoaded', function(){
-    showHideConditional(); whatsappToggle(); notesCounter(); updateGuidance(); validateNoResponseChannel();
+    showHideConditional(); whatsappToggle(); notesCounter(); updateGuidance(); validateNoResponseChannel(); initDateTimePickers();
     var tz = document.getElementById('tz_offset');
     var now = document.getElementById('client_now');
     if (tz) tz.value = String(new Date().getTimezoneOffset());
@@ -180,5 +211,19 @@
     var buyType = document.getElementById('buy_property_type'); if(buyType) buyType.addEventListener('change', showHideConditional);
     var wcb = document.getElementById('whatsapp_contacted'); if(wcb) wcb.addEventListener('change', function(){ whatsappToggle(); validateNoResponseChannel(); });
     var notes = document.getElementById('notes'); if(notes) notes.addEventListener('input', function(){ notesCounter(); validateNoResponseChannel(); });
+    var launch = document.getElementById('launch_at');
+    var useLaunch = document.getElementById('use_launch_as_followup');
+    function syncLaunchToFollowup(){
+      var nextInput = document.getElementById('next_followup_at');
+      if (!nextInput || !launch || !useLaunch) return;
+      if (useLaunch.checked) {
+        if (launch.value) nextInput.value = launch.value;
+        nextInput.readOnly = true;
+      } else {
+        nextInput.readOnly = false;
+      }
+    }
+    if (launch) launch.addEventListener('change', syncLaunchToFollowup);
+    if (useLaunch) useLaunch.addEventListener('change', syncLaunchToFollowup);
   });
 })();

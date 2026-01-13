@@ -242,6 +242,8 @@ $leadDisplayName = function (?string $name): string {
                       $cls = 'warning';
                     } elseif ($s === '50/50') {
                       $cls = 'info';
+                    } elseif ($s === 'ON_HOLD') {
+                      $cls = 'primary';
                     } else {
                       $cls = 'secondary';
                     }

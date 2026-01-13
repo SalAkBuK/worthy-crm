@@ -22,6 +22,8 @@ final class ListingsController extends BaseController {
         'status' => trim((string)($_GET['status'] ?? '')),
         'source' => trim((string)($_GET['source'] ?? '')),
         'dataset_id' => $_GET['dataset_id'] ?? '',
+        'sort' => trim((string)($_GET['sort'] ?? '')),
+        'dir' => trim((string)($_GET['dir'] ?? '')),
       ];
       $options = Listing::getFilterOptions();
       $propertyTypeDefaults = ['Apartment', 'Villa', 'Duplex'];
@@ -83,6 +85,16 @@ final class ListingsController extends BaseController {
         redirect('listings/create');
       }
 
+      $priceData = Listing::resolvePriceData([
+        'price_raw' => $_POST['price_raw'] ?? null,
+        'price_amount' => $_POST['price_amount'] ?? null,
+        'price_furnished_raw' => $_POST['price_furnished_raw'] ?? null,
+        'price_unfurnished_raw' => $_POST['price_unfurnished_raw'] ?? null,
+        'price_furnished_amount' => $_POST['price_furnished_amount'] ?? null,
+        'price_unfurnished_amount' => $_POST['price_unfurnished_amount'] ?? null,
+      ]);
+      $details = $this->buildDetailsPayload($_POST);
+
       $id = Listing::create([
         'project_name' => $projectName,
         'area' => $area,
@@ -95,14 +107,22 @@ final class ListingsController extends BaseController {
         'baths' => $_POST['baths'] ?? null,
         'size_raw' => $_POST['size_raw'] ?? null,
         'size_sqft' => $_POST['size_sqft'] ?? null,
-        'price_raw' => $_POST['price_raw'] ?? null,
-        'price_amount' => $_POST['price_amount'] ?? null,
+        'price_raw' => $priceData['price_raw'] ?? null,
+        'price_amount' => $priceData['price_amount'] ?? null,
+        'price_furnished_raw' => $priceData['price_furnished_raw'] ?? null,
+        'price_unfurnished_raw' => $priceData['price_unfurnished_raw'] ?? null,
+        'price_furnished_amount' => $priceData['price_furnished_amount'] ?? null,
+        'price_unfurnished_amount' => $priceData['price_unfurnished_amount'] ?? null,
+        'price_display_type' => $priceData['price_display_type'] ?? null,
+        'price_display_label' => $priceData['price_display_label'] ?? null,
+        'listing_type' => $_POST['listing_type'] ?? null,
         'status' => $_POST['status'] ?? null,
         'payment_plan' => $_POST['payment_plan'] ?? null,
         'brochure_url' => $_POST['brochure_url'] ?? null,
         'maps_url' => $_POST['maps_url'] ?? null,
         'media_url' => $_POST['media_url'] ?? null,
         'notes' => $_POST['notes'] ?? null,
+        'details_json' => $details,
         'source' => 'MANUAL',
         'dataset_id' => null,
         'raw_data' => null,
@@ -148,6 +168,16 @@ final class ListingsController extends BaseController {
         redirect('listings/edit?id=' . $id);
       }
 
+      $priceData = Listing::resolvePriceData([
+        'price_raw' => $_POST['price_raw'] ?? null,
+        'price_amount' => $_POST['price_amount'] ?? null,
+        'price_furnished_raw' => $_POST['price_furnished_raw'] ?? null,
+        'price_unfurnished_raw' => $_POST['price_unfurnished_raw'] ?? null,
+        'price_furnished_amount' => $_POST['price_furnished_amount'] ?? null,
+        'price_unfurnished_amount' => $_POST['price_unfurnished_amount'] ?? null,
+      ]);
+      $details = $this->buildDetailsPayload($_POST);
+
       Listing::update($id, [
         'project_name' => $projectName,
         'area' => $area,
@@ -160,14 +190,22 @@ final class ListingsController extends BaseController {
         'baths' => $_POST['baths'] ?? null,
         'size_raw' => $_POST['size_raw'] ?? null,
         'size_sqft' => $_POST['size_sqft'] ?? null,
-        'price_raw' => $_POST['price_raw'] ?? null,
-        'price_amount' => $_POST['price_amount'] ?? null,
+        'price_raw' => $priceData['price_raw'] ?? null,
+        'price_amount' => $priceData['price_amount'] ?? null,
+        'price_furnished_raw' => $priceData['price_furnished_raw'] ?? null,
+        'price_unfurnished_raw' => $priceData['price_unfurnished_raw'] ?? null,
+        'price_furnished_amount' => $priceData['price_furnished_amount'] ?? null,
+        'price_unfurnished_amount' => $priceData['price_unfurnished_amount'] ?? null,
+        'price_display_type' => $priceData['price_display_type'] ?? null,
+        'price_display_label' => $priceData['price_display_label'] ?? null,
+        'listing_type' => $_POST['listing_type'] ?? null,
         'status' => $_POST['status'] ?? null,
         'payment_plan' => $_POST['payment_plan'] ?? null,
         'brochure_url' => $_POST['brochure_url'] ?? null,
         'maps_url' => $_POST['maps_url'] ?? null,
         'media_url' => $_POST['media_url'] ?? null,
         'notes' => $_POST['notes'] ?? null,
+        'details_json' => $details,
         'source' => 'MANUAL',
         'dataset_id' => null,
         'raw_data' => null,
@@ -178,5 +216,32 @@ final class ListingsController extends BaseController {
     } catch (\Throwable $e) {
       $this->handleException($e);
     }
+  }
+
+  private function buildDetailsPayload(array $input): ?array {
+    $details = [];
+    $handover = trim((string)($input['handover'] ?? ''));
+    $view = trim((string)($input['view'] ?? ''));
+    $amenities = $this->parseList($input['amenities'] ?? null);
+    $features = $this->parseList($input['features'] ?? null);
+    $paymentPlan = trim((string)($input['payment_plan'] ?? ''));
+
+    if ($handover !== '') $details['handover'] = $handover;
+    if ($view !== '') $details['view'] = $view;
+    if ($amenities) $details['amenities'] = $amenities;
+    if ($features) $details['features'] = $features;
+    if ($paymentPlan !== '') $details['payment_plan'] = $paymentPlan;
+    if (!empty($input['media_url'])) $details['media_note'] = 'Click to Open Media File';
+
+    return $details ?: null;
+  }
+
+  private function parseList($value): array {
+    if ($value === null) return [];
+    $value = trim((string)$value);
+    if ($value === '') return [];
+    $parts = array_map('trim', explode(',', $value));
+    $parts = array_values(array_filter($parts, static fn($item) => $item !== ''));
+    return $parts;
   }
 }

@@ -33,7 +33,9 @@ require_once __DIR__ . '/../../../Helpers/functions.php';
               <div class="mb-3">
                 <div class="form-text text-muted">
                   Headers: project_name, area, developer, unit_ref, property_type, beds_raw, beds, baths_raw, baths,
-                  size_raw, size_sqft, price_raw, price_amount, status, payment_plan, brochure_url, maps_url, media_url, notes
+                  size_raw, size_sqft, price_raw, price_amount, price_furnished_raw, price_unfurnished_raw,
+                  price_furnished_amount, price_unfurnished_amount, status, payment_plan, view, amenities, features,
+                  handover, commission_pct, brochure_url, maps_url, media_url, notes
                   (also accepts: Project, Unit, Status, Price, Area, Location, Bedrooms, Listing_URL)
                 </div>
               </div>

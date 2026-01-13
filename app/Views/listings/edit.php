@@ -2,6 +2,20 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../../Helpers/functions.php';
 $listing = $listing ?? [];
+$details = [];
+$detailsRaw = $listing['details_json'] ?? '';
+if (is_string($detailsRaw) && $detailsRaw !== '') {
+  $decoded = json_decode($detailsRaw, true);
+  if (is_array($decoded)) $details = $decoded;
+}
+$view = $details['view'] ?? '';
+$handover = $details['handover'] ?? '';
+$amenities = $details['amenities'] ?? '';
+$features = $details['features'] ?? '';
+$amenitiesValue = is_array($amenities) ? implode(', ', $amenities) : (string)$amenities;
+$featuresValue = is_array($features) ? implode(', ', $features) : (string)$features;
+$paymentPlan = $listing['payment_plan'] ?? '';
+if ($paymentPlan === '' && isset($details['payment_plan'])) $paymentPlan = (string)$details['payment_plan'];
 ?>
 <div class="row">
   <div class="col-12">
@@ -82,9 +96,47 @@ $listing = $listing ?? [];
               <input class="form-control" type="number" step="0.01" name="price_amount"
                 value="<?= e((string)($listing['price_amount'] ?? '')) ?>">
             </div>
+            <div class="col-md-4">
+              <label class="form-label">Listing Type</label>
+              <select class="form-select" name="listing_type">
+                <option value="">Select</option>
+                <option value="SALE" <?= (($listing['listing_type'] ?? '') === 'SALE') ? 'selected' : '' ?>>Sale</option>
+                <option value="RENT" <?= (($listing['listing_type'] ?? '') === 'RENT') ? 'selected' : '' ?>>Rent</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Furnished Price (AED)</label>
+              <input class="form-control" type="text" name="price_furnished_raw"
+                value="<?= e($listing['price_furnished_raw'] ?? (string)($listing['price_furnished_amount'] ?? '')) ?>">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Unfurnished Price (AED)</label>
+              <input class="form-control" type="text" name="price_unfurnished_raw"
+                value="<?= e($listing['price_unfurnished_raw'] ?? (string)($listing['price_unfurnished_amount'] ?? '')) ?>">
+            </div>
             <div class="col-md-12">
               <label class="form-label">Payment Plan</label>
-              <textarea class="form-control" name="payment_plan" rows="2"><?= e($listing['payment_plan'] ?? '') ?></textarea>
+              <textarea class="form-control" name="payment_plan" rows="2"><?= e($paymentPlan) ?></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">View</label>
+              <input class="form-control" type="text" name="view"
+                value="<?= e($view) ?>">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Handover</label>
+              <input class="form-control" type="text" name="handover"
+                value="<?= e($handover) ?>">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Amenities (comma separated)</label>
+              <input class="form-control" type="text" name="amenities"
+                value="<?= e($amenitiesValue) ?>">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Features (comma separated)</label>
+              <input class="form-control" type="text" name="features"
+                value="<?= e($featuresValue) ?>">
             </div>
             <div class="col-md-4">
               <label class="form-label">Brochure URL</label>

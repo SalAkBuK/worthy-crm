@@ -96,6 +96,19 @@ function parse_date(?string $date): ?string {
   return $date;
 }
 
+function parse_aed_amount(?string $raw): ?int {
+  if ($raw === null) return null;
+  $raw = trim((string)$raw);
+  if ($raw === '') return null;
+  $raw = str_ireplace('aed', '', $raw);
+  if (preg_match('/\d[\d, ]*/', $raw, $m)) {
+    $value = str_replace([',', ' '], '', $m[0]);
+    if ($value === '' || !ctype_digit($value)) return null;
+    return (int)$value;
+  }
+  return null;
+}
+
 function paginate_meta(int $total, int $page, int $perPage): array {
   $pages = (int)ceil(max(1, $total) / $perPage);
   $page = max(1, min($pages, $page));

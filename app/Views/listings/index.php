@@ -15,11 +15,21 @@ $developer = $filters['developer'] ?? '';
 $propertyType = $filters['property_type'] ?? '';
 $bedrooms = $filters['bedrooms'] ?? '';
 $status = $filters['status'] ?? '';
+$sort = $filters['sort'] ?? '';
+$dir = $filters['dir'] ?? 'desc';
 $developers = $options['developers'] ?? [];
 $statuses = $options['statuses'] ?? [];
 $propertyTypes = $options['property_types'] ?? [];
 $bedroomOptions = $options['bedrooms'] ?? [];
 $projects = $options['projects'] ?? [];
+$formatAedShort = static function ($value): string {
+  if ($value === null || $value === '') return '-';
+  $num = (float)$value;
+  if ($num >= 1000000000) return 'AED ' . rtrim(rtrim(number_format($num / 1000000000, 2, '.', ''), '0'), '.') . 'B';
+  if ($num >= 1000000) return 'AED ' . rtrim(rtrim(number_format($num / 1000000, 2, '.', ''), '0'), '.') . 'M';
+  if ($num >= 1000) return 'AED ' . rtrim(rtrim(number_format($num / 1000, 2, '.', ''), '0'), '.') . 'K';
+  return 'AED ' . number_format($num, 0, '.', ',');
+};
 ?>
 <div class="row">
   <div class="col-12">
@@ -113,7 +123,20 @@ $projects = $options['projects'] ?? [];
                 <th>Bedrooms</th>
                 <th>Status</th>
                 <th>Apartment Type</th>
-                <th>Price</th>
+                <?php
+                  $isPriceSort = $sort === 'price_amount';
+                  $dirLower = strtolower((string)$dir);
+                ?>
+                <th>
+                  <span class="me-1">Price</span>
+                  <a class="text-decoration-none" href="?<?= e(build_query(['sort' => 'price_amount', 'dir' => 'asc'])) ?>" aria-label="Sort price ascending">
+                    <i class="ri-arrow-up-s-line <?= $isPriceSort && $dirLower === 'asc' ? '' : 'text-muted' ?>"></i>
+                  </a>
+                  <a class="text-decoration-none ms-1" href="?<?= e(build_query(['sort' => 'price_amount', 'dir' => 'desc'])) ?>" aria-label="Sort price descending">
+                    <i class="ri-arrow-down-s-line <?= $isPriceSort && $dirLower === 'desc' ? '' : 'text-muted' ?>"></i>
+                  </a>
+                </th>
+                <th>Listing Type</th>
                 <th>Area</th>
                 <th>Location</th>
                 <th>Brochure</th>
@@ -123,13 +146,37 @@ $projects = $options['projects'] ?? [];
             <tbody>
               <?php if (!$items): ?>
                 <tr>
-                  <td colspan="10" class="text-center text-muted py-4">No listings found.</td>
+                  <td colspan="12" class="text-center text-muted py-4">No listings found.</td>
                 </tr>
               <?php else: ?>
                 <?php foreach ($items as $row): ?>
                   <?php
-                    $price = $row['price_amount'] ?? '';
-                    if ($price === '' || $price === null) $price = $row['price_raw'] ?? '-';
+                    $priceAmount = $row['price_amount'] ?? null;
+                    $priceLabel = $row['price_display_label'] ?? 'Price';
+                    if ($priceLabel === '') $priceLabel = 'Price';
+                    $priceText = '-';
+                    $priceFullText = '';
+                    if ($priceAmount !== null && $priceAmount !== '') {
+                      $priceText = $formatAedShort($priceAmount);
+                      $priceFullText = 'AED ' . number_format((float)$priceAmount, 0, '.', ',');
+                    } elseif (!empty($row['price_raw'])) {
+                      $parsedRaw = parse_aed_amount((string)$row['price_raw']);
+                      if ($parsedRaw !== null) {
+                        $priceText = $formatAedShort($parsedRaw);
+                        $priceFullText = 'AED ' . number_format((float)$parsedRaw, 0, '.', ',');
+                      } else {
+                        $priceText = (string)$row['price_raw'];
+                      }
+                    }
+                    $priceVariants = '';
+                    $priceVariantsTitle = '';
+                    if (!empty($row['price_furnished_amount']) && !empty($row['price_unfurnished_amount'])) {
+                      $furnishedText = $formatAedShort($row['price_furnished_amount']);
+                      $unfurnishedText = $formatAedShort($row['price_unfurnished_amount']);
+                      $priceVariants = 'F: ' . $furnishedText . ' | U: ' . $unfurnishedText;
+                      $priceVariantsTitle = 'F: AED ' . number_format((float)$row['price_furnished_amount'], 0, '.', ',')
+                        . ' | U: AED ' . number_format((float)$row['price_unfurnished_amount'], 0, '.', ',');
+                    }
                     $location = '-';
                     $notes = $row['notes'] ?? '';
                     if (is_string($notes) && stripos($notes, 'location:') === 0) {
@@ -144,7 +191,16 @@ $projects = $options['projects'] ?? [];
                     <td><?= e($row['beds_raw'] ?? ($row['beds'] !== null ? (string)$row['beds'] : '-')) ?></td>
                     <td><?= e($row['status'] ?? '-') ?></td>
                     <td><?= e($row['property_type'] ?? '-') ?></td>
-                    <td><?= e((string)$price) ?></td>
+                    <td>
+                      <div class="d-flex align-items-center gap-1">
+                        <span<?= $priceFullText !== '' ? ' title="' . e($priceFullText) . '"' : '' ?>><?= e($priceText) ?></span>
+                        <span class="badge bg-light text-dark border"><?= e($priceLabel) ?></span>
+                      </div>
+                      <?php if ($priceVariants !== ''): ?>
+                        <div class="text-muted fs-12" title="<?= e($priceVariantsTitle) ?>"><?= e($priceVariants) ?></div>
+                      <?php endif; ?>
+                    </td>
+                    <td><?= e($row['listing_type'] ?? '-') ?></td>
                     <td><?= e($row['area'] ?? '-') ?></td>
                     <td><?= e($location) ?></td>
                     <td>
@@ -171,6 +227,9 @@ $projects = $options['projects'] ?? [];
             Total: <?= e((string)($meta['total'] ?? count($items))) ?>
           </div>
         <?php endif; ?>
+        <div class="text-muted fs-12 mt-2">
+          Legend: K = Thousand, M = Million, B = Billion. Prices are shown in AED.
+        </div>
       </div>
     </div>
   </div>

@@ -24,6 +24,8 @@ $safeReturn = str_starts_with($returnPath, 'http') ? 'admin/leads' : ltrim($retu
             $cls = 'warning';
           } elseif ($s === '50/50') {
             $cls = 'info';
+          } elseif ($s === 'ON_HOLD') {
+            $cls = 'primary';
           } else {
             $cls = 'secondary';
           }

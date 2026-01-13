@@ -64,11 +64,46 @@ final class AgentLeadsController extends BaseController {
     } catch (\Throwable $e) { $this->handleException($e); }
   }
 
+  public function followupInbox(): void {
+    try {
+      \require_role(['AGENT']);
+      $user = current_user();
+      $agentId = (int)($user['id'] ?? 0);
+      $tab = (string)($_GET['tab'] ?? 'due_today');
+      $allowedTabs = ['due_today', 'due_soon', 'scheduled'];
+      if (!in_array($tab, $allowedTabs, true)) $tab = 'due_today';
+      $page = max(1, (int)($_GET['page'] ?? 1));
+      $perPage = max(1, min(100, (int)($_GET['per_page'] ?? 20)));
+      $filters = [
+        'agent_id' => $agentId,
+        'q' => trim((string)($_GET['q'] ?? '')),
+        'due_soon_hours' => (int)($_GET['due_soon_hours'] ?? 0),
+      ];
+      $result = Lead::followupInbox($tab, $filters, $page, $perPage);
+      header('Content-Type: application/json; charset=utf-8');
+      echo json_encode($result, JSON_UNESCAPED_SLASHES);
+    } catch (\Throwable $e) { $this->handleException($e); }
+  }
+
   public function addLead(): void {
     try {
       \require_role(['AGENT']);
       View::render('agent/leads_add', [
         'title' => 'Add Lead',
+      ]);
+    } catch (\Throwable $e) { $this->handleException($e); }
+  }
+
+  public function followupInboxPage(): void {
+    try {
+      \require_role(['AGENT']);
+      $tab = (string)($_GET['tab'] ?? 'due_today');
+      $allowedTabs = ['due_today', 'due_soon', 'scheduled'];
+      if (!in_array($tab, $allowedTabs, true)) $tab = 'due_today';
+      View::render('agent/followup_inbox', [
+        'title' => 'Follow-up Inbox',
+        'activeTab' => $tab,
+        'dueSoonHours' => (int)(getenv('FOLLOWUP_DUE_SOON_HOURS') ?: 48),
       ]);
     } catch (\Throwable $e) { $this->handleException($e); }
   }
@@ -128,10 +163,7 @@ final class AgentLeadsController extends BaseController {
         $followupBlocked = true;
         $blockReason = 'This lead is closed and no further attempts are allowed.';
       } elseif ($lastFollowup) {
-        if ($lastFollowup['call_status'] === 'RESPONDED') {
-          $followupBlocked = true;
-          $blockReason = 'This lead already responded; no further attempts are required.';
-        } elseif ((int)$lastFollowup['attempt_no'] >= 3 && $leadStatus === 'CLOSED') {
+        if ((int)$lastFollowup['attempt_no'] >= 3 && $leadStatus === 'CLOSED') {
           $followupBlocked = true;
           $blockReason = 'Maximum attempts reached (3). This lead is closed.';
         }
@@ -169,10 +201,6 @@ final class AgentLeadsController extends BaseController {
         redirect('agent/lead?id=' . $leadId);
       }
       if ($lastFollowup) {
-        if ($lastFollowup['call_status'] === 'RESPONDED') {
-          flash('danger', 'This lead already responded. No further attempts allowed.');
-          redirect('agent/lead?id=' . $leadId);
-        }
         if ((int)$lastFollowup['attempt_no'] >= 3 && $leadStatus === 'CLOSED') {
           flash('danger', 'Maximum attempts reached (3).');
           redirect('agent/lead?id=' . $leadId);
@@ -183,6 +211,8 @@ final class AgentLeadsController extends BaseController {
       $nextFollowup = (string)($_POST['next_followup_at'] ?? '');
       $callStatus = (string)($_POST['call_status'] ?? '');
       $interestedStatus = (string)($_POST['interested_status'] ?? '');
+      $launchAt = (string)($_POST['launch_at'] ?? '');
+      $useLaunchAsFollowup = isset($_POST['use_launch_as_followup']) ? 1 : 0;
       $intent = $_POST['intent'] ?? null;
       $buyType = $_POST['buy_property_type'] ?? null;
       $unitType = null;
@@ -257,9 +287,22 @@ final class AgentLeadsController extends BaseController {
           $errors[] = 'For NO_RESPONSE, mark WhatsApp contacted or mention another channel (sms/email) in notes.';
         }
       }
+      $needsNextFollowup = false;
       if ($callStatus === 'ASK_CONTACT_LATER') {
+        $needsNextFollowup = true;
+      }
+      if ($callStatus === 'RESPONDED' && $interestedStatus === '50/50') {
+        $needsNextFollowup = true;
+      }
+      if ($callStatus === 'RESPONDED' && $interestedStatus === 'FUTURE_INTEREST') {
+        $needsNextFollowup = true;
+        if ($useLaunchAsFollowup && $launchAt !== '') {
+          $nextFollowup = $launchAt;
+        }
+      }
+      if ($needsNextFollowup) {
         if ($nextFollowup === '') {
-          $errors[] = 'Next follow-up date/time is required when asked to contact later.';
+          $errors[] = 'Next follow-up date/time is required for 50/50, future interest, or contact later.';
         } else {
           $nextTs = $parseClientDateTime($nextFollowup);
           if ($nextTs === null) {
@@ -284,7 +327,31 @@ final class AgentLeadsController extends BaseController {
       }
 
       if ($callStatus === 'RESPONDED') {
-        if (!in_array($interestedStatus, ['INTERESTED','NOT_INTERESTED'], true)) $errors[] = 'Interested status is required.';
+        if (!in_array($interestedStatus, ['INTERESTED','NOT_INTERESTED','50/50','FUTURE_INTEREST'], true)) $errors[] = 'Interested status is required.';
+        if ($interestedStatus === 'FUTURE_INTEREST') {
+          if ($launchAt === '') {
+            $errors[] = 'Project launch date/time is required for future interest.';
+          } else {
+            $launchTs = $parseClientDateTime($launchAt);
+            if ($launchTs === null) {
+              Logger::info('Followup launch datetime invalid', [
+                'lead_id' => $leadId,
+                'agent_id' => (int)current_user()['id'],
+                'launch_at' => $launchAt,
+                'tz_offset' => $clientOffset,
+                'server_offset' => $serverOffset,
+                'client_now' => $clientNow,
+              ]);
+              $errors[] = 'Invalid project launch date/time.';
+            } else {
+              if ($launchTs <= $nowTs) $errors[] = 'Project launch date/time must be in the future.';
+              if (isset($contactTs) && $contactTs !== false && $launchTs <= $contactTs) {
+                $errors[] = 'Project launch date/time must be after the contact date/time.';
+              }
+            }
+          }
+          $intent = null; $buyType = null;
+        }
         if ($interestedStatus === 'INTERESTED') {
           if (!in_array($intent, ['RENT','BUY'], true)) $errors[] = 'Intent is required when interested.';
           if ($intent === 'BUY') {
@@ -319,9 +386,13 @@ final class AgentLeadsController extends BaseController {
         } else {
           $intent = null; $buyType = null;
         }
+        if ($interestedStatus !== 'FUTURE_INTEREST') {
+          $launchAt = '';
+        }
       } else {
         $interestedStatus = 'NOT_INTERESTED';
         $intent = null; $buyType = null;
+        $launchAt = '';
       }
 
       if ($buyType === '') $buyType = null;
@@ -376,6 +447,7 @@ final class AgentLeadsController extends BaseController {
         'next_followup_at' => $nextFollowup ?: null,
         'call_status' => $callStatus,
         'interested_status' => $interestedStatus,
+        'launch_at' => $launchAt ?: null,
         'intent' => $intent,
         'buy_property_type' => $buyType,
         'if_not_interested_property_type' => null,
@@ -394,6 +466,22 @@ final class AgentLeadsController extends BaseController {
         'whatsapp_contacted' => $whatsapp,
         'whatsapp_screenshot_path' => $whatsPath,
       ]);
+
+      $agentId = (int)current_user()['id'];
+      Lead::updateNextFollowup($leadId, $nextFollowup ?: null, $notes, $agentId);
+      $pdo = \App\Helpers\DB::conn();
+      $remarkOutcome = $interestedStatus !== '' ? $interestedStatus : $callStatus;
+      $remarkNote = trim($notes);
+      if ($remarkNote !== '') {
+        $st = $pdo->prepare("INSERT INTO lead_followup_remarks (lead_id, user_id, remark, outcome, created_at)
+          VALUES (:lead_id, :user_id, :remark, :outcome, NOW())");
+        $st->execute([
+          ':lead_id' => $leadId,
+          ':user_id' => $agentId,
+          ':remark' => $remarkNote,
+          ':outcome' => $remarkOutcome !== '' ? $remarkOutcome : null,
+        ]);
+      }
 
       $prevStatus = $lead['status_overall'] ?? 'NEW';
       \App\Models\Lead::updateStatusByLeadId($leadId);
@@ -431,9 +519,14 @@ final class AgentLeadsController extends BaseController {
       }
 
       flash('success', 'Follow-up saved (Attempt #' . $nextAttempt . ').');
+      if (!$nextFollowup) {
+        flash('info', 'No next follow-up scheduled. Add one if you want this lead to appear in Due Today.');
+      }
       redirect('agent/lead?id=' . $leadId);
     } catch (\Throwable $e) { $this->handleException($e); }
   }
+
+  // Quick remark flow removed in favor of the main follow-up form.
 
   private function saveUpload(int $leadId, array $file): string {
     $max = 3 * 1024 * 1024;

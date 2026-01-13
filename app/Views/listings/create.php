@@ -66,9 +66,41 @@ require_once __DIR__ . '/../../Helpers/functions.php';
               <label class="form-label">Price (AED)</label>
               <input class="form-control" type="number" step="0.01" name="price_amount">
             </div>
+            <div class="col-md-4">
+              <label class="form-label">Listing Type</label>
+              <select class="form-select" name="listing_type">
+                <option value="">Select</option>
+                <option value="SALE">Sale</option>
+                <option value="RENT">Rent</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Furnished Price (AED)</label>
+              <input class="form-control" type="text" name="price_furnished_raw">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Unfurnished Price (AED)</label>
+              <input class="form-control" type="text" name="price_unfurnished_raw">
+            </div>
             <div class="col-md-12">
               <label class="form-label">Payment Plan</label>
               <textarea class="form-control" name="payment_plan" rows="2"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">View</label>
+              <input class="form-control" type="text" name="view">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Handover</label>
+              <input class="form-control" type="text" name="handover">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Amenities (comma separated)</label>
+              <input class="form-control" type="text" name="amenities">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Features (comma separated)</label>
+              <input class="form-control" type="text" name="features">
             </div>
             <div class="col-md-4">
               <label class="form-label">Brochure URL</label>

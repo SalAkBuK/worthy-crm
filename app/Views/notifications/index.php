@@ -43,6 +43,8 @@ $notifStyle = static function(string $type): array {
       return ['label' => 'Milestone', 'class' => 'bg-success-subtle text-success'];
     case 'weekly_summary':
       return ['label' => 'Weekly', 'class' => 'bg-info-subtle text-info'];
+    case 'daily_followup_summary':
+      return ['label' => 'Daily', 'class' => 'bg-primary-subtle text-primary'];
     default:
       return ['label' => 'Info', 'class' => 'bg-secondary-subtle text-secondary'];
   }

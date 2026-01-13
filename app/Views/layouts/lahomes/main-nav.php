@@ -11,6 +11,7 @@ $isAdminLeadsAssigned = str_contains($uri, '/admin/leads/assigned');
 $isAgentLeads = str_contains($uri, '/agent/leads');
 $isAgentLeadsAdd = str_contains($uri, '/agent/leads/add');
 $isAgentLeadsList = str_contains($uri, '/agent/leads') && !$isAgentLeadsAdd;
+$isAgentFollowups = str_contains($uri, '/agent/followups');
 $isListings = str_contains($uri, '/listings');
 $isListingsDatasets = str_contains($uri, '/listings/datasets');
 ?>
@@ -86,6 +87,9 @@ $isListingsDatasets = str_contains($uri, '/listings/datasets');
               </li>
               <li class="sub-nav-item">
                 <a class="sub-nav-link <?= $isAgentLeadsAdd ? 'active' : '' ?>" href="<?= e(url('agent/leads/add')) ?>">Add Lead</a>
+              </li>
+              <li class="sub-nav-item">
+                <a class="sub-nav-link <?= $isAgentFollowups ? 'active' : '' ?>" href="<?= e(url('agent/followups')) ?>">Follow-up Inbox</a>
               </li>
             </ul>
           </div>

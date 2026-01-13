@@ -32,6 +32,77 @@ final class Listing {
     return $value === '' ? null : $value;
   }
 
+  private static function normalizeDetailsJson($value): ?string {
+    if ($value === null || $value === '') return null;
+    if (is_array($value) || is_object($value)) {
+      return json_encode($value, JSON_UNESCAPED_SLASHES);
+    }
+    $value = trim((string)$value);
+    return $value === '' ? null : $value;
+  }
+
+  public static function resolvePriceData(array $data): array {
+    $priceRaw = $data['price_raw'] ?? null;
+    $priceAmount = $data['price_amount'] ?? null;
+    $furnishedRaw = $data['price_furnished_raw'] ?? null;
+    $unfurnishedRaw = $data['price_unfurnished_raw'] ?? null;
+    $furnishedAmount = $data['price_furnished_amount'] ?? null;
+    $unfurnishedAmount = $data['price_unfurnished_amount'] ?? null;
+
+    if ($furnishedAmount === '') $furnishedAmount = null;
+    if ($unfurnishedAmount === '') $unfurnishedAmount = null;
+    if ($priceAmount === '') $priceAmount = null;
+
+    if ($furnishedAmount !== null && !is_numeric($furnishedAmount)) {
+      $furnishedAmount = \parse_aed_amount((string)$furnishedAmount);
+    }
+    if ($unfurnishedAmount !== null && !is_numeric($unfurnishedAmount)) {
+      $unfurnishedAmount = \parse_aed_amount((string)$unfurnishedAmount);
+    }
+    if ($priceAmount !== null && !is_numeric($priceAmount)) {
+      $priceAmount = \parse_aed_amount((string)$priceAmount);
+    }
+
+    if ($furnishedAmount === null && $furnishedRaw !== null && $furnishedRaw !== '') {
+      $furnishedAmount = \parse_aed_amount((string)$furnishedRaw);
+    }
+    if ($unfurnishedAmount === null && $unfurnishedRaw !== null && $unfurnishedRaw !== '') {
+      $unfurnishedAmount = \parse_aed_amount((string)$unfurnishedRaw);
+    }
+    if ($priceAmount === null && $priceRaw !== null && $priceRaw !== '') {
+      $priceAmount = \parse_aed_amount((string)$priceRaw);
+    }
+
+    $displayType = $data['price_display_type'] ?? null;
+    $displayLabel = $data['price_display_label'] ?? null;
+
+    if ($furnishedAmount !== null || $unfurnishedAmount !== null) {
+      if ($furnishedAmount !== null) {
+        $priceAmount = $furnishedAmount;
+        $displayType = 'FURNISHED';
+        $displayLabel = 'Furnished';
+      } else {
+        $priceAmount = $unfurnishedAmount;
+        $displayType = 'UNFURNISHED';
+        $displayLabel = 'Unfurnished';
+      }
+    } elseif ($priceAmount !== null) {
+      $displayType = 'SINGLE';
+      $displayLabel = 'Price';
+    }
+
+    if ($displayType === null || $displayType === '') $displayType = 'SINGLE';
+    if ($displayLabel === null || $displayLabel === '') $displayLabel = 'Price';
+
+    $data['price_amount'] = $priceAmount;
+    $data['price_furnished_amount'] = $furnishedAmount;
+    $data['price_unfurnished_amount'] = $unfurnishedAmount;
+    $data['price_display_type'] = $displayType;
+    $data['price_display_label'] = $displayLabel;
+
+    return $data;
+  }
+
   public static function findById(int $id): ?array {
     $pdo = DB::conn();
     $st = $pdo->prepare("SELECT * FROM listings WHERE id=:id LIMIT 1");
@@ -47,12 +118,16 @@ final class Listing {
 
     $st = $pdo->prepare("INSERT INTO listings
       (project_name, area, developer, unit_ref, property_type, beds_raw, beds, baths_raw, baths,
-       size_raw, size_sqft, price_raw, price_amount, status, payment_plan, brochure_url, maps_url,
-       media_url, notes, source, dataset_id, raw_data, created_by_user_id, created_at, updated_at)
+       size_raw, size_sqft, price_raw, price_amount, price_furnished_raw, price_unfurnished_raw,
+       price_furnished_amount, price_unfurnished_amount, price_display_type, price_display_label,
+       listing_type, status, payment_plan, brochure_url, maps_url, media_url, notes, details_json,
+       source, dataset_id, raw_data, created_by_user_id, created_at, updated_at)
       VALUES
       (:project_name, :area, :developer, :unit_ref, :property_type, :beds_raw, :beds, :baths_raw, :baths,
-       :size_raw, :size_sqft, :price_raw, :price_amount, :status, :payment_plan, :brochure_url, :maps_url,
-       :media_url, :notes, :source, :dataset_id, :raw_data, :created_by, NOW(), NOW())");
+       :size_raw, :size_sqft, :price_raw, :price_amount, :price_furnished_raw, :price_unfurnished_raw,
+       :price_furnished_amount, :price_unfurnished_amount, :price_display_type, :price_display_label,
+       :listing_type, :status, :payment_plan, :brochure_url, :maps_url, :media_url, :notes, :details_json,
+       :source, :dataset_id, :raw_data, :created_by, NOW(), NOW())");
     $st->execute([
       ':project_name' => trim((string)($data['project_name'] ?? '')),
       ':area' => trim((string)($data['area'] ?? '')),
@@ -67,12 +142,20 @@ final class Listing {
       ':size_sqft' => self::decimalOrNull($data['size_sqft'] ?? null),
       ':price_raw' => self::nullIfEmpty($data['price_raw'] ?? null),
       ':price_amount' => self::decimalOrNull($data['price_amount'] ?? null),
+      ':price_furnished_raw' => self::nullIfEmpty($data['price_furnished_raw'] ?? null),
+      ':price_unfurnished_raw' => self::nullIfEmpty($data['price_unfurnished_raw'] ?? null),
+      ':price_furnished_amount' => self::decimalOrNull($data['price_furnished_amount'] ?? null),
+      ':price_unfurnished_amount' => self::decimalOrNull($data['price_unfurnished_amount'] ?? null),
+      ':price_display_type' => self::nullIfEmpty($data['price_display_type'] ?? null),
+      ':price_display_label' => self::nullIfEmpty($data['price_display_label'] ?? null),
+      ':listing_type' => self::nullIfEmpty($data['listing_type'] ?? null),
       ':status' => self::nullIfEmpty($data['status'] ?? null),
       ':payment_plan' => self::nullIfEmpty($data['payment_plan'] ?? null),
       ':brochure_url' => self::nullIfEmpty($data['brochure_url'] ?? null),
       ':maps_url' => self::nullIfEmpty($data['maps_url'] ?? null),
       ':media_url' => self::nullIfEmpty($data['media_url'] ?? null),
       ':notes' => self::nullIfEmpty($data['notes'] ?? null),
+      ':details_json' => self::normalizeDetailsJson($data['details_json'] ?? null),
       ':source' => $source,
       ':dataset_id' => self::intOrNull($data['dataset_id'] ?? null),
       ':raw_data' => self::normalizeRawData($data['raw_data'] ?? null),
@@ -137,6 +220,34 @@ final class Listing {
       $fields[] = "price_amount=:price_amount";
       $params[':price_amount'] = self::decimalOrNull($data['price_amount']);
     }
+    if (array_key_exists('price_furnished_raw', $data)) {
+      $fields[] = "price_furnished_raw=:price_furnished_raw";
+      $params[':price_furnished_raw'] = self::nullIfEmpty($data['price_furnished_raw']);
+    }
+    if (array_key_exists('price_unfurnished_raw', $data)) {
+      $fields[] = "price_unfurnished_raw=:price_unfurnished_raw";
+      $params[':price_unfurnished_raw'] = self::nullIfEmpty($data['price_unfurnished_raw']);
+    }
+    if (array_key_exists('price_furnished_amount', $data)) {
+      $fields[] = "price_furnished_amount=:price_furnished_amount";
+      $params[':price_furnished_amount'] = self::decimalOrNull($data['price_furnished_amount']);
+    }
+    if (array_key_exists('price_unfurnished_amount', $data)) {
+      $fields[] = "price_unfurnished_amount=:price_unfurnished_amount";
+      $params[':price_unfurnished_amount'] = self::decimalOrNull($data['price_unfurnished_amount']);
+    }
+    if (array_key_exists('price_display_type', $data)) {
+      $fields[] = "price_display_type=:price_display_type";
+      $params[':price_display_type'] = self::nullIfEmpty($data['price_display_type']);
+    }
+    if (array_key_exists('price_display_label', $data)) {
+      $fields[] = "price_display_label=:price_display_label";
+      $params[':price_display_label'] = self::nullIfEmpty($data['price_display_label']);
+    }
+    if (array_key_exists('listing_type', $data)) {
+      $fields[] = "listing_type=:listing_type";
+      $params[':listing_type'] = self::nullIfEmpty($data['listing_type']);
+    }
     if (array_key_exists('status', $data)) {
       $fields[] = "status=:status";
       $params[':status'] = self::nullIfEmpty($data['status']);
@@ -160,6 +271,10 @@ final class Listing {
     if (array_key_exists('notes', $data)) {
       $fields[] = "notes=:notes";
       $params[':notes'] = self::nullIfEmpty($data['notes']);
+    }
+    if (array_key_exists('details_json', $data)) {
+      $fields[] = "details_json=:details_json";
+      $params[':details_json'] = self::normalizeDetailsJson($data['details_json']);
     }
     if (array_key_exists('source', $data)) {
       $source = $data['source'];
@@ -328,9 +443,15 @@ final class Listing {
     $total = (int)$count->fetchColumn();
     $meta = \paginate_meta($total, $page, $perPage);
 
+    $orderExpr = "l.$sort";
+    if ($sort === 'price_amount') {
+      $rawPriceExpr = "NULLIF(REPLACE(REPLACE(REPLACE(LOWER(l.price_raw),'aed',''),',',''),' ',''), '')";
+      $orderExpr = "COALESCE(l.price_amount, CAST($rawPriceExpr AS DECIMAL(14,2)))";
+    }
+
     $sql = "SELECT l.* FROM listings l
       $whereSql
-      ORDER BY l.$sort $dir
+      ORDER BY $orderExpr $dir
       LIMIT :limit OFFSET :offset";
     $st = $pdo->prepare($sql);
     foreach ($params as $k => $v) $st->bindValue($k, $v);

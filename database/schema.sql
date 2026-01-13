@@ -49,19 +49,26 @@ CREATE TABLE IF NOT EXISTS leads (
   budget_aed_max DECIMAL(12,2) NULL,
   budget_aed_range VARCHAR(80) NULL,
   lead_status VARCHAR(50) NULL,
+  next_followup_at DATETIME NULL,
+  next_followup_note VARCHAR(255) NULL,
+  next_followup_set_by_user_id INT UNSIGNED NULL,
+  next_followup_status ENUM('scheduled','cleared') NULL,
   assigned_agent_user_id INT UNSIGNED NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_by_user_id INT UNSIGNED NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  status_overall ENUM('NEW','IN_PROGRESS','50/50','CLOSED') NOT NULL DEFAULT 'NEW',
+  status_overall ENUM('NEW','IN_PROGRESS','50/50','ON_HOLD','CLOSED') NOT NULL DEFAULT 'NEW',
   PRIMARY KEY (id),
   KEY idx_leads_assigned_agent (assigned_agent_user_id),
   KEY idx_leads_active (is_active),
   KEY idx_leads_created_at (created_at),
+  KEY idx_leads_next_followup (next_followup_at),
   KEY idx_leads_status (status_overall),
   CONSTRAINT fk_leads_assigned_agent FOREIGN KEY (assigned_agent_user_id)
     REFERENCES users(id) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT fk_leads_created_by FOREIGN KEY (created_by_user_id)
+    REFERENCES users(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT fk_leads_next_followup_set_by FOREIGN KEY (next_followup_set_by_user_id)
     REFERENCES users(id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -72,8 +79,9 @@ CREATE TABLE IF NOT EXISTS lead_followups (
   attempt_no INT UNSIGNED NOT NULL,
   contact_datetime DATETIME NOT NULL,
   next_followup_at DATETIME NULL,
+  launch_at DATETIME NULL,
   call_status ENUM('NO_RESPONSE','RESPONDED','ASK_CONTACT_LATER') NOT NULL,
-  interested_status ENUM('INTERESTED','NOT_INTERESTED') NOT NULL,
+  interested_status ENUM('INTERESTED','NOT_INTERESTED','50/50','FUTURE_INTEREST') NOT NULL,
   intent ENUM('RENT','BUY') NULL,
   buy_property_type ENUM('READY_TO_MOVE','OFF_PLAN') NULL,
   if_not_interested_property_type ENUM('OFF_PLAN','READY_TO_MOVE') NULL,
@@ -101,6 +109,23 @@ CREATE TABLE IF NOT EXISTS lead_followups (
     REFERENCES leads(id) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_followups_agent FOREIGN KEY (agent_user_id)
     REFERENCES users(id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS lead_followup_remarks (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  lead_id INT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NULL,
+  remark TEXT NOT NULL,
+  outcome VARCHAR(80) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_followup_remarks_lead (lead_id),
+  KEY idx_followup_remarks_user (user_id),
+  KEY idx_followup_remarks_created (created_at),
+  CONSTRAINT fk_followup_remarks_lead FOREIGN KEY (lead_id)
+    REFERENCES leads(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_followup_remarks_user FOREIGN KEY (user_id)
+    REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS audit_logs (
@@ -187,12 +212,20 @@ CREATE TABLE IF NOT EXISTS listings (
   size_sqft DECIMAL(10,2) NULL,
   price_raw VARCHAR(80) NULL,
   price_amount DECIMAL(14,2) NULL,
+  price_furnished_raw VARCHAR(64) NULL,
+  price_unfurnished_raw VARCHAR(64) NULL,
+  price_furnished_amount BIGINT NULL,
+  price_unfurnished_amount BIGINT NULL,
+  price_display_type ENUM('FURNISHED','UNFURNISHED','SINGLE') NOT NULL DEFAULT 'SINGLE',
+  price_display_label VARCHAR(32) NOT NULL DEFAULT 'Price',
+  listing_type ENUM('SALE','RENT') NULL,
   status VARCHAR(80) NULL,
   payment_plan TEXT NULL,
   brochure_url VARCHAR(500) NULL,
   maps_url VARCHAR(500) NULL,
   media_url VARCHAR(500) NULL,
   notes TEXT NULL,
+  details_json JSON NULL,
   source ENUM('MANUAL','PDF') NOT NULL DEFAULT 'MANUAL',
   dataset_id INT UNSIGNED NULL,
   raw_data JSON NULL,

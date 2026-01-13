@@ -31,11 +31,11 @@ final class Followup {
   public static function create(array $data): int {
     $pdo = DB::conn();
     $st = $pdo->prepare("INSERT INTO lead_followups
-      (lead_id, agent_user_id, attempt_no, contact_datetime, next_followup_at, call_status, interested_status, intent,
+      (lead_id, agent_user_id, attempt_no, contact_datetime, next_followup_at, launch_at, call_status, interested_status, intent,
        buy_property_type, if_not_interested_property_type, unit_type, size_sqft, location, building, beds, budget,
        downpayment, cheques, rent_per_month, rent_per_year_budget, notes, call_screenshot_path, whatsapp_contacted, whatsapp_screenshot_path, created_at)
       VALUES
-      (:lead,:agent,:attempt,:dt,:next,:call,:interested,:intent,:buytype,:nptype,:unit,:size,:location,:building,:beds,:budget,
+      (:lead,:agent,:attempt,:dt,:next,:launch,:call,:interested,:intent,:buytype,:nptype,:unit,:size,:location,:building,:beds,:budget,
        :down,:cheques,:rentpm,:rentpy,:notes,:callshot,:w,:wshot,NOW())");
     $st->execute([
       ':lead'=>$data['lead_id'],
@@ -43,6 +43,7 @@ final class Followup {
       ':attempt'=>$data['attempt_no'],
       ':dt'=>$data['contact_datetime'],
       ':next'=>$data['next_followup_at'],
+      ':launch'=>$data['launch_at'],
       ':call'=>$data['call_status'],
       ':interested'=>$data['interested_status'],
       ':intent'=>$data['intent'],
