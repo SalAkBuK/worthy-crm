@@ -115,6 +115,7 @@ ob_start();
       Source: <?= e((string)($meta['source'] ?? '')) ?>
       | Last Updated: <?= e((string)($meta['lastUpdated'] ?? '')) ?>
       | Count: <?= e((string)($meta['count'] ?? '')) ?>
+      | <span class="badge bg-success-subtle text-success border">Off-Plan</span>
       <?php if (!empty($meta['isStale'])): ?>
         | <span class="text-danger">STALE</span>
       <?php endif; ?>
@@ -222,12 +223,21 @@ ob_start();
                   <?php $payload = rtrim(strtr(base64_encode($imageUrl), '+/', '-_'), '='); ?>
                   <?php $signature = hash_hmac('sha256', $payload, app_key()); ?>
                   <?php $imageToken = $payload . '.' . $signature; ?>
-                  <img src="<?= e(url('image-proxy.php?id=' . $imageToken)) ?>" alt="<?= e((string)($item['title'] ?? '')) ?>" loading="lazy" class="img-fluid rounded-top" style="height: 160px; width: 100%; object-fit: cover;">
+                  <img src="<?= e(url('image-proxy.php?id=' . $imageToken)) ?>"
+                       data-fallback="<?= e($imageUrl) ?>"
+                       onerror="if (this.dataset.fallback) { this.src = this.dataset.fallback; this.removeAttribute('data-fallback'); }"
+                       alt="<?= e((string)($item['title'] ?? '')) ?>"
+                       loading="lazy"
+                       class="img-fluid rounded-top"
+                       style="height: 160px; width: 100%; object-fit: cover;">
                 <?php else: ?>
                   <div class="bg-light d-flex align-items-center justify-content-center" style="height: 160px;">
                     <span class="text-muted">No image</span>
                   </div>
                 <?php endif; ?>
+                <span class="position-absolute top-0 start-0 p-1">
+                  <span class="badge fs-12" style="background: rgba(0, 0, 0, 0.7); color: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);">Off-Plan</span>
+                </span>
                 <?php if (!empty($item['handover'])): ?>
                   <span class="position-absolute top-0 end-0 p-1">
                     <span class="badge bg-primary text-white fs-13"><?= e((string)$item['handover']) ?></span>

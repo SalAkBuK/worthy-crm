@@ -48,7 +48,7 @@ if (is_file($cachedFile)) {
   if ($finfo) finfo_close($finfo);
   if (!$mime) $mime = 'application/octet-stream';
   header('Content-Type: ' . $mime);
-  header('Cache-Control: public, max-age=3600');
+  header('Cache-Control: public, max-age=86400, immutable');
   readfile($cachedFile);
   exit;
 }
@@ -74,7 +74,7 @@ if (!function_exists('curl_init')) {
   }
   @file_put_contents($cachedFile, $body);
   header('Content-Type: application/octet-stream');
-  header('Cache-Control: public, max-age=3600');
+  header('Cache-Control: public, max-age=86400, immutable');
   echo $body;
   exit;
 }
@@ -85,8 +85,12 @@ if ($ch === false) {
   echo 'Unable to fetch image.';
   exit;
 }
+$cacheHandle = @fopen($cachedFile, 'wb');
+$contentType = '';
+$headersSent = false;
+$bytesWritten = 0;
+
 curl_setopt_array($ch, [
-  CURLOPT_RETURNTRANSFER => true,
   CURLOPT_FOLLOWLOCATION => true,
   CURLOPT_TIMEOUT => 30,
   CURLOPT_CONNECTTIMEOUT => 10,
@@ -94,23 +98,52 @@ curl_setopt_array($ch, [
   CURLOPT_USERAGENT => 'WorthyCRM/1.0 (+image-proxy)',
   CURLOPT_SSL_VERIFYPEER => true,
   CURLOPT_SSL_VERIFYHOST => 2,
+  CURLOPT_HEADERFUNCTION => static function ($ch, string $header) use (&$contentType): int {
+    $len = strlen($header);
+    if (stripos($header, 'Content-Type:') === 0) {
+      $contentType = trim(substr($header, strlen('Content-Type:')));
+    }
+    return $len;
+  },
+  CURLOPT_WRITEFUNCTION => static function ($ch, string $data) use (&$headersSent, &$contentType, $cacheHandle, &$bytesWritten): int {
+    if (!$headersSent) {
+      if ($contentType === '') $contentType = 'application/octet-stream';
+      header('Content-Type: ' . $contentType);
+      header('Cache-Control: public, max-age=3600');
+      $headersSent = true;
+    }
+    if ($cacheHandle) {
+      $written = fwrite($cacheHandle, $data);
+      if ($written !== false) {
+        $bytesWritten += $written;
+      }
+    }
+    echo $data;
+    return strlen($data);
+  },
 ]);
-$body = curl_exec($ch);
+
+$ok = curl_exec($ch);
 $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-$contentType = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
 $curlErr = curl_error($ch);
 curl_close($ch);
 
-if ($body === false || $status >= 400) {
+if ($cacheHandle) {
+  fclose($cacheHandle);
+}
+
+if ($ok === false || $status >= 400) {
+  if (is_file($cachedFile)) {
+    @unlink($cachedFile);
+  }
   @file_put_contents($logPath, '[' . date('Y-m-d H:i:s') . '] curl error status=' . $status . ' err=' . $curlErr . ' url=' . $url . "\n", FILE_APPEND);
-  http_response_code(404);
-  echo 'Image not found.';
+  if (!$headersSent) {
+    http_response_code(404);
+    echo 'Image not found.';
+  }
   exit;
 }
 
-@file_put_contents($cachedFile, $body);
-
-if ($contentType === '') $contentType = 'application/octet-stream';
-header('Content-Type: ' . $contentType);
-header('Cache-Control: public, max-age=3600');
-echo $body;
+if ($bytesWritten <= 0 && is_file($cachedFile)) {
+  @unlink($cachedFile);
+}
