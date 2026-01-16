@@ -6,11 +6,14 @@ namespace App\Helpers;
 use PDO;
 use PDOException;
 
-final class DB {
+final class DB
+{
   private static ?PDO $pdo = null;
 
-  public static function conn(): PDO {
-    if (self::$pdo) return self::$pdo;
+  public static function conn(): PDO
+  {
+    if (self::$pdo)
+      return self::$pdo;
 
     $cfg = require __DIR__ . '/../../config/database.php';
     $dsn = sprintf('mysql:host=%s;dbname=%s;charset=%s', $cfg['host'], $cfg['name'], $cfg['charset']);
@@ -24,7 +27,7 @@ final class DB {
       self::$pdo = $pdo;
       return $pdo;
     } catch (PDOException $e) {
-      throw new \RuntimeException('Database connection failed. Please verify your DB settings in .env and config/database.php');
+      throw new \RuntimeException('Database connection failed: ' . $e->getMessage() . ' (User: ' . ($cfg['user'] ?? 'unknown') . ')');
     }
   }
 }

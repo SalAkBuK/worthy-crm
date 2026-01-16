@@ -7,21 +7,23 @@ require_once __DIR__ . '/../includes/external_projects_normalize.php';
 
 require_role(['ADMIN', 'CEO', 'AGENT']);
 
-$projectId = (int)($_GET['id'] ?? 0);
-$projectTitle = trim((string)($_GET['title'] ?? ''));
-$projectDistrict = trim((string)($_GET['district'] ?? ''));
-$projectPrice = trim((string)($_GET['price'] ?? ''));
-$projectHandover = trim((string)($_GET['handover'] ?? ''));
-$projectImage = trim((string)($_GET['image'] ?? ''));
+$projectId = (int) ($_GET['id'] ?? 0);
+$projectTitle = trim((string) ($_GET['title'] ?? ''));
+$projectDistrict = trim((string) ($_GET['district'] ?? ''));
+$projectPrice = trim((string) ($_GET['price'] ?? ''));
+$projectHandover = trim((string) ($_GET['handover'] ?? ''));
+$projectImage = trim((string) ($_GET['image'] ?? ''));
 
 $details = [];
 $detailLogPath = '';
 if ($projectId > 0) {
-  $detailResponse = fetchExternalProjectDetail($projectId);
+  $globalCachePath = __DIR__ . '/../storage/cache/external_projects_normalized.json';
+  $globalCacheTimestamp = is_file($globalCachePath) ? @filemtime($globalCachePath) : null;
+  $detailResponse = fetchExternalProjectDetail($projectId, false, $globalCacheTimestamp);
   if (!empty($detailResponse['data']) && is_array($detailResponse['data'])) {
     $details = $detailResponse['data'];
   }
-  $logDetail = (string)($_GET['log'] ?? '');
+  $logDetail = (string) ($_GET['log'] ?? '');
   if ($logDetail === '1') {
     $logDir = __DIR__ . '/../storage/logs';
     if (!is_dir($logDir)) {
@@ -72,31 +74,31 @@ $descriptionHtml = '';
 if (!empty($project['description']) && is_string($project['description'])) {
   $descriptionHtml = strip_tags($project['description'], '<p><br><strong><b><em><ul><ol><li>');
 }
-$projectName = $projectTitle !== '' ? $projectTitle : (string)($project['name'] ?? 'Project Details');
-$projectLocation = $projectDistrict !== '' ? $projectDistrict : (string)($project['project_location'] ?? ($project['location_text'] ?? ($project['area'] ?? ($project['district'] ?? ''))));
-$projectStatus = (string)($project['status'] ?? ($project['project_status'] ?? 'Off-Plan'));
-$handoverDate = $projectHandover !== '' ? $projectHandover : (string)($project['handover_date'] ?? ($project['expected_completion_date'] ?? ''));
+$projectName = $projectTitle !== '' ? $projectTitle : (string) ($project['name'] ?? 'Project Details');
+$projectLocation = $projectDistrict !== '' ? $projectDistrict : (string) ($project['project_location'] ?? ($project['location_text'] ?? ($project['area'] ?? ($project['district'] ?? ''))));
+$projectStatus = (string) ($project['status'] ?? ($project['project_status'] ?? 'Off-Plan'));
+$handoverDate = $projectHandover !== '' ? $projectHandover : (string) ($project['handover_date'] ?? ($project['expected_completion_date'] ?? ''));
 $isCompleted = compute_project_is_completed($project);
 $startingPrice = '';
 if ($projectPrice !== '') {
   $startingPrice = $projectPrice;
 } elseif (!empty($project['starting_price']) && is_array($project['starting_price'])) {
   $amount = $project['starting_price']['amount'] ?? null;
-  $currency = (string)($project['starting_price']['currency'] ?? '');
+  $currency = (string) ($project['starting_price']['currency'] ?? '');
   if (is_numeric($amount)) {
-    $startingPrice = trim($currency . ' ' . number_format((float)$amount));
+    $startingPrice = trim($currency . ' ' . number_format((float) $amount));
   }
 }
 if ($startingPrice === '' && !empty($project['price'])) {
-  $startingPrice = (string)$project['price'];
+  $startingPrice = (string) $project['price'];
 }
 if ($startingPrice === '' && (!empty($project['price_start']) || !empty($project['up_front_price']))) {
   $raw = $project['price_start'] ?? $project['up_front_price'];
-  $currency = (string)($project['currency'] ?? '');
+  $currency = (string) ($project['currency'] ?? '');
   if (is_numeric($raw)) {
-    $startingPrice = trim($currency . ' ' . number_format((float)$raw, 0, '.', ','));
+    $startingPrice = trim($currency . ' ' . number_format((float) $raw, 0, '.', ','));
   } else {
-    $startingPrice = trim($currency . ' ' . (string)$raw);
+    $startingPrice = trim($currency . ' ' . (string) $raw);
   }
 }
 
@@ -108,8 +110,8 @@ $apiQuery = http_build_query([
 ]);
 $apiUrl = url('api/project.php') . ($apiQuery !== '' ? ('?' . $apiQuery) : '');
 
-$developerName = (string)($project['developer'] ?? ($details['developer']['name'] ?? 'Developer'));
-$developerName = (string)($project['developer_name'] ?? $developerName);
+$developerName = (string) ($project['developer'] ?? ($details['developer']['name'] ?? 'Developer'));
+$developerName = (string) ($project['developer_name'] ?? $developerName);
 $developerAddress = '';
 $developerEmail = '';
 $developerPhone = '';
@@ -120,35 +122,35 @@ $developerWorkingTime = [];
 if (!empty($details['developer_contacts']) && is_array($details['developer_contacts'])) {
   $firstContact = $details['developer_contacts'][0] ?? [];
   if (is_array($firstContact)) {
-    $developerName = (string)($firstContact['name'] ?? $developerName);
-    $developerAddress = (string)($firstContact['address'] ?? '');
+    $developerName = (string) ($firstContact['name'] ?? $developerName);
+    $developerAddress = (string) ($firstContact['address'] ?? '');
   }
 }
 if ($developerAddress === '' && !empty($details['developer']['address'])) {
-  $developerAddress = (string)$details['developer']['address'];
+  $developerAddress = (string) $details['developer']['address'];
 }
 if ($developerAddress === '' && !empty($project['developer_address'])) {
-  $developerAddress = (string)$project['developer_address'];
+  $developerAddress = (string) $project['developer_address'];
 }
 if (!empty($project['developer_email'])) {
-  $developerEmail = (string)$project['developer_email'];
+  $developerEmail = (string) $project['developer_email'];
 } elseif (!empty($details['developer']['email'])) {
-  $developerEmail = (string)$details['developer']['email'];
+  $developerEmail = (string) $details['developer']['email'];
 }
 if (!empty($project['developer_phone'])) {
-  $developerPhone = (string)$project['developer_phone'];
+  $developerPhone = (string) $project['developer_phone'];
 } elseif (!empty($details['developer']['phone'])) {
-  $developerPhone = (string)$details['developer']['phone'];
+  $developerPhone = (string) $details['developer']['phone'];
 }
 if (!empty($project['developer_image'])) {
-  $developerLogo = (string)$project['developer_image'];
+  $developerLogo = (string) $project['developer_image'];
 } elseif (!empty($details['developer']['image'])) {
-  $developerLogo = (string)$details['developer']['image'];
+  $developerLogo = (string) $details['developer']['image'];
 }
 if (!empty($project['developer_website'])) {
-  $developerWebsite = (string)$project['developer_website'];
+  $developerWebsite = (string) $project['developer_website'];
 } elseif (!empty($details['developer']['website'])) {
-  $developerWebsite = (string)$details['developer']['website'];
+  $developerWebsite = (string) $details['developer']['website'];
 }
 if (!empty($project['developer_description']) && is_string($project['developer_description'])) {
   $developerDescriptionHtml = strip_tags($project['developer_description'], '<p><br><strong><b><em><ul><ol><li>');
@@ -158,11 +160,15 @@ if (!empty($project['developer_description']) && is_string($project['developer_d
 if (!empty($project['developers_data']) && is_array($project['developers_data'])) {
   $primaryDeveloper = $project['developers_data'][0] ?? null;
   if (is_array($primaryDeveloper)) {
-    $developerName = (string)($primaryDeveloper['name'] ?? $developerName);
-    if (!empty($primaryDeveloper['email'])) $developerEmail = (string)$primaryDeveloper['email'];
-    if (!empty($primaryDeveloper['image'])) $developerLogo = (string)$primaryDeveloper['image'];
-    if (!empty($primaryDeveloper['website'])) $developerWebsite = (string)$primaryDeveloper['website'];
-    if (!empty($primaryDeveloper['address'])) $developerAddress = (string)$primaryDeveloper['address'];
+    $developerName = (string) ($primaryDeveloper['name'] ?? $developerName);
+    if (!empty($primaryDeveloper['email']))
+      $developerEmail = (string) $primaryDeveloper['email'];
+    if (!empty($primaryDeveloper['image']))
+      $developerLogo = (string) $primaryDeveloper['image'];
+    if (!empty($primaryDeveloper['website']))
+      $developerWebsite = (string) $primaryDeveloper['website'];
+    if (!empty($primaryDeveloper['address']))
+      $developerAddress = (string) $primaryDeveloper['address'];
     if (!empty($primaryDeveloper['description']) && is_string($primaryDeveloper['description'])) {
       $developerDescriptionHtml = strip_tags($primaryDeveloper['description'], '<p><br><strong><b><em><ul><ol><li>');
     }
@@ -218,7 +224,7 @@ if ($projectImage === '') {
     if (is_string($firstImage)) {
       $projectImage = $firstImage;
     } elseif (is_array($firstImage) && !empty($firstImage['url'])) {
-      $projectImage = (string)$firstImage['url'];
+      $projectImage = (string) $firstImage['url'];
     }
   }
 }
@@ -227,7 +233,7 @@ $carouselImages = [];
 $imagesField = $project['images'] ?? null;
 if (is_array($imagesField)) {
   if (!empty($imagesField['feature'])) {
-    $carouselImages[] = (string)$imagesField['feature'];
+    $carouselImages[] = (string) $imagesField['feature'];
   }
   if (!empty($imagesField['other']) && is_array($imagesField['other'])) {
     foreach ($imagesField['other'] as $img) {
@@ -268,10 +274,12 @@ if (!empty($project['map_img']) && is_string($project['map_img'])) {
 $facilityItems = [];
 if (!empty($project['facilities']) && is_array($project['facilities'])) {
   foreach ($project['facilities'] as $facility) {
-    if (!is_array($facility)) continue;
-    $name = (string)($facility['name'] ?? '');
-    $image = (string)($facility['image'] ?? '');
-    if ($name === '' && $image === '') continue;
+    if (!is_array($facility))
+      continue;
+    $name = (string) ($facility['name'] ?? '');
+    $image = (string) ($facility['image'] ?? '');
+    if ($name === '' && $image === '')
+      continue;
     $facilityItems[] = ['name' => $name, 'image' => $image];
   }
 }
@@ -279,13 +287,15 @@ if (!empty($project['facilities']) && is_array($project['facilities'])) {
 $attachments = [];
 if (!empty($project['attachments']) && is_array($project['attachments'])) {
   foreach ($project['attachments'] as $attachment) {
-    if (!is_array($attachment)) continue;
-    $title = trim((string)($attachment['attachment_title'] ?? $attachment['title'] ?? 'Attachment'));
-    $url = trim((string)($attachment['attachment_url'] ?? $attachment['url'] ?? ''));
-    $type = trim((string)($attachment['file_type'] ?? ''));
-    if ($url === '') continue;
+    if (!is_array($attachment))
+      continue;
+    $attachmentTitle = trim((string) ($attachment['attachment_title'] ?? $attachment['title'] ?? 'Attachment'));
+    $url = trim((string) ($attachment['attachment_url'] ?? $attachment['url'] ?? ''));
+    $type = trim((string) ($attachment['file_type'] ?? ''));
+    if ($url === '')
+      continue;
     $attachments[] = [
-      'title' => $title !== '' ? $title : 'Attachment',
+      'title' => $attachmentTitle !== '' ? $attachmentTitle : 'Attachment',
       'url' => $url,
       'type' => $type,
     ];
@@ -295,7 +305,7 @@ if (!empty($project['attachments']) && is_array($project['attachments'])) {
 $parkingItems = [];
 $parkingTitle = '';
 if (!empty($project['parking_json']) && is_array($project['parking_json'])) {
-  $parkingTitle = (string)($project['parking_json'][0]['title'] ?? '');
+  $parkingTitle = (string) ($project['parking_json'][0]['title'] ?? '');
   $parkingItems = $project['parking_json'][0]['data'] ?? [];
 } elseif (!empty($project['parkings']) && is_array($project['parkings'])) {
   $parkingItems = $project['parkings'];
@@ -317,6 +327,17 @@ ob_start();
   </div>
 </div>
 
+<?php if (!empty($detailResponse['warning'])): ?>
+  <div class="row">
+    <div class="col-12">
+      <div class="alert alert-warning">
+        <iconify-icon icon="solar:danger-triangle-broken" class="align-middle me-1"></iconify-icon>
+        <?= e($detailResponse['warning']) ?>
+      </div>
+    </div>
+  </div>
+<?php endif; ?>
+
 <div class="row">
   <div class="col-xl-3 col-lg-4">
     <div class="card">
@@ -325,19 +346,18 @@ ob_start();
       </div>
       <div class="card-body">
         <div class="text-center">
-          <div class="avatar-xl rounded-circle border border-2 border-light mx-auto bg-light d-flex align-items-center justify-content-center overflow-hidden">
+          <div
+            class="avatar-xl rounded-circle border border-2 border-light mx-auto bg-light d-flex align-items-center justify-content-center overflow-hidden">
             <?php if ($developerLogo !== ''): ?>
               <?php
               $payload = rtrim(strtr(base64_encode($developerLogo), '+/', '-_'), '=');
               $signature = hash_hmac('sha256', $payload, app_key());
               $imageToken = $payload . '.' . $signature;
               ?>
-              <img src="<?= e(url('image-proxy.php?id=' . $imageToken)) ?>"
-                   data-fallback="<?= e($developerLogo) ?>"
-                   onerror="if (this.dataset.fallback) { this.src = this.dataset.fallback; this.removeAttribute('data-fallback'); }"
-                   alt="<?= e($developerName) ?>"
-                   class="img-fluid rounded-circle"
-                   style="width: 100%; height: 100%; object-fit: cover;">
+              <img src="<?= e(url('image-proxy.php?id=' . $imageToken)) ?>" data-fallback="<?= e($developerLogo) ?>"
+                onerror="if (this.dataset.fallback) { this.src = this.dataset.fallback; this.removeAttribute('data-fallback'); }"
+                alt="<?= e($developerName) ?>" class="img-fluid rounded-circle"
+                style="width: 100%; height: 100%; object-fit: cover;">
             <?php else: ?>
               <iconify-icon icon="solar:user-rounded-bold-duotone" class="fs-32 text-muted"></iconify-icon>
             <?php endif; ?>
@@ -356,7 +376,8 @@ ob_start();
           <?php endif; ?>
           <?php if ($developerWebsite !== ''): ?>
             <p class="mt-1 mb-0">
-              <a href="<?= e($developerWebsite) ?>" target="_blank" rel="noopener" class="text-decoration-none"><?= e($developerWebsite) ?></a>
+              <a href="<?= e($developerWebsite) ?>" target="_blank" rel="noopener"
+                class="text-decoration-none"><?= e($developerWebsite) ?></a>
             </p>
           <?php endif; ?>
           <?php if ($developerPhone !== ''): ?>
@@ -370,7 +391,7 @@ ob_start();
           <?php if ($developerWorkingTime): ?>
             <div class="text-muted mt-2">
               <?php foreach ($developerWorkingTime as $day => $hours): ?>
-                <div><?= e((string)$day) ?>: <?= e((string)$hours) ?></div>
+                <div><?= e((string) $day) ?>: <?= e((string) $hours) ?></div>
               <?php endforeach; ?>
             </div>
           <?php endif; ?>
@@ -385,35 +406,37 @@ ob_start();
         <div class="card-body">
           <?php foreach ($salesExecutives as $exec): ?>
             <?php
-              $execName = trim((string)($exec['name'] ?? ''));
-              $execRole = trim((string)($exec['role'] ?? ''));
-              $execEmail = trim((string)($exec['email'] ?? ''));
-              $execPhone = trim((string)($exec['phone'] ?? ''));
-              $execLanguages = trim((string)($exec['languages'] ?? ''));
-              $execImage = trim((string)($exec['image'] ?? ''));
+            $execName = trim((string) ($exec['name'] ?? ''));
+            $execRole = trim((string) ($exec['role'] ?? ''));
+            $execEmail = trim((string) ($exec['email'] ?? ''));
+            $execPhone = trim((string) ($exec['phone'] ?? ''));
+            $execLanguages = trim((string) ($exec['languages'] ?? ''));
+            $execImage = trim((string) ($exec['image'] ?? ''));
             ?>
             <div class="d-flex align-items-start gap-2 mb-3">
-              <div class="avatar-md rounded-circle border border-2 border-light bg-light d-flex align-items-center justify-content-center overflow-hidden">
+              <div
+                class="avatar-md rounded-circle border border-2 border-light bg-light d-flex align-items-center justify-content-center overflow-hidden">
                 <?php if ($execImage !== ''): ?>
-                  <img src="<?= e($execImage) ?>"
-                       data-fallback="<?= e($execImage) ?>"
-                       onerror="this.remove();"
-                       alt="<?= e($execName !== '' ? $execName : 'Sales Executive') ?>"
-                       class="img-fluid rounded-circle"
-                       style="width: 100%; height: 100%; object-fit: cover;">
+                  <img src="<?= e($execImage) ?>" data-fallback="<?= e($execImage) ?>" onerror="this.remove();"
+                    alt="<?= e($execName !== '' ? $execName : 'Sales Executive') ?>" class="img-fluid rounded-circle"
+                    style="width: 100%; height: 100%; object-fit: cover;">
                 <?php else: ?>
                   <iconify-icon icon="solar:user-rounded-bold-duotone" class="fs-20 text-muted"></iconify-icon>
                 <?php endif; ?>
               </div>
               <div class="flex-grow-1">
                 <div class="fw-medium text-dark"><?= e($execName !== '' ? $execName : 'Sales Executive') ?></div>
-                <?php if ($execRole !== ''): ?><div class="text-muted fs-13"><?= e($execRole) ?></div><?php endif; ?>
-                <?php if ($execLanguages !== ''): ?><div class="text-muted fs-12">Languages: <?= e($execLanguages) ?></div><?php endif; ?>
+                <?php if ($execRole !== ''): ?>
+                  <div class="text-muted fs-13"><?= e($execRole) ?></div><?php endif; ?>
+                <?php if ($execLanguages !== ''): ?>
+                  <div class="text-muted fs-12">Languages: <?= e($execLanguages) ?></div><?php endif; ?>
                 <?php if ($execEmail !== ''): ?>
-                  <div class="mt-1"><a href="mailto:<?= e($execEmail) ?>" class="text-decoration-none fs-13"><?= e($execEmail) ?></a></div>
+                  <div class="mt-1"><a href="mailto:<?= e($execEmail) ?>"
+                      class="text-decoration-none fs-13"><?= e($execEmail) ?></a></div>
                 <?php endif; ?>
                 <?php if ($execPhone !== ''): ?>
-                  <div class="mt-1"><a href="tel:<?= e($execPhone) ?>" class="text-decoration-none fs-13"><?= e($execPhone) ?></a></div>
+                  <div class="mt-1"><a href="tel:<?= e($execPhone) ?>"
+                      class="text-decoration-none fs-13"><?= e($execPhone) ?></a></div>
                 <?php endif; ?>
               </div>
             </div>
@@ -437,21 +460,20 @@ ob_start();
                   $imageToken = $payload . '.' . $signature;
                   ?>
                   <div class="carousel-item <?= $index === 0 ? 'active' : '' ?>">
-                    <img src="<?= e(url('image-proxy.php?id=' . $imageToken)) ?>"
-                         data-fallback="<?= e($img) ?>"
-                         onerror="if (this.dataset.fallback) { this.src = this.dataset.fallback; this.removeAttribute('data-fallback'); }"
-                         alt="<?= e($title) ?>"
-                         class="d-block w-100"
-                         style="height: 320px; object-fit: cover;">
+                    <img src="<?= e(url('image-proxy.php?id=' . $imageToken)) ?>" data-fallback="<?= e($img) ?>"
+                      onerror="if (this.dataset.fallback) { this.src = this.dataset.fallback; this.removeAttribute('data-fallback'); }"
+                      alt="<?= e($title) ?>" class="d-block w-100" style="height: 320px; object-fit: cover;">
                   </div>
                 <?php endforeach; ?>
               </div>
               <?php if (count($carouselImages) > 1): ?>
-                <button class="carousel-control-prev" type="button" data-bs-target="#<?= e($carouselId) ?>" data-bs-slide="prev">
+                <button class="carousel-control-prev" type="button" data-bs-target="#<?= e($carouselId) ?>"
+                  data-bs-slide="prev">
                   <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                   <span class="visually-hidden">Previous</span>
                 </button>
-                <button class="carousel-control-next" type="button" data-bs-target="#<?= e($carouselId) ?>" data-bs-slide="next">
+                <button class="carousel-control-next" type="button" data-bs-target="#<?= e($carouselId) ?>"
+                  data-bs-slide="next">
                   <span class="carousel-control-next-icon" aria-hidden="true"></span>
                   <span class="visually-hidden">Next</span>
                 </button>
@@ -463,7 +485,8 @@ ob_start();
             </div>
           <?php endif; ?>
           <span class="position-absolute top-0 start-0 p-2">
-            <span class="badge bg-warning text-light px-2 py-1 fs-13"><?= e($projectStatus !== '' ? $projectStatus : 'Off-Plan') ?></span>
+            <span
+              class="badge bg-warning text-light px-2 py-1 fs-13"><?= e($projectStatus !== '' ? $projectStatus : 'Off-Plan') ?></span>
           </span>
           <?php if ($isCompleted): ?>
             <span class="position-absolute top-0 end-0 p-2">
@@ -484,12 +507,14 @@ ob_start();
           <div>
             <ul class="list-inline float-end d-flex gap-1 mb-0 align-items-center">
               <li class="list-inline-item fs-20">
-                <a href="#!" class="btn btn-light avatar-sm d-flex align-items-center justify-content-center text-dark fs-20">
+                <a href="#!"
+                  class="btn btn-light avatar-sm d-flex align-items-center justify-content-center text-dark fs-20">
                   <iconify-icon icon="solar:share-bold-duotone"></iconify-icon>
                 </a>
               </li>
               <li class="list-inline-item fs-20">
-                <a href="#!" class="btn btn-light avatar-sm d-flex align-items-center justify-content-center text-danger fs-20">
+                <a href="#!"
+                  class="btn btn-light avatar-sm d-flex align-items-center justify-content-center text-danger fs-20">
                   <iconify-icon icon="solar:heart-angle-bold-duotone"></iconify-icon>
                 </a>
               </li>
@@ -500,7 +525,9 @@ ob_start();
           <div class="avatar-sm bg-success-subtle rounded">
             <iconify-icon icon="solar:wallet-money-bold-duotone" class="fs-24 text-success avatar-title"></iconify-icon>
           </div>
-          <p class="fw-medium text-dark fs-18 mb-0"><?= e($startingPrice !== '' ? $startingPrice : 'Price on request') ?></p>
+          <p class="fw-medium text-dark fs-18 mb-0">
+            <?= e($startingPrice !== '' ? $startingPrice : 'Price on request') ?>
+          </p>
         </div>
         <div class="bg-light-subtle p-2 mt-3 rounded border border-dashed">
           <div class="row align-items-center text-center g-2">
@@ -548,12 +575,10 @@ ob_start();
                     $signature = hash_hmac('sha256', $payload, app_key());
                     $imageToken = $payload . '.' . $signature;
                     ?>
-                    <img src="<?= e(url('image-proxy.php?id=' . $imageToken)) ?>"
-                         data-fallback="<?= e($facility['image']) ?>"
-                         onerror="if (this.dataset.fallback) { this.src = this.dataset.fallback; this.removeAttribute('data-fallback'); }"
-                         alt="<?= e($facility['name']) ?>"
-                         class="img-fluid rounded mb-2"
-                         style="height: 140px; width: 100%; object-fit: cover;">
+                    <img src="<?= e(url('image-proxy.php?id=' . $imageToken)) ?>" data-fallback="<?= e($facility['image']) ?>"
+                      onerror="if (this.dataset.fallback) { this.src = this.dataset.fallback; this.removeAttribute('data-fallback'); }"
+                      alt="<?= e($facility['name']) ?>" class="img-fluid rounded mb-2"
+                      style="height: 140px; width: 100%; object-fit: cover;">
                   <?php endif; ?>
                   <div class="fw-medium text-dark"><?= e($facility['name']) ?></div>
                 </div>
@@ -565,7 +590,8 @@ ob_start();
           <h6 class="text-dark fw-medium mt-3">Attachments</h6>
           <div class="list-group mt-2">
             <?php foreach ($attachments as $attachment): ?>
-              <a href="<?= e($attachment['url']) ?>" target="_blank" rel="noopener" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+              <a href="<?= e($attachment['url']) ?>" target="_blank" rel="noopener"
+                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                 <span><?= e($attachment['title']) ?></span>
                 <?php if ($attachment['type'] !== ''): ?>
                   <span class="badge bg-light-subtle text-muted border"><?= e(strtoupper($attachment['type'])) ?></span>
@@ -581,8 +607,8 @@ ob_start();
               <?php if (is_array($item)): ?>
                 <?php foreach ($item as $label => $value): ?>
                   <div class="list-group-item d-flex justify-content-between align-items-center">
-                    <span><?= e((string)$label) ?></span>
-                    <span class="badge bg-light-subtle text-muted border"><?= e((string)$value) ?></span>
+                    <span><?= e((string) $label) ?></span>
+                    <span class="badge bg-light-subtle text-muted border"><?= e((string) $value) ?></span>
                   </div>
                 <?php endforeach; ?>
               <?php endif; ?>
@@ -593,41 +619,41 @@ ob_start();
         <?php if ($descriptionHtml !== ''): ?>
           <div class="mt-2"><?= $descriptionHtml ?></div>
         <?php elseif (!empty($descriptions['general_facts'])): ?>
-          <p class="mt-2"><?= nl2br(e((string)$descriptions['general_facts'])) ?></p>
+          <p class="mt-2"><?= nl2br(e((string) $descriptions['general_facts'])) ?></p>
         <?php else: ?>
           <p class="mt-2 text-muted">Details coming soon.</p>
         <?php endif; ?>
         <?php if (!empty($descriptions['location_benefits'])): ?>
           <h6 class="text-dark fw-medium mt-3">Location Description & Benefits</h6>
-          <p class="mt-2"><?= nl2br(e((string)$descriptions['location_benefits'])) ?></p>
+          <p class="mt-2"><?= nl2br(e((string) $descriptions['location_benefits'])) ?></p>
         <?php endif; ?>
         <?php if (!empty($details['payment_plan']) && is_array($details['payment_plan'])): ?>
           <h6 class="text-dark fw-medium mt-3">Payment Plan</h6>
           <?php
           $plan = $details['payment_plan'];
-          $planName = (string)($plan['name'] ?? '');
+          $planName = (string) ($plan['name'] ?? '');
           $constructionPct = $plan['construction_pct'] ?? null;
           $postPct = $plan['post_handover_pct'] ?? null;
           $postMonths = $plan['post_handover_months'] ?? null;
           $eoi = '';
           if (!empty($plan['eoi_amount']) && is_array($plan['eoi_amount'])) {
             $eoiAmount = $plan['eoi_amount']['amount'] ?? null;
-            $eoiCurrency = (string)($plan['eoi_amount']['currency'] ?? '');
+            $eoiCurrency = (string) ($plan['eoi_amount']['currency'] ?? '');
             if (is_numeric($eoiAmount)) {
-              $eoi = trim($eoiCurrency . ' ' . number_format((float)$eoiAmount));
+              $eoi = trim($eoiCurrency . ' ' . number_format((float) $eoiAmount));
             }
           }
           ?>
           <p class="mt-2 mb-0">
             <?= e($planName !== '' ? $planName : 'Payment plan available') ?>
             <?php if (is_numeric($constructionPct)): ?>
-              | <?= e((string)$constructionPct) ?>% During construction
+              | <?= e((string) $constructionPct) ?>% During construction
             <?php endif; ?>
             <?php if (is_numeric($postPct)): ?>
-              | <?= e((string)$postPct) ?>% Post-handover
+              | <?= e((string) $postPct) ?>% Post-handover
             <?php endif; ?>
             <?php if (is_numeric($postMonths)): ?>
-              | <?= e((string)$postMonths) ?> months
+              | <?= e((string) $postMonths) ?> months
             <?php endif; ?>
             <?php if ($eoi !== ''): ?>
               | EOI <?= e($eoi) ?>
@@ -639,33 +665,39 @@ ob_start();
           <div class="row g-2 mt-1">
             <?php foreach ($project['new_payment_plans'] as $plan): ?>
               <?php
-              if (!is_array($plan)) continue;
-              $planTitle = (string)($plan['title'] ?? 'Payment plan');
+              if (!is_array($plan))
+                continue;
+              $planTitle = (string) ($plan['title'] ?? 'Payment plan');
               $info = is_array($plan['info'] ?? null) ? $plan['info'] : [];
               $onBooking = $info['on_booking_percent'] ?? null;
               $onConstruction = $info['on_construction_percent'] ?? null;
               $onHandover = $info['on_handover_percent'] ?? null;
               $postHandover = $info['post_handover_percent'] ?? null;
-              $timeline = (string)($plan['timeline_quarter'] ?? '');
+              $timeline = (string) ($plan['timeline_quarter'] ?? '');
               $headingPercentages = is_array($plan['heading_percentages'] ?? null) ? $plan['heading_percentages'] : [];
               $milestones = is_array($plan['milestones'] ?? null) ? $plan['milestones'] : [];
               $fees = is_array($plan['fees'] ?? null) ? $plan['fees'] : [];
               $hasInfoPerc = ($onBooking !== null || $onConstruction !== null || $onHandover !== null || $postHandover !== null);
               $percentageParts = [];
               if ($hasInfoPerc) {
-                if ($onBooking !== null) $percentageParts[] = 'Booking: ' . (string)$onBooking . '%';
-                if ($onConstruction !== null) $percentageParts[] = 'Construction: ' . (string)$onConstruction . '%';
-                if ($onHandover !== null) $percentageParts[] = 'Handover: ' . (string)$onHandover . '%';
-                if ($postHandover !== null) $percentageParts[] = 'Post-handover: ' . (string)$postHandover . '%';
+                if ($onBooking !== null)
+                  $percentageParts[] = 'Booking: ' . (string) $onBooking . '%';
+                if ($onConstruction !== null)
+                  $percentageParts[] = 'Construction: ' . (string) $onConstruction . '%';
+                if ($onHandover !== null)
+                  $percentageParts[] = 'Handover: ' . (string) $onHandover . '%';
+                if ($postHandover !== null)
+                  $percentageParts[] = 'Post-handover: ' . (string) $postHandover . '%';
               } elseif ($headingPercentages) {
                 foreach ($headingPercentages as $label => $value) {
-                  $percentageParts[] = trim((string)$label) . ': ' . trim((string)$value);
+                  $percentageParts[] = trim((string) $label) . ': ' . trim((string) $value);
                 }
               } elseif ($milestones) {
                 foreach ($milestones as $milestone) {
-                  if (!is_array($milestone)) continue;
-                  $label = (string)($milestone['milestone'] ?? '');
-                  $value = (string)($milestone['percentage'] ?? '');
+                  if (!is_array($milestone))
+                    continue;
+                  $label = (string) ($milestone['milestone'] ?? '');
+                  $value = (string) ($milestone['percentage'] ?? '');
                   if ($label !== '' && $value !== '') {
                     $percentageParts[] = $label . ': ' . $value;
                   }
@@ -673,16 +705,17 @@ ob_start();
               }
               $eoiFee = '';
               foreach ($fees as $fee) {
-                if (!is_array($fee)) continue;
-                $type = strtolower((string)($fee['type'] ?? ''));
-                $amount = (string)($fee['amount'] ?? '');
+                if (!is_array($fee))
+                  continue;
+                $type = strtolower((string) ($fee['type'] ?? ''));
+                $amount = (string) ($fee['amount'] ?? '');
                 if ($type === 'eoi' && $amount !== '') {
                   $eoiFee = $amount;
                   break;
                 }
               }
               if ($eoiFee === '' && !empty($plan['conditions']['EOI'])) {
-                $eoiFee = (string)$plan['conditions']['EOI'];
+                $eoiFee = (string) $plan['conditions']['EOI'];
               }
               ?>
               <div class="col-md-6">
@@ -715,45 +748,46 @@ ob_start();
           <div class="row g-2 mt-1">
             <?php foreach ($unitTypes as $unit): ?>
               <?php
-              if (!is_array($unit)) continue;
-              $label = (string)($unit['unit_type_label'] ?? $unit['unit_type'] ?? 'Unit');
+              if (!is_array($unit))
+                continue;
+              $label = (string) ($unit['unit_type_label'] ?? $unit['unit_type'] ?? 'Unit');
               $beds = $unit['beds'] ?? ($unit['bedroom'] ?? null);
               $unitPrice = '';
               $unitSize = '';
               if (!empty($unit['price_from']) && is_array($unit['price_from'])) {
                 $uAmount = $unit['price_from']['amount'] ?? null;
-                $uCurrency = (string)($unit['price_from']['currency'] ?? '');
+                $uCurrency = (string) ($unit['price_from']['currency'] ?? '');
                 if (is_numeric($uAmount)) {
-                  $unitPrice = trim($uCurrency . ' ' . number_format((float)$uAmount));
+                  $unitPrice = trim($uCurrency . ' ' . number_format((float) $uAmount));
                 }
               }
               if ($unitPrice === '' && !empty($unit['lowest_price'])) {
-                $uCurrency = (string)($unit['display_currency'] ?? '');
+                $uCurrency = (string) ($unit['display_currency'] ?? '');
                 if (is_numeric($unit['lowest_price'])) {
-                  $unitPrice = trim($uCurrency . ' ' . number_format((float)$unit['lowest_price'], 0, '.', ','));
+                  $unitPrice = trim($uCurrency . ' ' . number_format((float) $unit['lowest_price'], 0, '.', ','));
                 } else {
-                  $unitPrice = trim($uCurrency . ' ' . (string)$unit['lowest_price']);
+                  $unitPrice = trim($uCurrency . ' ' . (string) $unit['lowest_price']);
                 }
               }
-              $unitAreaUnit = (string)($unit['area_size'] ?? ($unit['area_unit'] ?? ($project['area_size'] ?? ($project['area_unit'] ?? ''))));
+              $unitAreaUnit = (string) ($unit['area_size'] ?? ($unit['area_unit'] ?? ($project['area_size'] ?? ($project['area_unit'] ?? ''))));
               $lowestArea = $unit['lowest_area'] ?? ($unit['area_start'] ?? null);
               $highestArea = $unit['highest_area'] ?? ($unit['area_end'] ?? null);
               if (is_numeric($lowestArea) && is_numeric($highestArea)) {
-                $unitSize = number_format((float)$lowestArea, 0, '.', ',') . '-' . number_format((float)$highestArea, 0, '.', ',');
+                $unitSize = number_format((float) $lowestArea, 0, '.', ',') . '-' . number_format((float) $highestArea, 0, '.', ',');
               } elseif (is_numeric($lowestArea)) {
-                $unitSize = 'From ' . number_format((float)$lowestArea, 0, '.', ',');
+                $unitSize = 'From ' . number_format((float) $lowestArea, 0, '.', ',');
               } elseif (is_numeric($highestArea)) {
-                $unitSize = 'Up to ' . number_format((float)$highestArea, 0, '.', ',');
+                $unitSize = 'Up to ' . number_format((float) $highestArea, 0, '.', ',');
               }
               if ($unitSize === '' && (is_numeric($project['area_start'] ?? null) || is_numeric($project['area_end'] ?? null))) {
                 $projStart = $project['area_start'] ?? null;
                 $projEnd = $project['area_end'] ?? null;
                 if (is_numeric($projStart) && is_numeric($projEnd)) {
-                  $unitSize = number_format((float)$projStart, 0, '.', ',') . '-' . number_format((float)$projEnd, 0, '.', ',');
+                  $unitSize = number_format((float) $projStart, 0, '.', ',') . '-' . number_format((float) $projEnd, 0, '.', ',');
                 } elseif (is_numeric($projStart)) {
-                  $unitSize = 'From ' . number_format((float)$projStart, 0, '.', ',');
+                  $unitSize = 'From ' . number_format((float) $projStart, 0, '.', ',');
                 } elseif (is_numeric($projEnd)) {
-                  $unitSize = 'Up to ' . number_format((float)$projEnd, 0, '.', ',');
+                  $unitSize = 'Up to ' . number_format((float) $projEnd, 0, '.', ',');
                 }
               }
               if ($unitSize !== '' && $unitAreaUnit !== '') {
@@ -764,7 +798,7 @@ ob_start();
                 <div class="border rounded p-2 h-100">
                   <div class="fw-medium text-dark"><?= e($label) ?></div>
                   <div class="text-muted fs-13">
-                    <?= e(is_numeric($beds) ? ((int)$beds . ' Beds') : 'Beds TBA') ?>
+                    <?= e(is_numeric($beds) ? ((int) $beds === 0 ? 'Studio' : (int) $beds . ' Beds') : 'Beds TBA') ?>
                     <?= $unitPrice !== '' ? (' | From ' . e($unitPrice)) : '' ?>
                     <?= $unitSize !== '' ? (' | ' . e($unitSize)) : '' ?>
                   </div>
@@ -786,15 +820,16 @@ ob_start();
           <div class="row g-2 mt-1">
             <?php foreach ($nearbyPlaces as $place): ?>
               <?php
-              if (!is_array($place)) continue;
-              $placeName = (string)($place['name'] ?? 'Place');
+              if (!is_array($place))
+                continue;
+              $placeName = (string) ($place['name'] ?? 'Place');
               $distance = $place['distance_km'] ?? ($place['distance'] ?? null);
               ?>
               <div class="col-md-6">
                 <div class="d-flex align-items-center justify-content-between border rounded p-2">
                   <span class="text-muted"><?= e($placeName) ?></span>
                   <span class="badge bg-light-subtle text-muted border">
-                    <?= e(is_numeric($distance) ? ((float)$distance . ' km') : ((string)$distance !== '' ? (string)$distance : 'Distance TBA')) ?>
+                    <?= e(is_numeric($distance) ? ((float) $distance . ' km') : ((string) $distance !== '' ? (string) $distance : 'Distance TBA')) ?>
                   </span>
                 </div>
               </div>
@@ -809,19 +844,19 @@ ob_start();
           <?php if (!empty($project['finishing'])): ?>
             <div class="col-md-6">
               <h6 class="mb-2">Finishing & Materials</h6>
-              <p class="text-muted mb-0"><?= nl2br(e((string)$project['finishing'])) ?></p>
+              <p class="text-muted mb-0"><?= nl2br(e((string) $project['finishing'])) ?></p>
             </div>
           <?php endif; ?>
           <?php if (!empty($project['kitchen'])): ?>
             <div class="col-md-6">
               <h6 class="mb-2">Kitchen & Appliances</h6>
-              <p class="text-muted mb-0"><?= nl2br(e((string)$project['kitchen'])) ?></p>
+              <p class="text-muted mb-0"><?= nl2br(e((string) $project['kitchen'])) ?></p>
             </div>
           <?php endif; ?>
           <?php if (!empty($project['furnishing'])): ?>
             <div class="col-md-6">
               <h6 class="mb-2">Furnishing</h6>
-              <p class="text-muted mb-0"><?= nl2br(e((string)$project['furnishing'])) ?></p>
+              <p class="text-muted mb-0"><?= nl2br(e((string) $project['furnishing'])) ?></p>
             </div>
           <?php endif; ?>
         </div>
@@ -843,11 +878,13 @@ if ($mapImageUrl === '' && $mapLinkUrl === '') {
       <div class="card">
         <div class="card-body">
           <a href="<?= e($mapLinkUrl !== '' ? $mapLinkUrl : $mapUrl) ?>" target="_blank" rel="noopener">
-            <img src="<?= e($mapImageUrl) ?>" alt="<?= e($title) ?> map" class="img-fluid rounded" style="width: 100%; height: 360px; object-fit: cover;">
+            <img src="<?= e($mapImageUrl) ?>" alt="<?= e($title) ?> map" class="img-fluid rounded"
+              style="width: 100%; height: 360px; object-fit: cover;">
           </a>
           <?php if ($mapLinkUrl !== ''): ?>
             <div class="mt-2">
-              <a href="<?= e($mapLinkUrl) ?>" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">Open in Google Maps</a>
+              <a href="<?= e($mapLinkUrl) ?>" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">Open
+                in Google Maps</a>
             </div>
           <?php endif; ?>
         </div>
@@ -855,23 +892,26 @@ if ($mapImageUrl === '' && $mapLinkUrl === '') {
     <?php else: ?>
       <div class="card">
         <div class="card-body">
-          <a href="<?= e($mapLinkUrl !== '' ? $mapLinkUrl : $mapUrl) ?>" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">Open in Google Maps</a>
+          <a href="<?= e($mapLinkUrl !== '' ? $mapLinkUrl : $mapUrl) ?>" target="_blank" rel="noopener"
+            class="btn btn-outline-secondary btn-sm">Open in Google Maps</a>
         </div>
       </div>
     <?php endif; ?>
   </div>
 </div>
+
+
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/../app/Views/layouts/app.php';
 
 if ($projectId > 0):
-?>
-<script>
-  fetch(<?= json_encode($apiUrl, JSON_UNESCAPED_SLASHES) ?>)
-    .then((r) => r.json())
-    .then((data) => console.log('[External Project Detail API]', data))
-    .catch((err) => console.error('[External Project Detail API]', err));
-</script>
-<?php
+  ?>
+  <script>
+    fetch(<?= json_encode($apiUrl, JSON_UNESCAPED_SLASHES) ?>)
+      .then((r) => r.json())
+      .then((data) => console.log('[External Project Detail API]', data))
+      .catch((err) => console.error('[External Project Detail API]', err));
+  </script>
+  <?php
 endif;

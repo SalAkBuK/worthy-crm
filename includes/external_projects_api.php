@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
 
-function externalProjectsApiHeaders(): array {
+function externalProjectsApiHeaders(): array
+{
   $headers = ['Accept: application/json'];
   $apiKey = getenv('WORTHY_PROJECTS_API_KEY') ?: '';
   if ($apiKey !== '') {
@@ -10,12 +11,14 @@ function externalProjectsApiHeaders(): array {
   return $headers;
 }
 
-function externalProjectsApiBaseUrl(): string {
+function externalProjectsApiBaseUrl(): string
+{
   $base = getenv('WORTHY_PROJECTS_API_BASE_URL') ?: 'https://api.worthysproperties.com';
   return rtrim($base, '/');
 }
 
-function externalProjectsApiRequest(string $url): array {
+function externalProjectsApiRequest(string $url): array
+{
   $headers = externalProjectsApiHeaders();
   $status = 0;
   $error = null;
@@ -40,7 +43,7 @@ function externalProjectsApiRequest(string $url): array {
   if ($raw === false) {
     $error = 'cURL error: ' . curl_error($ch);
   } else {
-    $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
     if ($status >= 400) {
       $error = 'HTTP error: ' . $status;
     }
@@ -50,7 +53,8 @@ function externalProjectsApiRequest(string $url): array {
   return ['status' => $status, 'error' => $error, 'raw' => $raw];
 }
 
-function externalProjectsRefreshStatus(): array {
+function externalProjectsRefreshStatus(): array
+{
   $status = 0;
   $error = null;
   $raw = null;
@@ -73,7 +77,7 @@ function externalProjectsRefreshStatus(): array {
   if ($raw === false) {
     $error = 'cURL error: ' . curl_error($ch);
   } else {
-    $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
     if ($status >= 400) {
       $error = 'HTTP error: ' . $status;
     }
@@ -84,7 +88,7 @@ function externalProjectsRefreshStatus(): array {
     return ['ok' => false, 'status' => $status, 'error' => $error ?? 'Failed to fetch refresh status.', 'data' => null];
   }
 
-  $payload = json_decode((string)$raw, true);
+  $payload = json_decode((string) $raw, true);
   if (!is_array($payload)) {
     return ['ok' => false, 'status' => $status ?: 200, 'error' => 'Invalid JSON response.', 'data' => null];
   }
@@ -92,7 +96,8 @@ function externalProjectsRefreshStatus(): array {
   return ['ok' => true, 'status' => $status ?: 200, 'error' => null, 'data' => $payload];
 }
 
-function externalProjectsReadCache(string $cachePath): array {
+function externalProjectsReadCache(string $cachePath): array
+{
   if (!is_file($cachePath)) {
     return ['payload' => null, 'timestamp' => null];
   }
@@ -108,7 +113,8 @@ function externalProjectsReadCache(string $cachePath): array {
   return ['payload' => $payload, 'timestamp' => $timestamp];
 }
 
-function externalProjectsWriteCache(string $cachePath, string $raw): void {
+function externalProjectsWriteCache(string $cachePath, string $raw): void
+{
   $cacheDir = dirname($cachePath);
   if (!is_dir($cacheDir)) {
     @mkdir($cacheDir, 0775, true);
@@ -116,12 +122,14 @@ function externalProjectsWriteCache(string $cachePath, string $raw): void {
   @file_put_contents($cachePath, $raw);
 }
 
-function externalProjectsLogFailure(string $logPath, int $status, string $message): void {
-  $line = sprintf("[%s] status=%s error=%s\n", date('Y-m-d H:i:s'), (string)$status, $message);
+function externalProjectsLogFailure(string $logPath, int $status, string $message, string $context = ''): void
+{
+  $line = sprintf("[%s] status=%s error=%s context=%s\n", date('Y-m-d H:i:s'), (string) $status, $message, $context);
   @file_put_contents($logPath, $line, FILE_APPEND);
 }
 
-function fetchExternalProjectsPage(int $page, int $perPage, bool $forceRefresh = false): array {
+function fetchExternalProjectsPage(int $page, int $perPage, bool $forceRefresh = false): array
+{
   $page = max(1, $page);
   $perPage = max(1, min(100, $perPage));
   $url = externalProjectsApiBaseUrl() . '/projects?page=' . $page . '&per_page=' . $perPage;
@@ -134,12 +142,12 @@ function fetchExternalProjectsPage(int $page, int $perPage, bool $forceRefresh =
   }
 
   $result = externalProjectsApiRequest($url);
-  $status = (int)$result['status'];
+  $status = (int) $result['status'];
   $error = $result['error'];
   $raw = $result['raw'];
 
   if ($error !== null || $raw === null || $raw === false) {
-    externalProjectsLogFailure($logPath, $status, $error ?? 'Unknown error');
+    externalProjectsLogFailure($logPath, $status, $error ?? 'Unknown error', $url);
     if (is_array($cached['payload'])) {
       return normalizeExternalProjectsListResponse($cached['payload'], $status ?: 200, null, 'Showing cached data.', true, $cached['timestamp'], $page, $perPage);
     }
@@ -160,7 +168,7 @@ function fetchExternalProjectsPage(int $page, int $perPage, bool $forceRefresh =
     ];
   }
 
-  $payload = json_decode((string)$raw, true);
+  $payload = json_decode((string) $raw, true);
   if (!is_array($payload)) {
     externalProjectsLogFailure($logPath, $status ?: 200, 'Invalid JSON response');
     if (is_array($cached['payload'])) {
@@ -183,7 +191,7 @@ function fetchExternalProjectsPage(int $page, int $perPage, bool $forceRefresh =
     ];
   }
 
-  externalProjectsWriteCache($cachePath, (string)$raw);
+  externalProjectsWriteCache($cachePath, (string) $raw);
 
   return normalizeExternalProjectsListResponse($payload, $status ?: 200, null, null, false, time(), $page, $perPage);
 }
@@ -231,26 +239,38 @@ function normalizeExternalProjectsListResponse(
   return $result;
 }
 
-function fetchExternalProjectDetail(int $projectId, bool $forceRefresh = false): array {
+function fetchExternalProjectDetail(int $projectId, bool $forceRefresh = false, ?int $newerThanTimestamp = null): array
+{
   $projectId = max(1, $projectId);
   $url = externalProjectsApiBaseUrl() . '/projects/' . $projectId;
   $cachePath = __DIR__ . '/../storage/cache/external_project_' . $projectId . '.json';
   $logPath = __DIR__ . '/../storage/logs/external_projects_api.log';
 
   $cached = externalProjectsReadCache($cachePath);
-  if (!$forceRefresh && is_array($cached['payload'])) {
+  $isFresh = true;
+  if ($newerThanTimestamp !== null && is_int($cached['timestamp']) && $cached['timestamp'] < $newerThanTimestamp) {
+    $isFresh = false;
+  }
+
+  if (!$forceRefresh && $isFresh && is_array($cached['payload'])) {
     return normalizeExternalProjectDetailResponse($cached['payload'], 200, null, null, true, $cached['timestamp'], $projectId);
   }
 
   $result = externalProjectsApiRequest($url);
-  $status = (int)$result['status'];
+  $status = (int) $result['status'];
   $error = $result['error'];
   $raw = $result['raw'];
 
   if ($error !== null || $raw === null || $raw === false) {
-    externalProjectsLogFailure($logPath, $status, $error ?? 'Unknown error');
+    externalProjectsLogFailure($logPath, $status, $error ?? 'Unknown error', $url);
     if (is_array($cached['payload'])) {
-      return normalizeExternalProjectDetailResponse($cached['payload'], $status ?: 200, null, 'Showing cached data.', true, $cached['timestamp'], $projectId);
+      $warning = 'Showing cached data.';
+      if ($status === 404) {
+        $warning = 'Showing cached data (Project not found on server).';
+      } elseif ($status === 401) {
+        $warning = 'Showing cached data (API Authorization failed).';
+      }
+      return normalizeExternalProjectDetailResponse($cached['payload'], $status ?: 200, null, $warning, true, $cached['timestamp'], $projectId);
     }
     return [
       'ok' => false,
@@ -268,7 +288,7 @@ function fetchExternalProjectDetail(int $projectId, bool $forceRefresh = false):
     ];
   }
 
-  $payload = json_decode((string)$raw, true);
+  $payload = json_decode((string) $raw, true);
   if (!is_array($payload)) {
     externalProjectsLogFailure($logPath, $status ?: 200, 'Invalid JSON response');
     if (is_array($cached['payload'])) {
@@ -290,7 +310,7 @@ function fetchExternalProjectDetail(int $projectId, bool $forceRefresh = false):
     ];
   }
 
-  externalProjectsWriteCache($cachePath, (string)$raw);
+  externalProjectsWriteCache($cachePath, (string) $raw);
 
   return normalizeExternalProjectDetailResponse($payload, $status ?: 200, null, null, false, time(), $projectId);
 }
