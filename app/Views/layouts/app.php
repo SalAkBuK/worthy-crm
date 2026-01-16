@@ -45,7 +45,7 @@ $page_subtitle = $page_subtitle ?? $title;
         <div class="container-fluid">
           <div class="row">
             <div class="col-12 text-center">
-              <script>document.write(new Date().getFullYear())</script> &copy; Worthy CRM. Crafted by
+              <?= e(date('Y')) ?> &copy; Worthy CRM. Crafted by
               <iconify-icon icon="solar:hearts-bold-duotone" class="fs-18 align-middle text-danger"></iconify-icon>
               <a href="#" class="fw-bold footer-text">CodeFier</a>
             </div>

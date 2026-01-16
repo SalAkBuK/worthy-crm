@@ -12,6 +12,7 @@ require_once __DIR__ . '/../../Helpers/functions.php';
   <link href="<?= e(url('assets/css/app.css')) ?>" rel="stylesheet">
 </head>
 <body class="bg-light">
+<?= $content ?? '' ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

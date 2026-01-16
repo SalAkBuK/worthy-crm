@@ -3,3 +3,4 @@ storage/
 uploads/
 public/uploads/
 Instructions/
+.env.example
