@@ -3,6 +3,9 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../Helpers/functions.php';
 $returnPath = $_GET['return'] ?? 'admin/leads';
 $safeReturn = str_starts_with($returnPath, 'http') ? 'admin/leads' : ltrim($returnPath, '/');
+$user = current_user();
+$role = $user['role'] ?? '';
+$canDelete = in_array($role, ['ADMIN', 'CEO'], true);
 ?>
 <div class="card">
   <div class="card-header bg-light-subtle d-flex justify-content-between align-items-start border-bottom">
@@ -40,6 +43,16 @@ $safeReturn = str_starts_with($returnPath, 'http') ? 'admin/leads' : ltrim($retu
           <input type="hidden" name="id" value="<?= e((string)$lead['id']) ?>">
           <button class="btn btn-sm btn-primary" type="submit">
             <i class="ri-refresh-line me-1"></i>Reopen
+          </button>
+        </form>
+      <?php endif; ?>
+      <?php if ($canDelete): ?>
+        <form method="post" action="<?= e(url('admin/lead/delete')) ?>" onsubmit="return confirm('Delete this lead and all follow-ups? This cannot be undone.');">
+          <?= csrf_field() ?>
+          <input type="hidden" name="id" value="<?= e((string)$lead['id']) ?>">
+          <input type="hidden" name="return" value="<?= e($safeReturn) ?>">
+          <button class="btn btn-sm btn-soft-danger" type="submit">
+            <i class="ri-delete-bin-line me-1"></i>Delete
           </button>
         </form>
       <?php endif; ?>

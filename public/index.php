@@ -89,6 +89,7 @@ $router->post('/admin/leads/bulk/clear', function () use ($admin) { $admin->clea
 $router->get('/admin/lead', function () use ($admin) { $admin->show(); });
 $router->get('/admin/leads/export', function () use ($admin) { $admin->exportLeads(); });
 $router->post('/admin/lead/reopen', function () use ($admin) { $admin->reopen(); });
+$router->post('/admin/lead/delete', function () use ($admin) { $admin->deleteLead(); });
 
 $router->get('/admin/agents', function () use ($admin) { $admin->agents(); });
 $router->get('/admin/agent', function () use ($admin) { $admin->agentShow(); });
@@ -125,6 +126,7 @@ $router->get('/listings/create', function () use ($listings) { $listings->create
 $router->post('/listings/store', function () use ($listings) { $listings->store(); });
 $router->get('/listings/edit', function () use ($listings) { $listings->edit(); });
 $router->post('/listings/update', function () use ($listings) { $listings->update(); });
+$router->post('/listings/delete', function () use ($listings) { $listings->delete(); });
 
 // Listing datasets
 $router->get('/listings/datasets', function () use ($datasets) { $datasets->index(); });

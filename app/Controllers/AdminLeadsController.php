@@ -1176,5 +1176,51 @@ final class AdminLeadsController extends BaseController {
       redirect('admin/lead?id=' . $id);
     } catch (\Throwable $e) { $this->handleException($e); }
   }
+
+  public function deleteLead(): void {
+    try {
+      \require_role(['ADMIN','CEO']);
+      \verify_csrf();
+      $id = (int)($_POST['id'] ?? 0);
+      if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      $lead = Lead::findWithAgent($id);
+      if (!$lead) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+
+      $returnPath = (string)($_POST['return'] ?? 'admin/leads');
+      if (str_starts_with($returnPath, 'http')) {
+        $returnPath = 'admin/leads';
+      } else {
+        $base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/');
+        if ($base !== '' && str_starts_with($returnPath, $base)) {
+          $returnPath = substr($returnPath, strlen($base));
+        }
+      }
+      $safeReturn = ltrim($returnPath, '/');
+      if ($safeReturn === '') $safeReturn = 'admin/leads';
+
+      $deleted = Lead::delete($id);
+      if ($deleted <= 0) {
+        flash('danger', 'Failed to delete lead.');
+        redirect($safeReturn);
+      }
+
+      AuditLog::log((int)current_user()['id'], 'LEAD_DELETE', [
+        'lead_id' => $id,
+        'lead_name' => $lead['lead_name'] ?? null,
+      ]);
+      $recipients = User::userIdsByRoles(['ADMIN', 'CEO']);
+      Notification::createMany(
+        $recipients,
+        'lead_deleted',
+        'Lead deleted',
+        'Lead "' . ($lead['lead_name'] ?? 'Unknown') . '" was deleted.',
+        'admin/leads',
+        ['lead_id' => $id]
+      );
+
+      flash('success', 'Lead deleted.');
+      redirect($safeReturn);
+    } catch (\Throwable $e) { $this->handleException($e); }
+  }
 }
 

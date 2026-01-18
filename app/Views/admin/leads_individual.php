@@ -16,6 +16,9 @@ if ($path === '') $path = '/';
 $returnPath = ltrim($path, '/');
 if ($query) $returnPath .= '?' . $query;
 $returnParam = urlencode($returnPath);
+$user = current_user();
+$role = $user['role'] ?? '';
+$canDelete = in_array($role, ['ADMIN', 'CEO'], true);
 $leadDisplayName = function (?string $name): string {
   $name = trim((string)$name);
   if ($name === '') return '';
@@ -256,6 +259,16 @@ $leadDisplayName = function (?string $name): string {
                   <a class="btn btn-light btn-sm" href="<?= e(url('admin/lead?id='.$l['id'].'&return='.$returnParam)) ?>" title="View lead">
                     <i class="ri-eye-line"></i>
                   </a>
+                  <?php if ($canDelete): ?>
+                    <form class="d-inline" method="post" action="<?= e(url('admin/lead/delete')) ?>" onsubmit="return confirm('Delete this lead and all follow-ups? This cannot be undone.');">
+                      <?= csrf_field() ?>
+                      <input type="hidden" name="id" value="<?= e((string)$l['id']) ?>">
+                      <input type="hidden" name="return" value="<?= e($returnPath) ?>">
+                      <button class="btn btn-soft-danger btn-sm ms-1" type="submit" title="Delete lead">
+                        <i class="ri-delete-bin-line"></i>
+                      </button>
+                    </form>
+                  <?php endif; ?>
                 </td>
               </tr>
             <?php endforeach; ?>

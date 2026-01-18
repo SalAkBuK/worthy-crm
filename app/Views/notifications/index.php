@@ -34,6 +34,10 @@ $notifStyle = static function(string $type): array {
       return ['label' => 'Agent', 'class' => 'bg-danger-subtle text-danger'];
     case 'lead_reopen':
       return ['label' => 'Reopen', 'class' => 'bg-info-subtle text-info'];
+    case 'lead_deleted':
+      return ['label' => 'Delete', 'class' => 'bg-danger-subtle text-danger'];
+    case 'listing_deleted':
+      return ['label' => 'Delete', 'class' => 'bg-danger-subtle text-danger'];
     case 'lead_closed':
       return ['label' => 'Won', 'class' => 'bg-success-subtle text-success'];
     case 'agent_inactive':

@@ -126,7 +126,7 @@ function build_query(array $overrides = []): string {
 
 function notification_types_for_role(string $role): ?array {
   if ($role === 'CEO') {
-    return ['lead_reopen', 'agent_deleted', 'agent_status_change', 'weekly_summary'];
+    return ['lead_reopen', 'lead_deleted', 'listing_deleted', 'agent_deleted', 'agent_status_change', 'weekly_summary'];
   }
   return null;
 }

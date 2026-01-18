@@ -266,6 +266,13 @@ final class Lead {
     return $st->rowCount();
   }
 
+  public static function delete(int $id): int {
+    $pdo = DB::conn();
+    $st = $pdo->prepare("DELETE FROM leads WHERE id=:id");
+    $st->execute([':id' => $id]);
+    return $st->rowCount();
+  }
+
   public static function findWithAgent(int $id): ?array {
     $pdo = DB::conn();
     $st = $pdo->prepare("SELECT l.*, u.username as agent_username, COALESCE(e.employee_name, u.username) as agent_name

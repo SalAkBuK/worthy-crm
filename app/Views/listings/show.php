@@ -5,6 +5,8 @@ $listing = $listing ?? [];
 $user = current_user();
 $role = $user['role'] ?? '';
 $canEdit = in_array($role, ['ADMIN', 'CEO'], true);
+$returnPath = $_GET['return'] ?? 'listings';
+$safeReturn = str_starts_with($returnPath, 'http') ? 'listings' : ltrim($returnPath, '/');
 ?>
 <div class="row">
   <div class="col-12">
@@ -18,8 +20,14 @@ $canEdit = in_array($role, ['ADMIN', 'CEO'], true);
           <div class="d-flex gap-2">
             <?php if ($canEdit && !empty($listing['id'])): ?>
               <a class="btn btn-soft-primary" href="<?= e(url('listings/edit?id=' . $listing['id'])) ?>">Edit</a>
+              <form method="post" action="<?= e(url('listings/delete')) ?>" onsubmit="return confirm('Delete this listing? This cannot be undone.');">
+                <?= csrf_field() ?>
+                <input type="hidden" name="id" value="<?= e((string)$listing['id']) ?>">
+                <input type="hidden" name="return" value="<?= e($safeReturn) ?>">
+                <button class="btn btn-soft-danger" type="submit">Delete</button>
+              </form>
             <?php endif; ?>
-            <a class="btn btn-outline-light" href="<?= e(url('listings')) ?>">Back</a>
+            <a class="btn btn-outline-light" href="<?= e(url($safeReturn)) ?>">Back</a>
           </div>
         </div>
       </div>

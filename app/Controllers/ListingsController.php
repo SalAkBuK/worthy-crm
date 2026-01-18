@@ -7,6 +7,9 @@ use App\Helpers\View;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\CsrfMiddleware;
 use App\Models\Listing;
+use App\Models\AuditLog;
+use App\Models\Notification;
+use App\Models\User;
 
 final class ListingsController extends BaseController {
   public function index(): void {
@@ -214,6 +217,55 @@ final class ListingsController extends BaseController {
 
       flash('success', 'Listing updated.');
       redirect('listings/show?id=' . $id);
+    } catch (\Throwable $e) {
+      $this->handleException($e);
+    }
+  }
+
+  public function delete(): void {
+    try {
+      AuthMiddleware::requireRole(['ADMIN', 'CEO']);
+      CsrfMiddleware::verify();
+      $id = (int)($_POST['id'] ?? 0);
+      if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      $listing = Listing::findById($id);
+      if (!$listing) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+
+      $returnPath = (string)($_POST['return'] ?? 'listings');
+      if (str_starts_with($returnPath, 'http')) {
+        $returnPath = 'listings';
+      } else {
+        $base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/');
+        if ($base !== '' && str_starts_with($returnPath, $base)) {
+          $returnPath = substr($returnPath, strlen($base));
+        }
+      }
+      $safeReturn = ltrim($returnPath, '/');
+      if ($safeReturn === '') $safeReturn = 'listings';
+
+      $deleted = Listing::delete($id);
+      if ($deleted <= 0) {
+        flash('danger', 'Failed to delete listing.');
+        redirect($safeReturn);
+      }
+
+      AuditLog::log((int)(current_user()['id'] ?? 0), 'LISTING_DELETE', [
+        'listing_id' => $id,
+        'project_name' => $listing['project_name'] ?? null,
+        'area' => $listing['area'] ?? null,
+      ]);
+      $recipients = User::userIdsByRoles(['ADMIN', 'CEO']);
+      Notification::createMany(
+        $recipients,
+        'listing_deleted',
+        'Listing deleted',
+        'Listing "' . ($listing['project_name'] ?? 'Unknown') . '" was deleted.',
+        'listings',
+        ['listing_id' => $id]
+      );
+
+      flash('success', 'Listing deleted.');
+      redirect($safeReturn);
     } catch (\Throwable $e) {
       $this->handleException($e);
     }

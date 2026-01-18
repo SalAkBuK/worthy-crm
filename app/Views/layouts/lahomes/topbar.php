@@ -38,6 +38,10 @@ $notifStyle = static function(string $type): array {
       return ['icon' => 'ri-shield-user-line', 'class' => 'bg-soft-warning text-warning'];
     case 'lead_reopen':
       return ['icon' => 'ri-restart-line', 'class' => 'bg-soft-info text-info'];
+    case 'lead_deleted':
+      return ['icon' => 'ri-delete-bin-line', 'class' => 'bg-soft-danger text-danger'];
+    case 'listing_deleted':
+      return ['icon' => 'ri-delete-bin-6-line', 'class' => 'bg-soft-danger text-danger'];
     case 'agent_deleted':
       return ['icon' => 'ri-user-unfollow-line', 'class' => 'bg-soft-danger text-danger'];
     case 'weekly_summary':

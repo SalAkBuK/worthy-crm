@@ -24,6 +24,7 @@ $propertyTypes = $options['property_types'] ?? [];
 $listingTypes = $options['listing_types'] ?? [];
 $bedroomOptions = $options['bedrooms'] ?? [];
 $projects = $options['projects'] ?? [];
+$returnPath = $_SERVER['REQUEST_URI'] ?? 'listings';
 $formatAedShort = static function ($value): string {
   if ($value === null || $value === '') return '-';
   $num = (float)$value;
@@ -124,6 +125,19 @@ $formatAedShort = static function ($value): string {
     </div>
     <div class="card">
       <div class="card-body">
+        <style>
+          .table-scroll-top {
+            overflow-x: auto;
+            overflow-y: hidden;
+            height: 14px;
+          }
+          .table-scroll-top-inner {
+            height: 1px;
+          }
+        </style>
+        <div class="table-scroll-top mb-2" data-sync="listings-table">
+          <div class="table-scroll-top-inner"></div>
+        </div>
         <div class="table-responsive">
           <table class="table align-middle text-nowrap mb-0">
             <thead class="bg-light-subtle">
@@ -225,6 +239,12 @@ $formatAedShort = static function ($value): string {
                       <a class="btn btn-light btn-sm" href="<?= e(url('listings/show?id=' . $row['id'])) ?>">View</a>
                       <?php if ($canEdit): ?>
                         <a class="btn btn-soft-primary btn-sm" href="<?= e(url('listings/edit?id=' . $row['id'])) ?>">Edit</a>
+                        <form class="d-inline" method="post" action="<?= e(url('listings/delete')) ?>" onsubmit="return confirm('Delete this listing? This cannot be undone.');">
+                          <?= csrf_field() ?>
+                          <input type="hidden" name="id" value="<?= e((string)$row['id']) ?>">
+                          <input type="hidden" name="return" value="<?= e($returnPath) ?>">
+                          <button class="btn btn-soft-danger btn-sm" type="submit">Delete</button>
+                        </form>
                       <?php endif; ?>
                     </td>
                   </tr>
@@ -245,3 +265,37 @@ $formatAedShort = static function ($value): string {
     </div>
   </div>
 </div>
+<script>
+  (function() {
+    var top = document.querySelector('.table-scroll-top[data-sync="listings-table"]');
+    var bottom = document.querySelector('.table-responsive');
+    if (!top || !bottom) return;
+    var inner = top.querySelector('.table-scroll-top-inner');
+    var table = bottom.querySelector('table');
+    if (!inner || !table) return;
+
+    var syncing = false;
+    var syncTop = function() {
+      if (syncing) return;
+      syncing = true;
+      bottom.scrollLeft = top.scrollLeft;
+      syncing = false;
+    };
+    var syncBottom = function() {
+      if (syncing) return;
+      syncing = true;
+      top.scrollLeft = bottom.scrollLeft;
+      syncing = false;
+    };
+    var refresh = function() {
+      var width = table.scrollWidth;
+      inner.style.width = width + 'px';
+      top.style.display = width > bottom.clientWidth + 1 ? 'block' : 'none';
+    };
+
+    top.addEventListener('scroll', syncTop);
+    bottom.addEventListener('scroll', syncBottom);
+    window.addEventListener('resize', refresh);
+    setTimeout(refresh, 0);
+  })();
+</script>
