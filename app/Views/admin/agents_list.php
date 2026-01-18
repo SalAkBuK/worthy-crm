@@ -34,12 +34,12 @@ $activeAgents = array_values(array_filter($agents, static function ($agent) {
             </div>
           </div>
           <div class="col-lg-6">
-            <div class="text-md-end mt-3 mt-md-0">
+            <div class="text-md-end mt-3 mt-md-0 d-flex flex-column flex-sm-row justify-content-md-end gap-2 admin-agent-actions">
               <?php
               $exportQuery = build_query(['page' => null]);
               $exportUrl = url('admin/agents/export' . ($exportQuery ? '?' . $exportQuery : ''));
               ?>
-              <div class="dropdown d-inline-block me-1">
+              <div class="dropdown">
                 <button class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                   <i class="ri-settings-2-line me-1"></i>More Setting
                 </button>
@@ -55,13 +55,22 @@ $activeAgents = array_values(array_filter($agents, static function ($agent) {
                   </form>
                 </div>
               </div>
-              <button type="button" class="btn btn-outline-primary me-1" data-bs-toggle="collapse"
+              <button type="button" class="btn btn-outline-primary" data-bs-toggle="collapse"
                 data-bs-target="#agentFilters" aria-expanded="false" aria-controls="agentFilters">
                 <i class="ri-filter-line me-1"></i> Filters
               </button>
-              <a class="btn btn-success me-1" href="<?= e(url('admin/agent/add')) ?>"><i class="ri-add-line"></i> New
+              <a class="btn btn-success" href="<?= e(url('admin/agent/add')) ?>"><i class="ri-add-line"></i> New
                 Agent</a>
             </div>
+          </div>
+          <div class="col-12 d-md-none mt-3">
+            <form class="app-search" method="get" action="<?= e(url('admin/agents')) ?>">
+              <div class="position-relative">
+                <input type="search" class="form-control" name="q" placeholder="Search Agent" autocomplete="off"
+                  value="<?= e($q) ?>">
+                <iconify-icon icon="solar:magnifer-broken" class="search-widget-icon"></iconify-icon>
+              </div>
+            </form>
           </div>
         </div>
       </div>
@@ -128,7 +137,32 @@ $activeAgents = array_values(array_filter($agents, static function ($agent) {
       </div>
       <form method="post" action="<?= e(url('admin/agents/bulk')) ?>" id="agentsBulkForm">
         <?= csrf_field() ?>
-        <div class="table-responsive">
+        <style>
+          @media (max-width: 991.98px) {
+            .admin-agent-cards .btn {
+              width: 100%;
+            }
+          }
+          @media (max-width: 767.98px) {
+            .admin-agent-actions {
+              width: 100%;
+            }
+            .admin-agent-actions > * {
+              width: 100%;
+            }
+            .admin-agent-actions .dropdown .btn {
+              width: 100%;
+            }
+            .admin-agent-sticky {
+              position: sticky;
+              bottom: 0;
+              z-index: 10;
+              background: var(--bs-body-bg);
+              box-shadow: 0 -6px 12px rgba(0, 0, 0, 0.04);
+            }
+          }
+        </style>
+        <div class="table-responsive d-none d-lg-block">
           <table class="table align-middle text-nowrap table-hover table-centered mb-0">
             <thead class="bg-light-subtle">
               <tr>
@@ -229,10 +263,95 @@ $activeAgents = array_values(array_filter($agents, static function ($agent) {
             </tbody>
           </table>
         </div>
-        <div class="card-body d-flex justify-content-end align-items-center">
+        <div class="d-lg-none p-3 admin-agent-cards">
+          <?php if (!$agents): ?>
+            <div class="text-center text-muted py-4">No agents found.</div>
+          <?php else: ?>
+            <?php foreach ($agents as $a): ?>
+              <?php
+              $display = $a['agent_name'] ?: ($a['employee_name'] ?: ucfirst($a['username']));
+              $isActive = (int) ($a['is_active'] ?? 1) === 1;
+              $statusClass = $isActive ? 'success' : 'danger';
+              $statusLabel = $isActive ? 'Active' : 'Inactive';
+              $photo = $a['photo_path'] ? url($a['photo_path']) : url('assets/lahomes/images/users/avatar-1.jpg');
+              $email = trim((string)($a['email'] ?? ''));
+              $phone = trim((string)($a['contact_phone'] ?? ''));
+              $selectId = 'agentSelect' . (string)$a['id'];
+              ?>
+              <div class="card border mb-2">
+                <div class="card-body p-3">
+                  <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                      <img src="<?= e($photo) ?>" alt="avatar" class="avatar-sm rounded-circle">
+                      <div>
+                        <div class="text-dark fw-medium"><?= e($display) ?></div>
+                        <div class="text-muted fs-12"><?= e($a['employee_code'] ?? '-') ?></div>
+                      </div>
+                    </div>
+                    <div class="text-end">
+                      <div class="form-check form-check-inline m-0">
+                        <input type="checkbox" class="form-check-input agent-check" name="ids[]" id="<?= e($selectId) ?>"
+                          value="<?= e((string) $a['id']) ?>">
+                        <label class="form-check-label small" for="<?= e($selectId) ?>">Select</label>
+                      </div>
+                      <div class="mt-2">
+                        <span class="badge bg-<?= e($statusClass) ?>-subtle text-<?= e($statusClass) ?> py-1 px-2 fs-13">
+                          <?= e($statusLabel) ?>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="text-muted fs-12 mt-2">@<?= e($a['username']) ?></div>
+                  <div class="text-muted fs-12"><?= e($email !== '' ? $email : '-') ?></div>
+                  <div class="text-muted fs-12"><?= e($phone !== '' ? $phone : '-') ?></div>
+                  <div class="small text-muted mt-2">
+                    <div><span class="text-dark fw-semibold">Assigned leads:</span> <?= e((string) ($a['leads_count'] ?? 0)) ?></div>
+                    <div><span class="text-dark fw-semibold">Followups:</span> <?= e((string) ($a['followups_count'] ?? 0)) ?></div>
+                    <div><span class="text-dark fw-semibold">Last contact:</span> <?= e($a['last_contact'] ?? '-') ?></div>
+                  </div>
+                  <div class="mt-3 d-flex flex-column gap-2">
+                    <a class="btn btn-light btn-sm" href="<?= e(url('admin/agent?id=' . $a['id'])) ?>">
+                      <iconify-icon icon="solar:eye-broken" class="align-middle fs-18 me-1"></iconify-icon>View
+                    </a>
+                    <button class="btn btn-soft-primary btn-sm" type="button" data-bs-toggle="modal"
+                      data-bs-target="#agentEditModal" data-agent-id="<?= e((string) $a['id']) ?>"
+                      data-agent-email="<?= e($a['email'] ?? '') ?>"
+                      data-agent-phone="<?= e($a['contact_phone'] ?? '') ?>"
+                      data-agent-username="<?= e($a['username']) ?>">
+                      <iconify-icon icon="solar:pen-2-broken" class="align-middle fs-18 me-1"></iconify-icon>Edit
+                    </button>
+                    <form method="post" action="<?= e(url('admin/agent/reset-password')) ?>"
+                      onsubmit="return confirm('Reset password for this agent?');">
+                      <?= csrf_field() ?>
+                      <input type="hidden" name="id" value="<?= e((string) $a['id']) ?>">
+                      <button class="btn btn-soft-warning btn-sm" type="submit">
+                        <iconify-icon icon="solar:key-square-broken" class="align-middle fs-18 me-1"></iconify-icon>Reset Password
+                      </button>
+                    </form>
+                    <button class="btn btn-soft-danger btn-sm" type="button" data-bs-toggle="modal"
+                      data-bs-target="#agentDeactivateModal" data-agent-id="<?= e((string) $a['id']) ?>"
+                      data-agent-name="<?= e($display) ?>"
+                      data-agent-leads="<?= e((string) ($a['leads_count'] ?? 0)) ?>">
+                      <iconify-icon icon="solar:trash-bin-minimalistic-2-broken" class="align-middle fs-18 me-1"></iconify-icon>Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </div>
+        <div class="card-body d-none d-md-flex justify-content-end align-items-center">
           <div class="text-muted fs-12">Select agents to reset passwords</div>
         </div>
       </form>
+      <div class="d-md-none admin-agent-sticky border-top">
+        <div class="d-flex align-items-center justify-content-between gap-2 p-2">
+          <div class="text-muted small">Selected: <span id="agentSelectedCount">0</span></div>
+          <button class="btn btn-soft-warning btn-sm" type="submit" form="bulkResetForm" id="agentBulkResetBtn" disabled>
+            Reset Passwords
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -439,36 +558,68 @@ $activeAgents = array_values(array_filter($agents, static function ($agent) {
 <script>
   (function () {
     var checkAll = document.getElementById('agentsCheckAll');
-    if (!checkAll) return;
-    checkAll.addEventListener('change', function () {
-      document.querySelectorAll('.agent-check').forEach(function (cb) {
-        cb.checked = checkAll.checked;
-      });
-    });
-    var bulkForm = document.getElementById('agentsBulkForm');
-    if (!bulkForm) return;
-    bulkForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-    });
-  })();
-</script>
-<script>
-  (function () {
     var resetForm = document.getElementById('bulkResetForm');
-    if (!resetForm) return;
-    resetForm.addEventListener('submit', function (e) {
-      var any = false;
-      document.querySelectorAll('.agent-check').forEach(function (cb) {
-        if (cb.checked) any = true;
+    var bulkForm = document.getElementById('agentsBulkForm');
+    var countEl = document.getElementById('agentSelectedCount');
+    var resetBtn = document.getElementById('agentBulkResetBtn');
+
+    function syncResetIds() {
+      if (!resetForm) return;
+      resetForm.querySelectorAll('input[name="ids[]"]').forEach(function (el) {
+        el.remove();
       });
-      if (!any) {
-        e.preventDefault();
-        alert('Select at least one agent.');
-        return;
+      document.querySelectorAll('.agent-check:checked').forEach(function (cb) {
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'ids[]';
+        input.value = cb.value;
+        resetForm.appendChild(input);
+      });
+    }
+
+    function updateSelection() {
+      var selected = document.querySelectorAll('.agent-check:checked');
+      var count = selected.length;
+      if (countEl) countEl.textContent = String(count);
+      if (resetBtn) resetBtn.disabled = count === 0;
+      if (checkAll) {
+        var total = document.querySelectorAll('.agent-check').length;
+        checkAll.checked = total > 0 && count === total;
+        checkAll.indeterminate = count > 0 && count < total;
       }
-      if (!confirm('Reset passwords for selected agents?')) {
-        e.preventDefault();
-      }
+      syncResetIds();
+    }
+
+    if (checkAll) {
+      checkAll.addEventListener('change', function () {
+        document.querySelectorAll('.agent-check').forEach(function (cb) {
+          cb.checked = checkAll.checked;
+        });
+        updateSelection();
+      });
+    }
+    document.querySelectorAll('.agent-check').forEach(function (cb) {
+      cb.addEventListener('change', updateSelection);
     });
+
+    if (bulkForm) {
+      bulkForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+      });
+    }
+    if (resetForm) {
+      resetForm.addEventListener('submit', function (e) {
+        updateSelection();
+        if (document.querySelectorAll('.agent-check:checked').length === 0) {
+          e.preventDefault();
+          alert('Select at least one agent.');
+          return;
+        }
+        if (!confirm('Reset passwords for selected agents?')) {
+          e.preventDefault();
+        }
+      });
+    }
+    updateSelection();
   })();
 </script>
