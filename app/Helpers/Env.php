@@ -5,7 +5,7 @@ namespace App\Helpers;
 
 final class Env
 {
-  public static function load(string $path): void
+  public static function load(string $path, bool $override = true): void
   {
     if (!file_exists($path))
       return;
@@ -18,11 +18,15 @@ final class Env
       [$k, $v] = array_map('trim', explode('=', $line, 2));
       $v = trim($v, "\"'");
       $current = getenv($k);
-      if ($k && ($current === false || $current === '' || ctype_space($current))) {
-        putenv($k . '=' . $v);
-        $_ENV[$k] = $v;
-        $_SERVER[$k] = $v;
+      if (!$k) {
+        continue;
       }
+      if (!$override && ($current !== false && $current !== '' && !ctype_space($current))) {
+        continue;
+      }
+      putenv($k . '=' . $v);
+      $_ENV[$k] = $v;
+      $_SERVER[$k] = $v;
     }
   }
 }

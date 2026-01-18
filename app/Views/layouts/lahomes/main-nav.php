@@ -110,7 +110,7 @@ $isExternalProjects = str_contains($uri, '/external_projects.php');
                   <a class="sub-nav-link <?= $isListings && !$isListingsDatasets ? 'active' : '' ?>" href="<?= e(url('listings')) ?>">All Listings</a>
                 </li>
                 <li class="sub-nav-item">
-                  <a class="sub-nav-link <?= $isListingsDatasets ? 'active' : '' ?>" href="<?= e(url('listings/datasets')) ?>">Datasets</a>
+                  <a class="sub-nav-link <?= $isListingsDatasets ? 'active' : '' ?>" href="<?= e(url('listings/datasets')) ?>">Bulk Listing Upload</a>
                 </li>
               </ul>
             </div>

@@ -19,7 +19,7 @@ final class ListingDatasetsController extends BaseController {
       $perPage = 10;
       $result = ListingDataset::paginate($page, $perPage);
       View::render('listings/datasets/index', [
-        'title' => 'Listing Datasets',
+        'title' => 'Bulk Listing Upload',
         'items' => $result['items'],
         'meta' => $result['meta'],
       ]);
@@ -35,7 +35,7 @@ final class ListingDatasetsController extends BaseController {
         flash('danger', 'Upload directories are not writable.');
       }
       View::render('listings/datasets/upload', [
-        'title' => 'Upload Listing Dataset',
+        'title' => 'Upload CSV Dataset',
       ]);
     } catch (\Throwable $e) {
       $this->handleException($e);
@@ -85,8 +85,12 @@ final class ListingDatasetsController extends BaseController {
       $hasCsv = $csvFile && ($csvFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
       $hasPdf = $pdfFile && ($pdfFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
 
-      if (!$hasCsv && !$hasPdf) {
-        flash('danger', 'Please choose a PDF or CSV file to upload.');
+      if (!$hasCsv) {
+        if ($hasPdf) {
+          flash('danger', 'Only CSV files are allowed.');
+        } else {
+          flash('danger', 'Please choose a CSV file to upload.');
+        }
         redirect('listings/datasets/upload');
       }
 
@@ -96,73 +100,27 @@ final class ListingDatasetsController extends BaseController {
         redirect('listings/datasets/upload');
       }
 
-      if ($hasCsv) {
-        if (($csvFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-          flash('danger', 'File upload failed.');
-          redirect('listings/datasets/upload');
-        }
-        if (($csvFile['size'] ?? 0) > (15 * 1024 * 1024)) {
-          flash('danger', 'File too large (max 15MB).');
-          redirect('listings/datasets/upload');
-        }
-        $tmp = $csvFile['tmp_name'] ?? '';
-        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-        $mime = strtolower($finfo->file($tmp) ?: '');
-        if (!$this->isCsvMime($mime)) {
-          flash('danger', 'Only CSV files are allowed.');
-          redirect('listings/datasets/upload');
-        }
-
-        $randomName = bin2hex(random_bytes(16)) . '.csv';
-        $dest = $dirs['csv_dir'] . '/' . $randomName;
-        if (!move_uploaded_file($tmp, $dest)) {
-          Logger::error('Failed to move uploaded dataset file.', ['file' => $csvFile['name'] ?? '']);
-          flash('danger', 'Failed to save uploaded file.');
-          redirect('listings/datasets/upload');
-        }
-
-        $hash = hash_file('sha256', $dest);
-        $datasetId = ListingDataset::create([
-          'uploaded_by_user_id' => current_user()['id'] ?? null,
-          'original_filename' => $csvFile['name'] ?? 'dataset.csv',
-          'stored_filename' => $randomName,
-          'file_hash' => $hash,
-          'file_size_bytes' => $csvFile['size'] ?? null,
-          'mime_type' => $mime,
-          'status' => 'PROCESSING',
-        ]);
-
-        $result = $this->processCsvDataset($datasetId, $dest);
-        if ($result === 'COMPLETED') {
-          flash('success', 'Dataset import completed.');
-        } else {
-          flash('warning', 'Dataset import completed with no parsed rows.');
-        }
-        redirect('listings/datasets/show?id=' . $datasetId);
-      }
-
-      $file = $pdfFile;
-      if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+      if (($csvFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
         flash('danger', 'File upload failed.');
         redirect('listings/datasets/upload');
       }
-      if (($file['size'] ?? 0) > (15 * 1024 * 1024)) {
+      if (($csvFile['size'] ?? 0) > (15 * 1024 * 1024)) {
         flash('danger', 'File too large (max 15MB).');
         redirect('listings/datasets/upload');
       }
 
-      $tmp = $file['tmp_name'] ?? '';
+      $tmp = $csvFile['tmp_name'] ?? '';
       $finfo = new \finfo(FILEINFO_MIME_TYPE);
-      $mime = $finfo->file($tmp) ?: '';
-      if ($mime !== 'application/pdf') {
-        flash('danger', 'Only PDF files are allowed.');
+      $mime = strtolower($finfo->file($tmp) ?: '');
+      if (!$this->isCsvMime($mime)) {
+        flash('danger', 'Only CSV files are allowed.');
         redirect('listings/datasets/upload');
       }
 
-      $randomName = bin2hex(random_bytes(16)) . '.pdf';
-      $dest = $dirs['pdf_dir'] . '/' . $randomName;
+      $randomName = bin2hex(random_bytes(16)) . '.csv';
+      $dest = $dirs['csv_dir'] . '/' . $randomName;
       if (!move_uploaded_file($tmp, $dest)) {
-        Logger::error('Failed to move uploaded dataset file.', ['file' => $file['name'] ?? '']);
+        Logger::error('Failed to move uploaded dataset file.', ['file' => $csvFile['name'] ?? '']);
         flash('danger', 'Failed to save uploaded file.');
         redirect('listings/datasets/upload');
       }
@@ -170,15 +128,15 @@ final class ListingDatasetsController extends BaseController {
       $hash = hash_file('sha256', $dest);
       $datasetId = ListingDataset::create([
         'uploaded_by_user_id' => current_user()['id'] ?? null,
-        'original_filename' => $file['name'] ?? 'dataset.pdf',
+        'original_filename' => $csvFile['name'] ?? 'dataset.csv',
         'stored_filename' => $randomName,
         'file_hash' => $hash,
-        'file_size_bytes' => $file['size'] ?? null,
+        'file_size_bytes' => $csvFile['size'] ?? null,
         'mime_type' => $mime,
         'status' => 'PROCESSING',
       ]);
 
-      $result = $this->processDataset($datasetId, $dest);
+      $result = $this->processCsvDataset($datasetId, $dest);
       if ($result === 'COMPLETED') {
         flash('success', 'Dataset import completed.');
       } else {
@@ -251,6 +209,51 @@ final class ListingDatasetsController extends BaseController {
       header('Content-Length: ' . (string)filesize($path));
       header('X-Content-Type-Options: nosniff');
       readfile($path);
+      exit;
+    } catch (\Throwable $e) {
+      $this->handleException($e);
+    }
+  }
+
+  public function template(): void {
+    try {
+      AuthMiddleware::requireRole(['ADMIN', 'CEO']);
+      $headers = [
+        'project_name',
+        'area',
+        'developer',
+        'unit_ref',
+        'property_type',
+        'beds',
+        'baths',
+        'size_sqft',
+        'price_amount',
+        'price_furnished_amount',
+        'price_unfurnished_amount',
+        'status',
+        'listing_type',
+        'payment_plan',
+        'view',
+        'amenities',
+        'features',
+        'handover',
+        'commission_pct',
+        'brochure_url',
+        'maps_url',
+        'media_url',
+        'notes',
+      ];
+
+      header('Content-Type: text/csv');
+      header('Content-Disposition: attachment; filename="listing_dataset_template.csv"');
+      header('X-Content-Type-Options: nosniff');
+      $out = fopen('php://output', 'wb');
+      if ($out === false) {
+        http_response_code(500);
+        return;
+      }
+      fputcsv($out, $headers);
+      fclose($out);
       exit;
     } catch (\Throwable $e) {
       $this->handleException($e);

@@ -10,10 +10,13 @@ $meta = $meta ?? [];
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
           <div>
-            <h4 class="card-title mb-1">Listing Datasets</h4>
-            <div class="text-muted fs-12">Uploaded PDF/CSV datasets.</div>
+            <h4 class="card-title mb-1">Bulk Listing Upload</h4>
+            <div class="text-muted fs-12">Uploaded CSV datasets.</div>
           </div>
-          <a class="btn btn-primary" href="<?= e(url('listings/datasets/upload')) ?>">Upload PDF</a>
+          <div class="d-flex gap-2">
+            <a class="btn btn-outline-primary" href="<?= e(url('listings/datasets/template')) ?>">Download CSV Template</a>
+            <a class="btn btn-primary" href="<?= e(url('listings/datasets/upload')) ?>">Upload CSV</a>
+          </div>
         </div>
       </div>
       <div class="card-body border-top">

@@ -132,6 +132,7 @@ $router->get('/listings/datasets/upload', function () use ($datasets) { $dataset
 $router->post('/listings/datasets/import', function () use ($datasets) { $datasets->import(); });
 $router->get('/listings/datasets/show', function () use ($datasets) { $datasets->show(); });
 $router->get('/listings/datasets/download', function () use ($datasets) { $datasets->download(); });
+$router->get('/listings/datasets/template', function () use ($datasets) { $datasets->template(); });
 $router->post('/listings/datasets/delete', function () use ($datasets) { $datasets->delete(); });
 
 // System tasks (cron)

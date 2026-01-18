@@ -74,7 +74,7 @@ $listingsCount = $listings_count ?? 0;
           </table>
         </div>
         <div class="mt-3">
-          <h5 class="card-title mb-2">Extracted Text Preview</h5>
+          <h5 class="card-title mb-2">Extracted Text Preview (PDF only)</h5>
           <?php if ($preview === ''): ?>
             <div class="text-muted">No extracted text available.</div>
           <?php else: ?>
