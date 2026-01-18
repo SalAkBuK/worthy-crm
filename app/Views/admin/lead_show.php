@@ -128,7 +128,7 @@ $canDelete = in_array($role, ['ADMIN', 'CEO'], true);
                 ?>
                 <div class="small text-muted"><?= e($detailsStr) ?></div>
               </td>
-              <td><?= e(mb_strimwidth($f['notes'], 0, 60, '...')) ?></td>
+              <td style="white-space: pre-wrap;"><?= e((string)$f['notes']) ?></td>
               <td>
                 <div class="d-flex flex-wrap gap-2">
                   <?php if (!empty($f['call_screenshot_path'])): ?>
