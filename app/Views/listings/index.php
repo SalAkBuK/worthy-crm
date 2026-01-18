@@ -15,11 +15,13 @@ $developer = $filters['developer'] ?? '';
 $propertyType = $filters['property_type'] ?? '';
 $bedrooms = $filters['bedrooms'] ?? '';
 $status = $filters['status'] ?? '';
+$listingType = $filters['listing_type'] ?? '';
 $sort = $filters['sort'] ?? '';
 $dir = $filters['dir'] ?? 'desc';
 $developers = $options['developers'] ?? [];
 $statuses = $options['statuses'] ?? [];
 $propertyTypes = $options['property_types'] ?? [];
+$listingTypes = $options['listing_types'] ?? [];
 $bedroomOptions = $options['bedrooms'] ?? [];
 $projects = $options['projects'] ?? [];
 $formatAedShort = static function ($value): string {
@@ -101,6 +103,15 @@ $formatAedShort = static function ($value): string {
               <option value="">All</option>
               <?php foreach ($statuses as $option): ?>
                 <option value="<?= e($option) ?>" <?= $option === $status ? 'selected' : '' ?>><?= e($option) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="col-md-1">
+            <label class="form-label">Listing Type</label>
+            <select class="form-select" name="listing_type">
+              <option value="">All</option>
+              <?php foreach ($listingTypes as $option): ?>
+                <option value="<?= e($option) ?>" <?= $option === $listingType ? 'selected' : '' ?>><?= e($option) ?></option>
               <?php endforeach; ?>
             </select>
           </div>

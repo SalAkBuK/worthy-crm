@@ -318,6 +318,7 @@ final class Listing {
       'developers' => [],
       'statuses' => [],
       'property_types' => [],
+      'listing_types' => [],
       'bedrooms' => [],
       'projects' => [],
     ];
@@ -326,6 +327,7 @@ final class Listing {
       'developers' => "SELECT DISTINCT developer AS value FROM listings WHERE developer IS NOT NULL AND TRIM(developer) <> '' ORDER BY developer",
       'statuses' => "SELECT DISTINCT status AS value FROM listings WHERE status IS NOT NULL AND TRIM(status) <> '' ORDER BY status",
       'property_types' => "SELECT DISTINCT property_type AS value FROM listings WHERE property_type IS NOT NULL AND TRIM(property_type) <> '' ORDER BY property_type",
+      'listing_types' => "SELECT DISTINCT listing_type AS value FROM listings WHERE listing_type IS NOT NULL AND TRIM(listing_type) <> '' ORDER BY listing_type",
       'projects' => "SELECT DISTINCT project_name AS value FROM listings WHERE project_name IS NOT NULL AND TRIM(project_name) <> '' ORDER BY project_name",
     ];
 
@@ -430,6 +432,10 @@ final class Listing {
     if (!empty($filters['status'])) {
       $where[] = "l.status = :status";
       $params[':status'] = $filters['status'];
+    }
+    if (!empty($filters['listing_type'])) {
+      $where[] = "l.listing_type = :listing_type";
+      $params[':listing_type'] = $filters['listing_type'];
     }
     if (!empty($filters['source'])) {
       $source = $filters['source'];

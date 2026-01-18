@@ -20,6 +20,7 @@ final class ListingsController extends BaseController {
         'property_type' => trim((string)($_GET['property_type'] ?? '')),
         'bedrooms' => trim((string)($_GET['bedrooms'] ?? '')),
         'status' => trim((string)($_GET['status'] ?? '')),
+        'listing_type' => trim((string)($_GET['listing_type'] ?? '')),
         'source' => trim((string)($_GET['source'] ?? '')),
         'dataset_id' => $_GET['dataset_id'] ?? '',
         'sort' => trim((string)($_GET['sort'] ?? '')),
