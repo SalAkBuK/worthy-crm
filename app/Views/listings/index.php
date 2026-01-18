@@ -33,6 +33,50 @@ $formatAedShort = static function ($value): string {
   if ($num >= 1000) return 'AED ' . rtrim(rtrim(number_format($num / 1000, 2, '.', ''), '0'), '.') . 'K';
   return 'AED ' . number_format($num, 0, '.', ',');
 };
+$preparedItems = [];
+foreach ($items as $row) {
+  $priceAmount = $row['price_amount'] ?? null;
+  $priceLabel = $row['price_display_label'] ?? 'Price';
+  if ($priceLabel === '') $priceLabel = 'Price';
+  $priceText = '-';
+  $priceFullText = '';
+  if ($priceAmount !== null && $priceAmount !== '') {
+    $priceText = $formatAedShort($priceAmount);
+    $priceFullText = 'AED ' . number_format((float)$priceAmount, 0, '.', ',');
+  } elseif (!empty($row['price_raw'])) {
+    $parsedRaw = parse_aed_amount((string)$row['price_raw']);
+    if ($parsedRaw !== null) {
+      $priceText = $formatAedShort($parsedRaw);
+      $priceFullText = 'AED ' . number_format((float)$parsedRaw, 0, '.', ',');
+    } else {
+      $priceText = (string)$row['price_raw'];
+    }
+  }
+  $priceVariants = '';
+  $priceVariantsTitle = '';
+  if (!empty($row['price_furnished_amount']) && !empty($row['price_unfurnished_amount'])) {
+    $furnishedText = $formatAedShort($row['price_furnished_amount']);
+    $unfurnishedText = $formatAedShort($row['price_unfurnished_amount']);
+    $priceVariants = 'F: ' . $furnishedText . ' | U: ' . $unfurnishedText;
+    $priceVariantsTitle = 'F: AED ' . number_format((float)$row['price_furnished_amount'], 0, '.', ',')
+      . ' | U: AED ' . number_format((float)$row['price_unfurnished_amount'], 0, '.', ',');
+  }
+  $location = '-';
+  $notes = $row['notes'] ?? '';
+  if (is_string($notes) && stripos($notes, 'location:') === 0) {
+    $location = trim(substr($notes, strlen('location:')));
+    if ($location === '') $location = '-';
+  }
+  $preparedItems[] = [
+    'row' => $row,
+    'price_text' => $priceText,
+    'price_full' => $priceFullText,
+    'price_label' => $priceLabel,
+    'price_variants' => $priceVariants,
+    'price_variants_title' => $priceVariantsTitle,
+    'location' => $location,
+  ];
+}
 ?>
 <div class="row">
   <div class="col-12">
@@ -134,11 +178,16 @@ $formatAedShort = static function ($value): string {
           .table-scroll-top-inner {
             height: 1px;
           }
+          @media (max-width: 991.98px) {
+            .table-scroll-top {
+              display: none;
+            }
+          }
         </style>
         <div class="table-scroll-top mb-2" data-sync="listings-table">
           <div class="table-scroll-top-inner"></div>
         </div>
-        <div class="table-responsive">
+        <div class="table-responsive d-none d-lg-block" data-sync="listings-table">
           <table class="table align-middle text-nowrap mb-0">
             <thead class="bg-light-subtle">
               <tr>
@@ -174,41 +223,8 @@ $formatAedShort = static function ($value): string {
                   <td colspan="12" class="text-center text-muted py-4">No listings found.</td>
                 </tr>
               <?php else: ?>
-                <?php foreach ($items as $row): ?>
-                  <?php
-                    $priceAmount = $row['price_amount'] ?? null;
-                    $priceLabel = $row['price_display_label'] ?? 'Price';
-                    if ($priceLabel === '') $priceLabel = 'Price';
-                    $priceText = '-';
-                    $priceFullText = '';
-                    if ($priceAmount !== null && $priceAmount !== '') {
-                      $priceText = $formatAedShort($priceAmount);
-                      $priceFullText = 'AED ' . number_format((float)$priceAmount, 0, '.', ',');
-                    } elseif (!empty($row['price_raw'])) {
-                      $parsedRaw = parse_aed_amount((string)$row['price_raw']);
-                      if ($parsedRaw !== null) {
-                        $priceText = $formatAedShort($parsedRaw);
-                        $priceFullText = 'AED ' . number_format((float)$parsedRaw, 0, '.', ',');
-                      } else {
-                        $priceText = (string)$row['price_raw'];
-                      }
-                    }
-                    $priceVariants = '';
-                    $priceVariantsTitle = '';
-                    if (!empty($row['price_furnished_amount']) && !empty($row['price_unfurnished_amount'])) {
-                      $furnishedText = $formatAedShort($row['price_furnished_amount']);
-                      $unfurnishedText = $formatAedShort($row['price_unfurnished_amount']);
-                      $priceVariants = 'F: ' . $furnishedText . ' | U: ' . $unfurnishedText;
-                      $priceVariantsTitle = 'F: AED ' . number_format((float)$row['price_furnished_amount'], 0, '.', ',')
-                        . ' | U: AED ' . number_format((float)$row['price_unfurnished_amount'], 0, '.', ',');
-                    }
-                    $location = '-';
-                    $notes = $row['notes'] ?? '';
-                    if (is_string($notes) && stripos($notes, 'location:') === 0) {
-                      $location = trim(substr($notes, strlen('location:')));
-                      if ($location === '') $location = '-';
-                    }
-                  ?>
+                <?php foreach ($preparedItems as $item): ?>
+                  <?php $row = $item['row']; ?>
                   <tr>
                     <td><?= e($row['project_name'] ?? '-') ?></td>
                     <td><?= e($row['unit_ref'] ?? '-') ?></td>
@@ -218,16 +234,16 @@ $formatAedShort = static function ($value): string {
                     <td><?= e($row['property_type'] ?? '-') ?></td>
                     <td>
                       <div class="d-flex align-items-center gap-1">
-                        <span<?= $priceFullText !== '' ? ' title="' . e($priceFullText) . '"' : '' ?>><?= e($priceText) ?></span>
-                        <span class="badge bg-light text-dark border"><?= e($priceLabel) ?></span>
+                        <span<?= $item['price_full'] !== '' ? ' title="' . e($item['price_full']) . '"' : '' ?>><?= e($item['price_text']) ?></span>
+                        <span class="badge bg-light text-dark border"><?= e($item['price_label']) ?></span>
                       </div>
-                      <?php if ($priceVariants !== ''): ?>
-                        <div class="text-muted fs-12" title="<?= e($priceVariantsTitle) ?>"><?= e($priceVariants) ?></div>
+                      <?php if ($item['price_variants'] !== ''): ?>
+                        <div class="text-muted fs-12" title="<?= e($item['price_variants_title']) ?>"><?= e($item['price_variants']) ?></div>
                       <?php endif; ?>
                     </td>
                     <td><?= e($row['listing_type'] ?? '-') ?></td>
                     <td><?= e($row['area'] ?? '-') ?></td>
-                    <td><?= e($location) ?></td>
+                    <td><?= e($item['location']) ?></td>
                     <td>
                       <?php if (!empty($row['brochure_url'])): ?>
                         <a href="<?= e($row['brochure_url']) ?>" target="_blank" rel="noopener">Open</a>
@@ -253,6 +269,70 @@ $formatAedShort = static function ($value): string {
             </tbody>
           </table>
         </div>
+        <div class="d-lg-none">
+          <?php if (!$items): ?>
+            <div class="text-center text-muted py-4">No listings found.</div>
+          <?php else: ?>
+            <?php foreach ($preparedItems as $item): ?>
+              <?php $row = $item['row']; ?>
+              <div class="card border mb-2">
+                <div class="card-body p-3">
+                  <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                      <div class="fw-semibold"><?= e($row['project_name'] ?? '-') ?></div>
+                      <div class="text-muted fs-12"><?= e($row['area'] ?? '-') ?></div>
+                      <div class="text-muted fs-12"><?= e($row['developer'] ?? '-') ?></div>
+                    </div>
+                    <?php if (!empty($row['status'])): ?>
+                      <span class="badge bg-light-subtle text-muted border fw-medium fs-13 px-2 py-1"><?= e($row['status']) ?></span>
+                    <?php endif; ?>
+                  </div>
+                  <div class="mt-2 d-flex flex-wrap gap-2">
+                    <?php if (!empty($row['listing_type'])): ?>
+                      <span class="badge bg-light-subtle text-dark border fw-medium fs-13 px-2 py-1"><?= e($row['listing_type']) ?></span>
+                    <?php endif; ?>
+                    <?php if (!empty($row['property_type'])): ?>
+                      <span class="badge bg-light-subtle text-dark border fw-medium fs-13 px-2 py-1"><?= e($row['property_type']) ?></span>
+                    <?php endif; ?>
+                    <?php if (!empty($row['beds_raw']) || $row['beds'] !== null): ?>
+                      <span class="badge bg-light-subtle text-dark border fw-medium fs-13 px-2 py-1">
+                        <?= e($row['beds_raw'] ?? (string)$row['beds']) ?> Beds
+                      </span>
+                    <?php endif; ?>
+                  </div>
+                  <div class="mt-2">
+                    <div class="d-flex align-items-center gap-1">
+                      <span<?= $item['price_full'] !== '' ? ' title="' . e($item['price_full']) . '"' : '' ?>><?= e($item['price_text']) ?></span>
+                      <span class="badge bg-light text-dark border"><?= e($item['price_label']) ?></span>
+                    </div>
+                    <?php if ($item['price_variants'] !== ''): ?>
+                      <div class="text-muted fs-12" title="<?= e($item['price_variants_title']) ?>"><?= e($item['price_variants']) ?></div>
+                    <?php endif; ?>
+                  </div>
+                  <div class="mt-2 small text-muted">
+                    <div><span class="text-dark fw-semibold">Unit:</span> <?= e($row['unit_ref'] ?? '-') ?></div>
+                    <div><span class="text-dark fw-semibold">Location:</span> <?= e($item['location']) ?></div>
+                  </div>
+                  <div class="mt-3 d-flex flex-wrap gap-2">
+                    <a class="btn btn-light btn-sm flex-fill" href="<?= e(url('listings/show?id=' . $row['id'])) ?>">View</a>
+                    <?php if (!empty($row['brochure_url'])): ?>
+                      <a class="btn btn-outline-secondary btn-sm flex-fill" href="<?= e($row['brochure_url']) ?>" target="_blank" rel="noopener">Brochure</a>
+                    <?php endif; ?>
+                    <?php if ($canEdit): ?>
+                      <a class="btn btn-soft-primary btn-sm flex-fill" href="<?= e(url('listings/edit?id=' . $row['id'])) ?>">Edit</a>
+                      <form class="flex-fill" method="post" action="<?= e(url('listings/delete')) ?>" onsubmit="return confirm('Delete this listing? This cannot be undone.');">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="id" value="<?= e((string)$row['id']) ?>">
+                        <input type="hidden" name="return" value="<?= e($returnPath) ?>">
+                        <button class="btn btn-soft-danger btn-sm w-100" type="submit">Delete</button>
+                      </form>
+                    <?php endif; ?>
+                  </div>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </div>
         <?php if (!empty($meta)): ?>
           <div class="text-muted fs-12 mt-3">
             Total: <?= e((string)($meta['total'] ?? count($items))) ?>
@@ -268,7 +348,7 @@ $formatAedShort = static function ($value): string {
 <script>
   (function() {
     var top = document.querySelector('.table-scroll-top[data-sync="listings-table"]');
-    var bottom = document.querySelector('.table-responsive');
+    var bottom = document.querySelector('.table-responsive[data-sync="listings-table"]');
     if (!top || !bottom) return;
     var inner = top.querySelector('.table-scroll-top-inner');
     var table = bottom.querySelector('table');

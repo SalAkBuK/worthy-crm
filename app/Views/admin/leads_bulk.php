@@ -10,16 +10,65 @@ $agents = $agents ?? [];
 <div class="row g-4">
   <div class="col-12">
     <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center border-bottom">
-        <div>
-          <h4 class="card-title mb-0">Bulk Leads</h4>
-        </div>
-        <form method="post" action="<?= e(url('admin/leads/bulk/clear')) ?>">
-          <?= csrf_field() ?>
-          <button class="btn btn-sm btn-outline-secondary" type="submit">Clear Imported Rows</button>
-        </form>
+    <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 border-bottom">
+      <div>
+        <h4 class="card-title mb-0">Bulk Leads</h4>
       </div>
-      <div class="card-body">
+      <form method="post" action="<?= e(url('admin/leads/bulk/clear')) ?>">
+        <?= csrf_field() ?>
+        <button class="btn btn-sm btn-outline-secondary btn-mobile-full" type="submit">Clear Imported Rows</button>
+      </form>
+    </div>
+    <div class="card-body">
+      <style>
+        @media (max-width: 767.98px) {
+          .btn-mobile-full {
+            width: 100%;
+          }
+          .bulk-assign-controls .form-select,
+          .bulk-assign-controls .btn {
+            width: 100%;
+          }
+          .admin-bulk-table thead {
+            display: none;
+          }
+          .admin-bulk-table,
+          .admin-bulk-table tbody,
+          .admin-bulk-table tr,
+          .admin-bulk-table td {
+            display: block;
+            width: 100%;
+          }
+          .admin-bulk-table tr {
+            border: 1px solid var(--bs-border-color, #dee2e6);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            background: #fff;
+          }
+          .admin-bulk-table td {
+            padding: 6px 0;
+          }
+          .admin-bulk-table td::before {
+            content: attr(data-label);
+            display: block;
+            font-weight: 600;
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 4px;
+          }
+          .admin-bulk-table td.actions {
+            padding-top: 10px;
+          }
+          .admin-bulk-table td.actions::before {
+            content: '';
+            margin: 0;
+          }
+          .admin-bulk-table td.actions .btn {
+            width: 100%;
+          }
+        }
+      </style>
         <?php if ($importErrors): ?>
           <div class="alert alert-danger">
             <div class="fw-semibold mb-1">CSV import errors</div>
@@ -66,8 +115,8 @@ $agents = $agents ?? [];
                 <?php endforeach; ?>
               </select>
             </div>
-            <div class="col-12 d-flex justify-content-end">
-              <button class="btn btn-outline-primary" type="submit">
+            <div class="col-12 d-grid d-sm-flex justify-content-sm-end">
+              <button class="btn btn-outline-primary btn-mobile-full" type="submit">
                 <i class="ri-upload-2-line me-1"></i>Import CSV
               </button>
             </div>
@@ -78,8 +127,8 @@ $agents = $agents ?? [];
           <?= csrf_field() ?>
           <input type="hidden" name="form_type" value="bulk">
 
-          <div class="d-flex flex-wrap gap-3 justify-content-end mb-2">
-            <div class="d-flex align-items-center gap-2">
+          <div class="d-flex flex-column flex-sm-row flex-wrap gap-3 justify-content-end mb-2 bulk-assign-controls">
+            <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2">
               <span class="badge rounded-pill bg-light-subtle text-dark border bulk-assign-pill">Assign selected</span>
               <select class="form-select" data-assign-selected>
                 <option value="">Select agent</option>
@@ -89,7 +138,7 @@ $agents = $agents ?? [];
               </select>
               <button class="btn btn-outline-primary" type="button" data-apply-selected>Apply</button>
             </div>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2">
               <span class="badge rounded-pill bg-light-subtle text-dark border bulk-assign-pill">Assign all</span>
               <select class="form-select" data-assign-all>
                 <option value="">Select agent</option>
@@ -100,9 +149,13 @@ $agents = $agents ?? [];
               <button class="btn btn-outline-primary" type="button" data-apply-assign>Apply</button>
             </div>
           </div>
+          <div class="d-flex align-items-center gap-2 d-lg-none mb-2">
+            <input class="form-check-input" type="checkbox" id="bulkSelectAllMobile" data-bulk-select-all>
+            <label class="form-check-label" for="bulkSelectAllMobile">Select all rows</label>
+          </div>
 
           <div class="table-responsive">
-            <table class="table align-middle text-nowrap table-hover table-centered mb-0">
+            <table class="table align-middle text-nowrap table-hover table-centered mb-0 admin-bulk-table">
               <thead class="bg-light-subtle">
               <tr>
                 <th style="width:32px;">
@@ -119,7 +172,7 @@ $agents = $agents ?? [];
                 <th>Budget (AED)</th>
                 <th>Lead Status</th>
                 <th class="form-required">Agent</th>
-                <th style="width:110px;"></th>
+                <th class="text-end">Actions</th>
               </tr>
               </thead>
               <tbody id="leadRows">
@@ -130,26 +183,26 @@ $agents = $agents ?? [];
                 foreach ($rows as $i=>$r):
               ?>
               <tr class="<?= isset($rowErrors[$i]) ? 'table-danger' : '' ?>">
-                <td>
+                <td data-label="Select">
                   <input class="form-check-input" type="checkbox" data-bulk-select-item>
                 </td>
-                <td class="text-muted" data-idx><?= $i+1 ?></td>
-                <td><input class="form-control" data-base="lead_name" value="<?= e($r['lead_name'] ?? '') ?>"></td>
-                <td><input class="form-control" data-base="contact_email" value="<?= e($r['contact_email'] ?? '') ?>"></td>
-                <td><input type="tel" class="form-control" data-base="contact_phone" value="<?= e($r['contact_phone'] ?? '') ?>" placeholder="+971 5x xxx xxxx"></td>
-                <td><input class="form-control" data-base="interested_in_property" value="<?= e($r['interested_in_property'] ?? '') ?>"></td>
-                <td><input class="form-control" data-base="property_interest_types" value="<?= e($r['property_interest_types'] ?? '') ?>" placeholder="Unit, Villa, Land"></td>
-                <td>
+                <td class="text-muted" data-idx data-label="#"> <?= $i+1 ?></td>
+                <td data-label="Name"><input class="form-control" data-base="lead_name" value="<?= e($r['lead_name'] ?? '') ?>"></td>
+                <td data-label="Email"><input class="form-control" data-base="contact_email" value="<?= e($r['contact_email'] ?? '') ?>"></td>
+                <td data-label="Phone"><input type="tel" class="form-control" data-base="contact_phone" value="<?= e($r['contact_phone'] ?? '') ?>" placeholder="+971 5x xxx xxxx"></td>
+                <td data-label="Interested In Property"><input class="form-control" data-base="interested_in_property" value="<?= e($r['interested_in_property'] ?? '') ?>"></td>
+                <td data-label="Interest Types"><input class="form-control" data-base="property_interest_types" value="<?= e($r['property_interest_types'] ?? '') ?>" placeholder="Unit, Villa, Land"></td>
+                <td data-label="Type">
                   <select class="form-select" data-base="property_type">
                     <option value="" <?= (($r['property_type'] ?? '')==='')?'selected':'' ?>>Select type</option>
                     <option value="OFF_PLAN" <?= (($r['property_type'] ?? '')==='OFF_PLAN')?'selected':'' ?>>Off Plan</option>
                     <option value="READY_TO_MOVE" <?= (($r['property_type'] ?? '')==='READY_TO_MOVE')?'selected':'' ?>>Ready To Move</option>
                   </select>
                 </td>
-                <td><input class="form-control" data-base="area" value="<?= e($r['area'] ?? '') ?>"></td>
-                <td><input class="form-control" data-base="budget_aed_range" value="<?= e($r['budget_aed_range'] ?? '') ?>" placeholder="600,000 - 900,000"></td>
-                <td><input class="form-control" data-base="lead_status" value="<?= e($r['lead_status'] ?? '') ?>"></td>
-                <td>
+                <td data-label="Area"><input class="form-control" data-base="area" value="<?= e($r['area'] ?? '') ?>"></td>
+                <td data-label="Budget (AED)"><input class="form-control" data-base="budget_aed_range" value="<?= e($r['budget_aed_range'] ?? '') ?>" placeholder="600,000 - 900,000"></td>
+                <td data-label="Lead Status"><input class="form-control" data-base="lead_status" value="<?= e($r['lead_status'] ?? '') ?>"></td>
+                <td data-label="Agent">
                   <select class="form-select" data-base="assigned_agent_user_id">
                     <option value="">Select agent</option>
                     <?php foreach ($agents as $a): ?>
@@ -159,7 +212,7 @@ $agents = $agents ?? [];
                     <?php endforeach; ?>
                   </select>
                 </td>
-                <td>
+                <td class="actions" data-label="Actions">
                   <button class="btn btn-sm btn-soft-danger" data-remove-row type="button">Remove</button>
                   <?php if (isset($rowErrors[$i])): ?>
                     <div class="small text-danger mt-1">
@@ -175,26 +228,26 @@ $agents = $agents ?? [];
 
           <template id="leadRowTemplate">
             <tr>
-              <td>
+              <td data-label="Select">
                 <input class="form-check-input" type="checkbox" data-bulk-select-item>
               </td>
-              <td class="text-muted" data-idx>1</td>
-              <td><input class="form-control" data-base="lead_name"></td>
-              <td><input class="form-control" data-base="contact_email"></td>
-              <td><input type="tel" class="form-control" data-base="contact_phone" placeholder="+971 5x xxx xxxx"></td>
-              <td><input class="form-control" data-base="interested_in_property"></td>
-              <td><input class="form-control" data-base="property_interest_types" placeholder="Unit, Villa, Land"></td>
-              <td>
+              <td class="text-muted" data-idx data-label="#">1</td>
+              <td data-label="Name"><input class="form-control" data-base="lead_name"></td>
+              <td data-label="Email"><input class="form-control" data-base="contact_email"></td>
+              <td data-label="Phone"><input type="tel" class="form-control" data-base="contact_phone" placeholder="+971 5x xxx xxxx"></td>
+              <td data-label="Interested In Property"><input class="form-control" data-base="interested_in_property"></td>
+              <td data-label="Interest Types"><input class="form-control" data-base="property_interest_types" placeholder="Unit, Villa, Land"></td>
+              <td data-label="Type">
                 <select class="form-select" data-base="property_type">
                   <option value="">Select type</option>
                   <option value="OFF_PLAN">Off Plan</option>
                   <option value="READY_TO_MOVE">Ready To Move</option>
                 </select>
               </td>
-              <td><input class="form-control" data-base="area"></td>
-              <td><input class="form-control" data-base="budget_aed_range" placeholder="600,000 - 900,000"></td>
-              <td><input class="form-control" data-base="lead_status"></td>
-              <td>
+              <td data-label="Area"><input class="form-control" data-base="area"></td>
+              <td data-label="Budget (AED)"><input class="form-control" data-base="budget_aed_range" placeholder="600,000 - 900,000"></td>
+              <td data-label="Lead Status"><input class="form-control" data-base="lead_status"></td>
+              <td data-label="Agent">
                 <select class="form-select" data-base="assigned_agent_user_id">
                   <option value="">Select agent</option>
                   <?php foreach ($agents as $a): ?>
@@ -202,12 +255,12 @@ $agents = $agents ?? [];
                   <?php endforeach; ?>
                 </select>
               </td>
-              <td><button class="btn btn-sm btn-soft-danger" data-remove-row type="button">Remove</button></td>
+              <td class="actions" data-label="Actions"><button class="btn btn-sm btn-soft-danger" data-remove-row type="button">Remove</button></td>
             </tr>
           </template>
 
-          <div class="d-flex justify-content-end mt-3">
-            <button class="btn btn-primary" type="submit">
+          <div class="d-grid d-sm-flex justify-content-sm-end mt-3">
+            <button class="btn btn-primary btn-mobile-full" type="submit">
               <i class="ri-save-line me-1"></i>Save All Leads
             </button>
           </div>

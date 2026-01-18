@@ -16,6 +16,17 @@ $days = array_map(fn($r)=>$r['day'], $byDay);
 $dayCounts = array_map(fn($r)=>(int)$r['c'], $byDay);
 ?>
 
+<style>
+  @media (max-width: 575.98px) {
+    .ceo-agent-actions {
+      width: 100%;
+    }
+    .ceo-agent-actions .btn {
+      width: 100%;
+    }
+  }
+</style>
+
 <div class="row">
   <div class="col-12">
     <div class="card">
@@ -31,7 +42,7 @@ $dayCounts = array_map(fn($r)=>(int)$r['c'], $byDay);
             <div class="text-dark fw-medium fs-16"><?= e($agentName) ?></div>
             <p class="mb-0 text-muted">@<?= e($agent['username']) ?></p>
           </div>
-          <div class="ms-lg-auto d-flex gap-2">
+          <div class="ms-lg-auto d-flex flex-column flex-sm-row gap-2 ceo-agent-actions">
             <a class="btn btn-outline-secondary" href="<?= e(url('ceo/dashboard')) ?>">Back</a>
             <a class="btn btn-outline-success" href="<?= e(url('ceo/export?agent_id='.$agent['id'].'&from='.e($filters['from'] ?? '').'&to='.e($filters['to'] ?? ''))) ?>">Export CSV</a>
           </div>
@@ -171,7 +182,14 @@ $dayCounts = array_map(fn($r)=>(int)$r['c'], $byDay);
         <?php if (!$leads): ?>
           <div class="text-muted text-center py-5">No leads found.</div>
         <?php else: ?>
-          <div class="table-responsive">
+          <style>
+            @media (max-width: 991.98px) {
+              .ceo-agent-lead-cards .btn {
+                width: 100%;
+              }
+            }
+          </style>
+          <div class="table-responsive d-none d-lg-block">
             <table class="table align-middle text-nowrap table-hover table-centered mb-0">
               <thead class="bg-light-subtle">
                 <tr>
@@ -210,6 +228,39 @@ $dayCounts = array_map(fn($r)=>(int)$r['c'], $byDay);
                 <?php endforeach; ?>
               </tbody>
             </table>
+          </div>
+          <div class="d-lg-none p-3 ceo-agent-lead-cards">
+            <?php foreach ($leads as $l):
+              $callStatus = $l['last_call_status'] ?? '-';
+              $interestStatus = $l['last_interested_status'] ?? '-';
+              $callClass = $callStatus === 'RESPONDED' ? 'bg-success-subtle text-success' : 'bg-light text-muted';
+              $interestClass = $interestStatus === 'INTERESTED' ? 'bg-success-subtle text-success' : ($interestStatus === 'NOT_INTERESTED' ? 'bg-danger-subtle text-danger' : 'bg-light text-muted');
+              $email = trim((string)($l['contact_email'] ?? ''));
+              $propertyType = $l['property_type'] ?? '-';
+            ?>
+              <div class="card border mb-2">
+                <div class="card-body p-3">
+                  <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div class="fw-semibold" style="word-break: break-word;"><?= e($l['lead_name'] ?? '-') ?></div>
+                    <span class="badge <?= e($callClass) ?> py-1 px-2 fs-13"><?= e($callStatus) ?></span>
+                  </div>
+                  <div class="text-muted fs-12 mt-1"><?= e($email !== '' ? $email : '-') ?></div>
+                  <div class="mt-2 d-flex flex-wrap gap-2">
+                    <span class="badge bg-light-subtle text-muted border"><?= e($propertyType) ?></span>
+                    <span class="badge <?= e($interestClass) ?> py-1 px-2 fs-13"><?= e($interestStatus) ?></span>
+                  </div>
+                  <div class="small text-muted mt-2">
+                    <div><span class="text-dark fw-semibold">Created:</span> <?= e($l['created_at']) ?></div>
+                    <div><span class="text-dark fw-semibold">Followups:</span> <?= e((string)$l['followups']) ?></div>
+                  </div>
+                  <div class="mt-3">
+                    <a class="btn btn-soft-primary btn-sm" href="<?= e(url('admin/lead?id='.$l['id'].'&return='.urlencode('ceo/agent?agent_id='.$agent['id'].'&from='.($filters['from'] ?? '').'&to='.($filters['to'] ?? '').'&q='.($filters['q'] ?? '')))) ?>">
+                      <i class="ri-eye-line me-1"></i>View
+                    </a>
+                  </div>
+                </div>
+              </div>
+            <?php endforeach; ?>
           </div>
         <?php endif; ?>
       </div>

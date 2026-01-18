@@ -13,7 +13,7 @@ $blockReason = $blockReason ?? null;
 <div class="row g-4">
   <div class="col-lg-5">
     <div class="card">
-      <div class="card-header bg-light-subtle d-flex justify-content-between align-items-start border-bottom">
+      <div class="card-header bg-light-subtle d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 border-bottom">
         <div>
           <h4 class="card-title mb-1"><?= e($lead['lead_name']) ?></h4>
           <?php
@@ -41,7 +41,7 @@ $blockReason = $blockReason ?? null;
             <span class="badge bg-<?= e($cls) ?>-subtle text-<?= e($cls) ?> fw-medium fs-13 px-2 py-1"><?= e($s) ?></span>
           </div>
         </div>
-        <a class="btn btn-sm btn-outline-light" href="<?= e(url('agent/leads')) ?>">
+        <a class="btn btn-sm btn-outline-light w-100 w-sm-auto" href="<?= e(url('agent/leads')) ?>">
           <i class="ri-arrow-left-line me-1"></i>Back
         </a>
       </div>
@@ -83,7 +83,7 @@ $blockReason = $blockReason ?? null;
           </div>
         </div>
 
-        <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-1">
           <div class="fw-semibold">Completion Progress</div>
           <div class="text-muted">
             <?= $isClosed ? 'Completed' : e((string)$completed) . '/3 attempts' ?>
@@ -107,7 +107,7 @@ $blockReason = $blockReason ?? null;
         <?php else: ?>
           <?php foreach ($followups as $f): ?>
             <div class="border rounded-3 p-3 mb-2 bg-light-subtle">
-              <div class="d-flex justify-content-between">
+              <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-1">
                 <div class="fw-semibold">Attempt #<?= e((string)$f['attempt_no']) ?></div>
                 <div class="text-muted small"><?= e($f['contact_datetime']) ?></div>
               </div>
@@ -142,7 +142,8 @@ $blockReason = $blockReason ?? null;
                 $notes = (string)($f['notes'] ?? '');
                 $notesShort = mb_strimwidth($notes, 0, 80, '...');
               ?>
-              <div class="text-muted small mt-2" title="<?= e($notes) ?>"><?= e($notesShort) ?></div>
+              <div class="text-muted small mt-2 d-none d-sm-block" title="<?= e($notes) ?>"><?= e($notesShort) ?></div>
+              <div class="text-muted small mt-2 d-sm-none" style="white-space: pre-wrap;"><?= e($notes) ?></div>
               <div class="mt-2 d-flex flex-wrap gap-2">
                 <a class="btn btn-sm btn-soft-primary" target="_blank" href="<?= e(url($f['call_screenshot_path'])) ?>">
                   <i class="ri-image-line me-1"></i>Call
@@ -162,7 +163,7 @@ $blockReason = $blockReason ?? null;
 
   <div class="col-lg-7">
     <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center border-bottom">
+      <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 border-bottom">
         <div>
           <h4 class="card-title mb-1">Add Follow-up</h4>
           <p class="text-muted mb-0 fs-13">Attempt #<?= e((string)$nextAttempt) ?> (sequence enforced)</p>
@@ -400,8 +401,8 @@ $blockReason = $blockReason ?? null;
               <input type="file" class="form-control" name="whatsapp_screenshot" accept=".jpg,.jpeg,.png,.webp" <?= $followupBlocked ? 'disabled' : '' ?>>
             </div>
 
-            <div class="col-12 d-flex justify-content-end">
-              <button class="btn btn-primary" type="submit" <?= $followupBlocked ? 'disabled' : '' ?>>
+            <div class="col-12 d-grid d-sm-flex justify-content-sm-end">
+              <button class="btn btn-primary w-100 w-sm-auto" type="submit" <?= $followupBlocked ? 'disabled' : '' ?>>
                 <i class="ri-save-line me-1"></i>Save Attempt #<?= e((string)$nextAttempt) ?>
               </button>
             </div>

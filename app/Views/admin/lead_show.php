@@ -8,7 +8,7 @@ $role = $user['role'] ?? '';
 $canDelete = in_array($role, ['ADMIN', 'CEO'], true);
 ?>
 <div class="card">
-  <div class="card-header bg-light-subtle d-flex justify-content-between align-items-start border-bottom">
+  <div class="card-header bg-light-subtle d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 border-bottom">
     <div>
       <h4 class="card-title mb-1"><?= e($lead['lead_name']) ?></h4>
       <?php
@@ -36,12 +36,12 @@ $canDelete = in_array($role, ['ADMIN', 'CEO'], true);
         <span class="badge bg-<?= e($cls) ?>-subtle text-<?= e($cls) ?> fw-medium fs-13 px-2 py-1"><?= e($s) ?></span>
       </div>
     </div>
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2 w-100 w-sm-auto">
       <?php if (($lead['status_overall'] ?? '') === 'CLOSED'): ?>
         <form method="post" action="<?= e(url('admin/lead/reopen')) ?>" onsubmit="return confirm('Reopen this lead to allow more attempts?');">
           <?= csrf_field() ?>
           <input type="hidden" name="id" value="<?= e((string)$lead['id']) ?>">
-          <button class="btn btn-sm btn-primary" type="submit">
+          <button class="btn btn-sm btn-primary w-100 w-sm-auto" type="submit">
             <i class="ri-refresh-line me-1"></i>Reopen
           </button>
         </form>
@@ -51,18 +51,18 @@ $canDelete = in_array($role, ['ADMIN', 'CEO'], true);
           <?= csrf_field() ?>
           <input type="hidden" name="id" value="<?= e((string)$lead['id']) ?>">
           <input type="hidden" name="return" value="<?= e($safeReturn) ?>">
-          <button class="btn btn-sm btn-soft-danger" type="submit">
+          <button class="btn btn-sm btn-soft-danger w-100 w-sm-auto" type="submit">
             <i class="ri-delete-bin-line me-1"></i>Delete
           </button>
         </form>
       <?php endif; ?>
-      <a class="btn btn-sm btn-outline-light" href="<?= e(url($safeReturn)) ?>">
+      <a class="btn btn-sm btn-outline-light w-100 w-sm-auto" href="<?= e(url($safeReturn)) ?>">
         <i class="ri-arrow-left-line me-1"></i>Back
       </a>
     </div>
   </div>
   <div class="card-body">
-    <div class="row g-3">
+    <div class="row g-3 d-none d-md-flex">
       <div class="col-md-6">
         <label class="form-label text-muted mb-1">Interested In</label>
         <div class="fw-semibold"><?= e($lead['interested_in_property']) ?></div>
@@ -70,6 +70,20 @@ $canDelete = in_array($role, ['ADMIN', 'CEO'], true);
       <div class="col-md-6">
         <label class="form-label text-muted mb-1">Assigned Agent</label>
         <div class="fw-semibold"><?= e($lead['agent_name']) ?></div>
+      </div>
+    </div>
+    <div class="d-md-none">
+      <div class="card border mb-2">
+        <div class="card-body p-3">
+          <div class="text-muted fs-12">Interested In</div>
+          <div class="fw-semibold"><?= e($lead['interested_in_property']) ?></div>
+        </div>
+      </div>
+      <div class="card border">
+        <div class="card-body p-3">
+          <div class="text-muted fs-12">Assigned Agent</div>
+          <div class="fw-semibold"><?= e($lead['agent_name']) ?></div>
+        </div>
       </div>
     </div>
   </div>
@@ -82,7 +96,7 @@ $canDelete = in_array($role, ['ADMIN', 'CEO'], true);
       <div class="text-muted">No follow-ups yet.</div>
     </div>
   <?php else: ?>
-    <div class="table-responsive">
+    <div class="table-responsive d-none d-lg-block">
       <table class="table align-middle text-nowrap table-hover table-centered mb-0">
         <thead class="bg-light-subtle">
           <tr>
@@ -155,6 +169,57 @@ $canDelete = in_array($role, ['ADMIN', 'CEO'], true);
           <?php endforeach; ?>
         </tbody>
       </table>
+    </div>
+    <div class="d-lg-none">
+      <?php foreach ($followups as $f): ?>
+        <?php
+          $details = [];
+          if (!empty($f['intent'])) $details[] = $f['intent'];
+          if (!empty($f['buy_property_type'])) $details[] = $f['buy_property_type'];
+          if (!empty($f['unit_type'])) $details[] = $f['unit_type'];
+          if (!empty($f['location'])) $details[] = 'Loc: ' . $f['location'];
+          if (!empty($f['building'])) $details[] = 'Bldg: ' . $f['building'];
+          if (!empty($f['size_sqft'])) $details[] = 'Sqft: ' . $f['size_sqft'];
+          if (!empty($f['beds'])) $details[] = 'Beds: ' . $f['beds'];
+          if (!empty($f['budget'])) $details[] = 'Budget: ' . $f['budget'] . ' AED';
+          if (!empty($f['downpayment'])) $details[] = 'Down: ' . $f['downpayment'] . '%';
+          if (!empty($f['rent_per_month'])) $details[] = 'Rent/M: ' . $f['rent_per_month'] . ' AED';
+          if (!empty($f['rent_per_year_budget'])) $details[] = 'Rent/Y: ' . $f['rent_per_year_budget'] . ' AED';
+          if (!empty($f['cheques'])) $details[] = 'Cheques: ' . $f['cheques'];
+          if (!empty($f['next_followup_at'])) $details[] = 'Next: ' . $f['next_followup_at'];
+          $detailsStr = $details ? implode(' | ', $details) : '-';
+        ?>
+        <div class="card border mb-2">
+          <div class="card-body p-3">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div class="fw-semibold">Attempt #<?= e((string)$f['attempt_no']) ?></div>
+              <div class="text-muted fs-12"><?= e($f['contact_datetime']) ?></div>
+            </div>
+            <div class="mt-2 d-flex flex-wrap gap-2">
+              <span class="badge bg-light-subtle text-muted border fw-medium fs-13 px-2 py-1"><?= e($f['call_status']) ?></span>
+              <?php if (!in_array($f['call_status'], ['NO_RESPONSE','ASK_CONTACT_LATER'], true)): ?>
+                <span class="badge bg-light-subtle text-muted border fw-medium fs-13 px-2 py-1"><?= e($f['interested_status']) ?></span>
+              <?php endif; ?>
+            </div>
+            <div class="small text-muted mt-2"><?= e($detailsStr) ?></div>
+            <div class="text-muted small mt-2" style="white-space: pre-wrap;"><?= e((string)$f['notes']) ?></div>
+            <div class="mt-2 d-flex flex-wrap gap-2">
+              <?php if (!empty($f['call_screenshot_path'])): ?>
+                <a class="btn btn-sm btn-soft-primary" target="_blank" href="<?= e(url($f['call_screenshot_path'])) ?>">
+                  <i class="ri-image-line me-1"></i>Call
+                </a>
+              <?php else: ?>
+                <span class="text-muted">No call proof</span>
+              <?php endif; ?>
+              <?php if ((int)$f['whatsapp_contacted'] === 1 && $f['whatsapp_screenshot_path']): ?>
+                <a class="btn btn-sm btn-soft-success" target="_blank" href="<?= e(url($f['whatsapp_screenshot_path'])) ?>">
+                  <i class="ri-whatsapp-line me-1"></i>WhatsApp
+                </a>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+      <?php endforeach; ?>
     </div>
   <?php endif; ?>
 </div>

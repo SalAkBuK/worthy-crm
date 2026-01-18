@@ -30,12 +30,12 @@ $leadDisplayName = function (?string $name): string {
 <div class="row g-4">
   <div class="col-12">
     <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center border-bottom">
+      <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 border-bottom">
         <div>
           <h4 class="card-title mb-1">Individual Leads</h4>
           <p class="text-muted mb-0 fs-13">Add a single lead and assign an agent.</p>
         </div>
-        <button class="btn btn-sm btn-primary" type="button" data-add-individual-row>
+        <button class="btn btn-sm btn-primary btn-mobile-full" type="button" data-add-individual-row>
           <i class="ri-add-line me-1"></i>Add Row
         </button>
       </div>
@@ -43,8 +43,53 @@ $leadDisplayName = function (?string $name): string {
         <form method="post" action="<?= e(url('admin/leads')) ?>">
           <?= csrf_field() ?>
           <input type="hidden" name="form_type" value="individual">
+          <style>
+            @media (max-width: 767.98px) {
+              .btn-mobile-full {
+                width: 100%;
+              }
+              .admin-individual-table thead {
+                display: none;
+              }
+              .admin-individual-table,
+              .admin-individual-table tbody,
+              .admin-individual-table tr,
+              .admin-individual-table td {
+                display: block;
+                width: 100%;
+              }
+              .admin-individual-table tr {
+                border: 1px solid var(--bs-border-color, #dee2e6);
+                border-radius: 12px;
+                padding: 12px;
+                margin-bottom: 12px;
+                background: #fff;
+              }
+              .admin-individual-table td {
+                padding: 6px 0;
+              }
+              .admin-individual-table td::before {
+                content: attr(data-label);
+                display: block;
+                font-weight: 600;
+                font-size: 12px;
+                color: #6c757d;
+                margin-bottom: 4px;
+              }
+              .admin-individual-table td.actions {
+                padding-top: 10px;
+              }
+              .admin-individual-table td.actions::before {
+                content: '';
+                margin: 0;
+              }
+              .admin-individual-table td.actions .btn {
+                width: 100%;
+              }
+            }
+          </style>
           <div class="table-responsive">
-            <table class="table align-middle text-nowrap table-hover table-centered mb-0">
+            <table class="table align-middle text-nowrap table-hover table-centered mb-0 admin-individual-table">
               <thead class="bg-light-subtle">
               <tr>
                 <th>Name</th>
@@ -57,7 +102,7 @@ $leadDisplayName = function (?string $name): string {
                 <th>Budget (AED)</th>
                 <th>Lead Status</th>
                 <th class="form-required">Agent</th>
-                <th style="width:110px;"></th>
+                <th class="text-end">Actions</th>
               </tr>
               </thead>
               <tbody id="individualLeadRows">
@@ -68,22 +113,22 @@ $leadDisplayName = function (?string $name): string {
                   foreach ($rows as $i => $r):
                 ?>
                 <tr class="<?= isset($rowErrors[$i]) ? 'table-danger' : '' ?>">
-                  <td><input class="form-control" data-base="lead_name" name="rows[<?= $i ?>][lead_name]" value="<?= e($r['lead_name'] ?? '') ?>"></td>
-                  <td><input class="form-control" data-base="contact_email" name="rows[<?= $i ?>][contact_email]" value="<?= e($r['contact_email'] ?? '') ?>"></td>
-                  <td><input type="tel" class="form-control" data-base="contact_phone" name="rows[<?= $i ?>][contact_phone]" value="<?= e($r['contact_phone'] ?? '') ?>" placeholder="+971 5x xxx xxxx"></td>
-                  <td><input class="form-control" data-base="interested_in_property" name="rows[<?= $i ?>][interested_in_property]" value="<?= e($r['interested_in_property'] ?? '') ?>"></td>
-                  <td><input class="form-control" data-base="property_interest_types" name="rows[<?= $i ?>][property_interest_types]" value="<?= e($r['property_interest_types'] ?? '') ?>" placeholder="Unit, Villa, Land"></td>
-                  <td>
+                  <td data-label="Name"><input class="form-control" data-base="lead_name" name="rows[<?= $i ?>][lead_name]" value="<?= e($r['lead_name'] ?? '') ?>"></td>
+                  <td data-label="Email"><input class="form-control" data-base="contact_email" name="rows[<?= $i ?>][contact_email]" value="<?= e($r['contact_email'] ?? '') ?>"></td>
+                  <td data-label="Phone"><input type="tel" class="form-control" data-base="contact_phone" name="rows[<?= $i ?>][contact_phone]" value="<?= e($r['contact_phone'] ?? '') ?>" placeholder="+971 5x xxx xxxx"></td>
+                  <td data-label="Interested In Property"><input class="form-control" data-base="interested_in_property" name="rows[<?= $i ?>][interested_in_property]" value="<?= e($r['interested_in_property'] ?? '') ?>"></td>
+                  <td data-label="Interest Types"><input class="form-control" data-base="property_interest_types" name="rows[<?= $i ?>][property_interest_types]" value="<?= e($r['property_interest_types'] ?? '') ?>" placeholder="Unit, Villa, Land"></td>
+                  <td data-label="Type">
                     <select class="form-select" data-base="property_type" name="rows[<?= $i ?>][property_type]">
                       <option value="" <?= (($r['property_type'] ?? '')==='')?'selected':'' ?>>Select type</option>
                       <option value="OFF_PLAN" <?= (($r['property_type'] ?? '')==='OFF_PLAN')?'selected':'' ?>>Off Plan</option>
                       <option value="READY_TO_MOVE" <?= (($r['property_type'] ?? '')==='READY_TO_MOVE')?'selected':'' ?>>Ready To Move</option>
                     </select>
                   </td>
-                  <td><input class="form-control" data-base="area" name="rows[<?= $i ?>][area]" value="<?= e($r['area'] ?? '') ?>"></td>
-                  <td><input class="form-control" data-base="budget_aed_range" name="rows[<?= $i ?>][budget_aed_range]" value="<?= e($r['budget_aed_range'] ?? '') ?>" placeholder="600,000 - 900,000"></td>
-                  <td><input class="form-control" data-base="lead_status" name="rows[<?= $i ?>][lead_status]" value="<?= e($r['lead_status'] ?? '') ?>"></td>
-                  <td>
+                  <td data-label="Area"><input class="form-control" data-base="area" name="rows[<?= $i ?>][area]" value="<?= e($r['area'] ?? '') ?>"></td>
+                  <td data-label="Budget (AED)"><input class="form-control" data-base="budget_aed_range" name="rows[<?= $i ?>][budget_aed_range]" value="<?= e($r['budget_aed_range'] ?? '') ?>" placeholder="600,000 - 900,000"></td>
+                  <td data-label="Lead Status"><input class="form-control" data-base="lead_status" name="rows[<?= $i ?>][lead_status]" value="<?= e($r['lead_status'] ?? '') ?>"></td>
+                  <td data-label="Agent">
                     <select class="form-select" data-base="assigned_agent_user_id" name="rows[<?= $i ?>][assigned_agent_user_id]">
                       <option value="">Select agent</option>
                       <?php foreach ($agents as $a): ?>
@@ -93,7 +138,7 @@ $leadDisplayName = function (?string $name): string {
                       <?php endforeach; ?>
                     </select>
                   </td>
-                  <td>
+                  <td class="actions" data-label="Actions">
                     <button class="btn btn-sm btn-soft-danger" type="button" data-remove-individual-row>Remove</button>
                     <?php if (isset($rowErrors[$i])): ?>
                       <div class="small text-danger mt-1">
@@ -106,24 +151,29 @@ $leadDisplayName = function (?string $name): string {
               </tbody>
             </table>
           </div>
+          <div class="d-grid d-sm-none mt-2">
+            <button class="btn btn-outline-primary" type="button" data-add-individual-row>
+              <i class="ri-add-line me-1"></i>Add Row
+            </button>
+          </div>
           <template id="individualLeadRowTemplate">
             <tr>
-              <td><input class="form-control" data-base="lead_name"></td>
-              <td><input class="form-control" data-base="contact_email"></td>
-              <td><input type="tel" class="form-control" data-base="contact_phone" placeholder="+971 5x xxx xxxx"></td>
-              <td><input class="form-control" data-base="interested_in_property"></td>
-              <td><input class="form-control" data-base="property_interest_types" placeholder="Unit, Villa, Land"></td>
-              <td>
+              <td data-label="Name"><input class="form-control" data-base="lead_name"></td>
+              <td data-label="Email"><input class="form-control" data-base="contact_email"></td>
+              <td data-label="Phone"><input type="tel" class="form-control" data-base="contact_phone" placeholder="+971 5x xxx xxxx"></td>
+              <td data-label="Interested In Property"><input class="form-control" data-base="interested_in_property"></td>
+              <td data-label="Interest Types"><input class="form-control" data-base="property_interest_types" placeholder="Unit, Villa, Land"></td>
+              <td data-label="Type">
                 <select class="form-select" data-base="property_type">
                   <option value="">Select type</option>
                   <option value="OFF_PLAN">Off Plan</option>
                   <option value="READY_TO_MOVE">Ready To Move</option>
                 </select>
               </td>
-              <td><input class="form-control" data-base="area"></td>
-              <td><input class="form-control" data-base="budget_aed_range" placeholder="600,000 - 900,000"></td>
-              <td><input class="form-control" data-base="lead_status"></td>
-              <td>
+              <td data-label="Area"><input class="form-control" data-base="area"></td>
+              <td data-label="Budget (AED)"><input class="form-control" data-base="budget_aed_range" placeholder="600,000 - 900,000"></td>
+              <td data-label="Lead Status"><input class="form-control" data-base="lead_status"></td>
+              <td data-label="Agent">
                 <select class="form-select" data-base="assigned_agent_user_id">
                   <option value="">Select agent</option>
                   <?php foreach ($agents as $a): ?>
@@ -131,14 +181,14 @@ $leadDisplayName = function (?string $name): string {
                   <?php endforeach; ?>
                 </select>
               </td>
-              <td>
+              <td class="actions" data-label="Actions">
                 <button class="btn btn-sm btn-soft-danger" type="button" data-remove-individual-row>Remove</button>
               </td>
             </tr>
           </template>
 
-          <div class="d-flex justify-content-end mt-3">
-            <button class="btn btn-primary" type="submit">
+          <div class="d-grid d-sm-flex justify-content-sm-end mt-3">
+            <button class="btn btn-primary btn-mobile-full" type="submit">
               <i class="ri-save-line me-1"></i>Save Lead
             </button>
           </div>
@@ -202,7 +252,7 @@ $leadDisplayName = function (?string $name): string {
       <?php if (!$items): ?>
         <div class="text-center py-5 text-muted">No leads found for current filters.</div>
       <?php else: ?>
-        <div class="table-responsive">
+        <div class="table-responsive d-none d-lg-block">
           <table class="table align-middle text-nowrap table-hover table-centered mb-0">
             <thead class="bg-light-subtle">
               <tr>
@@ -275,6 +325,69 @@ $leadDisplayName = function (?string $name): string {
             </tbody>
           </table>
         </div>
+        <div class="d-lg-none">
+          <?php foreach ($items as $l): ?>
+            <?php
+              $email = trim((string)($l['contact_email'] ?? ''));
+              $phone = trim((string)($l['contact_phone'] ?? ''));
+              $interest = trim((string)($l['interested_in_property'] ?? ''));
+              $ptype = $l['property_type'] !== null && $l['property_type'] !== '' ? (string)$l['property_type'] : 'NONE';
+              $s = $l['status_overall'];
+              if ($s === 'CLOSED') {
+                $cls = 'success';
+                $label = 'Closed';
+              } elseif ($s === 'IN_PROGRESS') {
+                $cls = 'warning';
+                $label = 'In Progress';
+              } elseif ($s === '50/50') {
+                $cls = 'info';
+                $label = '50/50';
+              } elseif ($s === 'ON_HOLD') {
+                $cls = 'primary';
+                $label = 'On Hold';
+              } else {
+                $cls = 'secondary';
+                $label = $s ?: 'New';
+              }
+            ?>
+            <div class="card border mb-2">
+              <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                  <div class="fw-semibold" style="word-break: break-word;"><?= e($l['lead_name'] ?? '-') ?></div>
+                  <span class="badge bg-<?= e($cls) ?>-subtle text-<?= e($cls) ?> py-1 px-2 fs-13"><?= e($label) ?></span>
+                </div>
+                <div class="text-muted fs-12 mt-1">
+                  <?= e($email !== '' ? $email : '-') ?>
+                </div>
+                <div class="text-muted fs-12"><?= e($phone !== '' ? $phone : '-') ?></div>
+                <div class="mt-2 d-flex flex-wrap gap-2">
+                  <span class="badge bg-light-subtle text-dark py-1 px-2 fs-13"><?= e($ptype) ?></span>
+                  <?php if ($l['agent_name']): ?>
+                    <span class="badge bg-light-subtle text-dark py-1 px-2 fs-13"><?= e($l['agent_name']) ?></span>
+                  <?php endif; ?>
+                </div>
+                <div class="small text-muted mt-2">
+                  <div><span class="text-dark fw-semibold">Interested:</span> <?= e($interest !== '' ? $interest : '-') ?></div>
+                  <div><span class="text-dark fw-semibold">Followups:</span> <?= e((string)$l['followup_count']) ?></div>
+                  <div><span class="text-dark fw-semibold">Created:</span> <?= e($l['created_at']) ?></div>
+                </div>
+                <div class="mt-3 d-flex flex-wrap gap-2">
+                  <a class="btn btn-light btn-sm flex-fill" href="<?= e(url('admin/lead?id='.$l['id'].'&return='.$returnParam)) ?>">
+                    View
+                  </a>
+                  <?php if ($canDelete): ?>
+                    <form class="flex-fill" method="post" action="<?= e(url('admin/lead/delete')) ?>" onsubmit="return confirm('Delete this lead and all follow-ups? This cannot be undone.');">
+                      <?= csrf_field() ?>
+                      <input type="hidden" name="id" value="<?= e((string)$l['id']) ?>">
+                      <input type="hidden" name="return" value="<?= e($returnPath) ?>">
+                      <button class="btn btn-soft-danger btn-sm w-100" type="submit">Delete</button>
+                    </form>
+                  <?php endif; ?>
+                </div>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        </div>
 
         <?php
           $m = $meta;
@@ -298,10 +411,10 @@ $leadDisplayName = function (?string $name): string {
 
 <script>
   (function () {
-    var addBtn = document.querySelector('[data-add-individual-row]');
+    var addBtns = document.querySelectorAll('[data-add-individual-row]');
     var tbody = document.getElementById('individualLeadRows');
     var tpl = document.getElementById('individualLeadRowTemplate');
-    if (!addBtn || !tbody || !tpl) return;
+    if (!addBtns.length || !tbody || !tpl) return;
 
     function resetRowInputs(tr) {
       tr.querySelectorAll('input').forEach(function (input) {
@@ -322,10 +435,12 @@ $leadDisplayName = function (?string $name): string {
       });
     }
 
-    addBtn.addEventListener('click', function () {
-      var frag = tpl.content.cloneNode(true);
-      tbody.appendChild(frag);
-      updateRowNames();
+    addBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var frag = tpl.content.cloneNode(true);
+        tbody.appendChild(frag);
+        updateRowNames();
+      });
     });
 
     tbody.addEventListener('click', function (e) {

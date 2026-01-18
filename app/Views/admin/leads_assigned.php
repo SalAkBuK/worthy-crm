@@ -26,12 +26,12 @@ $leadDisplayName = function (?string $name): string {
     $exportQuery = build_query(['page' => null, 'assigned_only' => 1]);
     $exportUrl = url('admin/leads/export' . ($exportQuery ? '?' . $exportQuery : ''));
   ?>
-  <div class="card-header d-flex justify-content-between align-items-center border-bottom">
+  <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 border-bottom">
     <div>
       <h4 class="card-title mb-1">Assigned Leads</h4>
       <p class="text-muted mb-0 fs-13">All leads currently assigned to agents.</p>
     </div>
-    <a class="btn btn-outline-primary btn-sm" href="<?= e($exportUrl) ?>">
+    <a class="btn btn-outline-primary btn-sm btn-mobile-full" href="<?= e($exportUrl) ?>">
       <i class="ri-download-2-line me-1"></i>Export CSV
     </a>
   </div>
@@ -79,7 +79,19 @@ $leadDisplayName = function (?string $name): string {
   <?php if (!$items): ?>
     <div class="text-center py-5 text-muted">No assigned leads found.</div>
   <?php else: ?>
-    <div class="table-responsive">
+    <style>
+      @media (max-width: 991.98px) {
+        .admin-assigned-cards .btn {
+          width: 100%;
+        }
+      }
+      @media (max-width: 767.98px) {
+        .btn-mobile-full {
+          width: 100%;
+        }
+      }
+    </style>
+    <div class="table-responsive d-none d-lg-block">
       <table class="table align-middle text-nowrap table-hover table-centered mb-0">
         <thead class="bg-light-subtle">
           <tr>
@@ -141,6 +153,57 @@ $leadDisplayName = function (?string $name): string {
         <?php endforeach; ?>
         </tbody>
       </table>
+    </div>
+    <div class="d-lg-none admin-assigned-cards">
+      <?php foreach ($items as $l): ?>
+        <?php
+          $email = trim((string)($l['contact_email'] ?? ''));
+          $phone = trim((string)($l['contact_phone'] ?? ''));
+          $interest = trim((string)($l['interested_in_property'] ?? ''));
+          $ptype = $l['property_type'] !== null && $l['property_type'] !== '' ? (string)$l['property_type'] : 'NONE';
+          $s = $l['status_overall'];
+          if ($s === 'CLOSED') {
+            $cls = 'success';
+            $label = 'Closed';
+          } elseif ($s === 'IN_PROGRESS') {
+            $cls = 'warning';
+            $label = 'In Progress';
+          } elseif ($s === '50/50') {
+            $cls = 'info';
+            $label = '50/50';
+          } elseif ($s === 'ON_HOLD') {
+            $cls = 'primary';
+            $label = 'On Hold';
+          } else {
+            $cls = 'secondary';
+            $label = $s ?: 'New';
+          }
+        ?>
+        <div class="card border mb-2">
+          <div class="card-body p-3">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div class="fw-semibold" style="word-break: break-word;"><?= e($l['lead_name'] ?? '-') ?></div>
+              <span class="badge bg-<?= e($cls) ?>-subtle text-<?= e($cls) ?> py-1 px-2 fs-13"><?= e($label) ?></span>
+            </div>
+            <div class="text-muted fs-12 mt-1"><?= e($email !== '' ? $email : '-') ?></div>
+            <div class="text-muted fs-12"><?= e($phone !== '' ? $phone : '-') ?></div>
+            <div class="mt-2 d-flex flex-wrap gap-2">
+              <span class="badge bg-light-subtle text-dark py-1 px-2 fs-13"><?= e($ptype) ?></span>
+              <?php if ($l['agent_name']): ?>
+                <span class="badge bg-light-subtle text-dark py-1 px-2 fs-13"><?= e($l['agent_name']) ?></span>
+              <?php endif; ?>
+            </div>
+            <div class="small text-muted mt-2">
+              <div><span class="text-dark fw-semibold">Interested:</span> <?= e($interest !== '' ? $interest : '-') ?></div>
+              <div><span class="text-dark fw-semibold">Followups:</span> <?= e((string)$l['followup_count']) ?></div>
+              <div><span class="text-dark fw-semibold">Created:</span> <?= e($l['created_at']) ?></div>
+            </div>
+            <div class="mt-3">
+              <a class="btn btn-light btn-sm" href="<?= e(url('admin/lead?id='.$l['id'].'&return='.$returnParam)) ?>">View</a>
+            </div>
+          </div>
+        </div>
+      <?php endforeach; ?>
     </div>
 
     <?php

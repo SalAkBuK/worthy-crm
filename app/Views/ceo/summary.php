@@ -27,7 +27,7 @@ $renderLeadsTable = function(array $rows): void {
     echo '<div class="text-center text-muted py-4">No leads found.</div>';
     return;
   }
-  echo '<div class="table-responsive">';
+  echo '<div class="table-responsive d-none d-lg-block">';
   echo '<table class="table align-middle text-nowrap table-hover table-centered mb-0">';
   echo '<thead class="bg-light-subtle">';
   echo '<tr><th>Lead</th><th>Email</th><th>Phone</th><th>Type</th><th>Status</th><th>Assigned Agent</th><th>Created</th></tr>';
@@ -44,13 +44,50 @@ $renderLeadsTable = function(array $rows): void {
     echo '</tr>';
   }
   echo '</tbody></table></div>';
+  echo '<div class="d-lg-none p-3 ceo-summary-cards">';
+  foreach ($rows as $l) {
+    $status = (string)($l['status_overall'] ?? '');
+    $cls = 'secondary';
+    if ($status === 'CLOSED') {
+      $cls = 'success';
+    } elseif ($status === 'IN_PROGRESS') {
+      $cls = 'warning';
+    } elseif ($status === '50/50') {
+      $cls = 'info';
+    } elseif ($status === 'ON_HOLD') {
+      $cls = 'primary';
+    }
+    $email = trim((string)($l['contact_email'] ?? ''));
+    $phone = trim((string)($l['contact_phone'] ?? ''));
+    $ptype = trim((string)($l['property_type'] ?? ''));
+    $agentName = trim((string)($l['agent_name'] ?? ''));
+    $created = $l['created_at'] ?? '-';
+    echo '<div class="card border mb-2"><div class="card-body p-3">';
+    echo '<div class="d-flex justify-content-between align-items-start gap-2">';
+    echo '<div class="fw-semibold" style="word-break: break-word;">' . e($l['lead_name'] ?? '-') . '</div>';
+    echo '<span class="badge bg-' . e($cls) . '-subtle text-' . e($cls) . ' py-1 px-2 fs-13">' . e($status !== '' ? $status : '-') . '</span>';
+    echo '</div>';
+    echo '<div class="text-muted fs-12 mt-1">' . e($email !== '' ? $email : '-') . '</div>';
+    echo '<div class="text-muted fs-12">' . e($phone !== '' ? $phone : '-') . '</div>';
+    echo '<div class="mt-2 d-flex flex-wrap gap-2">';
+    echo '<span class="badge bg-light-subtle text-muted border">' . e($ptype !== '' ? $ptype : '-') . '</span>';
+    if ($agentName !== '') {
+      echo '<span class="badge bg-light-subtle text-muted border">' . e($agentName) . '</span>';
+    }
+    echo '</div>';
+    echo '<div class="small text-muted mt-2">';
+    echo '<div><span class="text-dark fw-semibold">Created:</span> ' . e($created) . '</div>';
+    echo '</div>';
+    echo '</div></div>';
+  }
+  echo '</div>';
 };
 $renderFollowupsTable = function(array $rows): void {
   if (!$rows) {
     echo '<div class="text-center text-muted py-4">No follow-ups found.</div>';
     return;
   }
-  echo '<div class="table-responsive">';
+  echo '<div class="table-responsive d-none d-lg-block">';
   echo '<table class="table align-middle text-nowrap table-hover table-centered mb-0">';
   echo '<thead class="bg-light-subtle">';
   echo '<tr><th>Lead</th><th>Agent</th><th>Attempt</th><th>Call Status</th><th>Interested</th><th>Contact Date</th><th>Next Follow-up</th></tr>';
@@ -67,8 +104,46 @@ $renderFollowupsTable = function(array $rows): void {
     echo '</tr>';
   }
   echo '</tbody></table></div>';
+  echo '<div class="d-lg-none p-3 ceo-summary-cards">';
+  foreach ($rows as $f) {
+    $callStatus = $f['call_status'] ?? '-';
+    $interestStatus = $f['interested_status'] ?? '-';
+    $callClass = $callStatus === 'RESPONDED' ? 'bg-success-subtle text-success' : 'bg-light text-muted';
+    $interestClass = $interestStatus === 'INTERESTED' ? 'bg-success-subtle text-success' : ($interestStatus === 'NOT_INTERESTED' ? 'bg-danger-subtle text-danger' : 'bg-light text-muted');
+    echo '<div class="card border mb-2"><div class="card-body p-3">';
+    echo '<div class="d-flex justify-content-between align-items-start gap-2">';
+    echo '<div class="fw-semibold" style="word-break: break-word;">' . e($f['lead_name'] ?? '-') . '</div>';
+    echo '<span class="badge ' . e($callClass) . ' py-1 px-2 fs-13">' . e($callStatus) . '</span>';
+    echo '</div>';
+    echo '<div class="text-muted fs-12 mt-1">' . e($f['agent_name'] ?? '-') . '</div>';
+    echo '<div class="mt-2 d-flex flex-wrap gap-2">';
+    echo '<span class="badge bg-light-subtle text-muted border">Attempt #' . e((string)($f['attempt_no'] ?? '')) . '</span>';
+    echo '<span class="badge ' . e($interestClass) . ' py-1 px-2 fs-13">' . e($interestStatus) . '</span>';
+    echo '</div>';
+    echo '<div class="small text-muted mt-2">';
+    echo '<div><span class="text-dark fw-semibold">Contact:</span> ' . e($f['contact_datetime'] ?? '-') . '</div>';
+    echo '<div><span class="text-dark fw-semibold">Next:</span> ' . e($f['next_followup_at'] ?? '-') . '</div>';
+    echo '</div>';
+    echo '</div></div>';
+  }
+  echo '</div>';
 };
 ?>
+<style>
+  @media (max-width: 991.98px) {
+    .ceo-summary-cards .btn {
+      width: 100%;
+    }
+  }
+  @media (max-width: 767.98px) {
+    .ceo-summary-actions {
+      width: 100%;
+    }
+    .ceo-summary-actions .btn {
+      width: 100%;
+    }
+  }
+</style>
 <div class="row g-3">
   <div class="col-12">
     <div class="card">
@@ -108,7 +183,7 @@ $renderFollowupsTable = function(array $rows): void {
               </div>
             </div>
             <div class="mt-4">
-              <div class="table-responsive">
+              <div class="table-responsive d-none d-lg-block">
                 <table class="table align-middle text-nowrap table-hover table-centered mb-0">
                   <thead class="bg-light-subtle">
                     <tr>
@@ -148,6 +223,34 @@ $renderFollowupsTable = function(array $rows): void {
                   </tbody>
                 </table>
               </div>
+              <div class="d-lg-none p-3 ceo-summary-cards">
+                <?php if (!$adminUsers): ?>
+                  <div class="text-center text-muted py-4">No admins found.</div>
+                <?php else: ?>
+                  <?php foreach ($adminUsers as $u): ?>
+                    <?php
+                      $name = $u['agent_name'] ?: ($u['employee_name'] ?: ucfirst((string)$u['username']));
+                      $active = (int)($u['is_active'] ?? 1) === 1;
+                      $statusClass = $active ? 'success' : 'danger';
+                      $statusLabel = $active ? 'Active' : 'Inactive';
+                      $email = trim((string)($u['email'] ?? ''));
+                    ?>
+                    <div class="card border mb-2">
+                      <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                          <div class="fw-semibold" style="word-break: break-word;"><?= e($name) ?></div>
+                          <span class="badge bg-<?= e($statusClass) ?>-subtle text-<?= e($statusClass) ?> py-1 px-2 fs-13"><?= e($statusLabel) ?></span>
+                        </div>
+                        <div class="text-muted fs-12 mt-1">@<?= e($u['username']) ?></div>
+                        <div class="text-muted fs-12"><?= e($email !== '' ? $email : '-') ?></div>
+                        <div class="small text-muted mt-2">
+                          <div><span class="text-dark fw-semibold">Created:</span> <?= e($u['created_at'] ?? '-') ?></div>
+                        </div>
+                      </div>
+                    </div>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </div>
             </div>
           </div>
 
@@ -161,12 +264,12 @@ $renderFollowupsTable = function(array $rows): void {
                   </div>
                 </div>
               </div>
-              <div class="col-md-8 text-md-end">
+              <div class="col-md-8 text-md-end ceo-summary-actions">
                 <a class="btn btn-outline-primary btn-sm" href="<?= e(url('admin/agents/export')) ?>">Export Agents CSV</a>
               </div>
             </div>
             <div class="mt-4">
-              <div class="table-responsive">
+              <div class="table-responsive d-none d-lg-block">
                 <table class="table align-middle text-nowrap table-hover table-centered mb-0">
                   <thead class="bg-light-subtle">
                     <tr>
@@ -206,6 +309,34 @@ $renderFollowupsTable = function(array $rows): void {
                   </tbody>
                 </table>
               </div>
+              <div class="d-lg-none p-3 ceo-summary-cards">
+                <?php if (!$agentUsers): ?>
+                  <div class="text-center text-muted py-4">No agents found.</div>
+                <?php else: ?>
+                  <?php foreach ($agentUsers as $u): ?>
+                    <?php
+                      $name = $u['agent_name'] ?: ($u['employee_name'] ?: ucfirst((string)$u['username']));
+                      $active = (int)($u['is_active'] ?? 1) === 1;
+                      $statusClass = $active ? 'success' : 'danger';
+                      $statusLabel = $active ? 'Active' : 'Inactive';
+                      $email = trim((string)($u['email'] ?? ''));
+                    ?>
+                    <div class="card border mb-2">
+                      <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                          <div class="fw-semibold" style="word-break: break-word;"><?= e($name) ?></div>
+                          <span class="badge bg-<?= e($statusClass) ?>-subtle text-<?= e($statusClass) ?> py-1 px-2 fs-13"><?= e($statusLabel) ?></span>
+                        </div>
+                        <div class="text-muted fs-12 mt-1">@<?= e($u['username']) ?></div>
+                        <div class="text-muted fs-12"><?= e($email !== '' ? $email : '-') ?></div>
+                        <div class="small text-muted mt-2">
+                          <div><span class="text-dark fw-semibold">Created:</span> <?= e($u['created_at'] ?? '-') ?></div>
+                        </div>
+                      </div>
+                    </div>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </div>
             </div>
           </div>
 
@@ -219,7 +350,7 @@ $renderFollowupsTable = function(array $rows): void {
                   </div>
                 </div>
               </div>
-              <div class="col-md-8 text-md-end">
+              <div class="col-md-8 text-md-end ceo-summary-actions">
                 <a class="btn btn-outline-primary btn-sm" href="<?= e(url('admin/leads/export')) ?>">Export Leads CSV</a>
               </div>
             </div>

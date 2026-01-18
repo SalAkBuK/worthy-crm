@@ -231,22 +231,13 @@ $contactedCounts = array_map(fn($d)=>$contactByDay[$d] ?? 0, $days);
         </div>
       </div>
       <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table align-middle text-nowrap table-hover table-centered mb-0">
-            <thead class="bg-light-subtle">
-              <tr>
-                <th>Agent</th>
-                <th>Assigned Leads</th>
-                <th>Contacted Leads</th>
-                <th>Completed Leads</th>
-                <th>Response Rate</th>
-                <th class="text-end">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($agents as $a):
-              // derive counts based on leads
-              $pdo = \App\Helpers\DB::conn();
+        <?php if (!$agents): ?>
+          <div class="text-muted text-center py-5">No agents found.</div>
+        <?php else: ?>
+          <?php
+            $agentStats = [];
+            $pdo = \App\Helpers\DB::conn();
+            foreach ($agents as $a) {
               $st = $pdo->prepare("SELECT COUNT(*) FROM leads WHERE assigned_agent_user_id=:id");
               $st->execute([':id'=>$a['id']]); $assigned = (int)$st->fetchColumn();
 
@@ -259,33 +250,100 @@ $contactedCounts = array_map(fn($d)=>$contactByDay[$d] ?? 0, $days);
               $rr = ($a['followups']>0) ? round(($a['responded']/$a['followups'])*100,1) : 0;
               $rrClass = $rr >= 60 ? 'bg-success-subtle text-success' : ($rr >= 30 ? 'bg-warning-subtle text-warning' : 'bg-danger-subtle text-danger');
               $initial = strtoupper(substr((string)$a['name'], 0, 1));
+
+              $agentStats[] = [
+                'agent' => $a,
+                'assigned' => $assigned,
+                'contacted' => $contacted,
+                'completed' => $completed,
+                'rr' => $rr,
+                'rrClass' => $rrClass,
+                'initial' => $initial
+              ];
+            }
+          ?>
+          <style>
+            @media (max-width: 991.98px) {
+              .ceo-agent-cards .btn {
+                width: 100%;
+              }
+            }
+          </style>
+          <div class="table-responsive d-none d-lg-block">
+            <table class="table align-middle text-nowrap table-hover table-centered mb-0">
+              <thead class="bg-light-subtle">
+                <tr>
+                  <th>Agent</th>
+                  <th>Assigned Leads</th>
+                  <th>Contacted Leads</th>
+                  <th>Completed Leads</th>
+                  <th>Response Rate</th>
+                  <th class="text-end">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+              <?php foreach ($agentStats as $row):
+                $a = $row['agent'];
+              ?>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="avatar-sm rounded-circle bg-soft-primary d-flex align-items-center justify-content-center">
+                        <span class="text-primary fw-semibold"><?= e($row['initial']) ?></span>
+                      </div>
+                      <div>
+                        <div class="text-dark fw-medium"><?= e($a['name']) ?></div>
+                        <div class="text-muted fs-12">Agent ID <?= e((string)$a['id']) ?></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><?= e((string)$row['assigned']) ?></td>
+                  <td><?= e((string)$row['contacted']) ?></td>
+                  <td><?= e((string)$row['completed']) ?></td>
+                  <td><span class="badge <?= e($row['rrClass']) ?> py-1 px-2 fs-13"><?= e((string)$row['rr']) ?>%</span></td>
+                  <td class="text-end">
+                    <a class="btn btn-soft-primary btn-sm" href="<?= e(url('ceo/agent?agent_id='.$a['id'].'&from='.e($filters['from'] ?? '').'&to='.e($filters['to'] ?? ''))) ?>">
+                      <i class="ri-eye-line me-1"></i>Check Performance
+                    </a>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+          <div class="d-lg-none p-3 ceo-agent-cards">
+            <?php foreach ($agentStats as $row):
+              $a = $row['agent'];
             ?>
-              <tr>
-                <td>
-                  <div class="d-flex align-items-center gap-2">
-                    <div class="avatar-sm rounded-circle bg-soft-primary d-flex align-items-center justify-content-center">
-                      <span class="text-primary fw-semibold"><?= e($initial) ?></span>
+              <div class="card border mb-2">
+                <div class="card-body p-3">
+                  <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="avatar-sm rounded-circle bg-soft-primary d-flex align-items-center justify-content-center">
+                        <span class="text-primary fw-semibold"><?= e($row['initial']) ?></span>
+                      </div>
+                      <div>
+                        <div class="text-dark fw-medium"><?= e($a['name']) ?></div>
+                        <div class="text-muted fs-12">Agent ID <?= e((string)$a['id']) ?></div>
+                      </div>
                     </div>
-                    <div>
-                      <div class="text-dark fw-medium"><?= e($a['name']) ?></div>
-                      <div class="text-muted fs-12">Agent ID <?= e((string)$a['id']) ?></div>
-                    </div>
+                    <span class="badge <?= e($row['rrClass']) ?> py-1 px-2 fs-13"><?= e((string)$row['rr']) ?>%</span>
                   </div>
-                </td>
-                <td><?= e((string)$assigned) ?></td>
-                <td><?= e((string)$contacted) ?></td>
-                <td><?= e((string)$completed) ?></td>
-                <td><span class="badge <?= e($rrClass) ?> py-1 px-2 fs-13"><?= e((string)$rr) ?>%</span></td>
-                <td class="text-end">
-                  <a class="btn btn-soft-primary btn-sm" href="<?= e(url('ceo/agent?agent_id='.$a['id'].'&from='.e($filters['from'] ?? '').'&to='.e($filters['to'] ?? ''))) ?>">
-                    <i class="ri-eye-line me-1"></i>Check Performance
-                  </a>
-                </td>
-              </tr>
+                  <div class="small text-muted mt-2">
+                    <div><span class="text-dark fw-semibold">Assigned:</span> <?= e((string)$row['assigned']) ?></div>
+                    <div><span class="text-dark fw-semibold">Contacted:</span> <?= e((string)$row['contacted']) ?></div>
+                    <div><span class="text-dark fw-semibold">Completed:</span> <?= e((string)$row['completed']) ?></div>
+                  </div>
+                  <div class="mt-3">
+                    <a class="btn btn-soft-primary btn-sm" href="<?= e(url('ceo/agent?agent_id='.$a['id'].'&from='.e($filters['from'] ?? '').'&to='.e($filters['to'] ?? ''))) ?>">
+                      <i class="ri-eye-line me-1"></i>Check Performance
+                    </a>
+                  </div>
+                </div>
+              </div>
             <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
+          </div>
+        <?php endif; ?>
       </div>
     </div></div>
   </div>
