@@ -366,14 +366,26 @@ final class AdminLeadsController extends BaseController {
     try {
       \require_role(['ADMIN','CEO']);
       $id = (int)($_GET['id'] ?? 0);
+      $returnPath = (string)($_GET['return'] ?? 'admin/leads');
+      if (str_starts_with($returnPath, 'http')) {
+        $returnPath = 'admin/leads';
+      } else {
+        $base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/');
+        if ($base !== '' && str_starts_with($returnPath, $base)) {
+          $returnPath = substr($returnPath, strlen($base));
+        }
+      }
+      $safeReturn = ltrim($returnPath, '/');
+      if ($safeReturn === '') $safeReturn = 'admin/leads';
+
       if ($id <= 0) {
         flash('warning', 'Invalid lead.');
-        redirect('admin/leads');
+        redirect($safeReturn);
       }
       $lead = Lead::findWithAgent($id);
       if (!$lead) {
         flash('warning', 'Lead not found or deleted.');
-        redirect('admin/leads');
+        redirect($safeReturn);
       }
       $followups = Followup::listForLead($id);
       View::render('admin/lead_show', [
