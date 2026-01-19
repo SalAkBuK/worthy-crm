@@ -11,6 +11,8 @@ use App\Models\Notification;
 use App\Helpers\Logger;
 
 final class AgentLeadsController extends BaseController {
+  private const FOLLOWUP_UPLOAD_TARGET_BYTES = 3 * 1024 * 1024;
+  private const FOLLOWUP_UPLOAD_HARD_BYTES = 8 * 1024 * 1024;
 
   public function index(): void {
     try {
@@ -223,14 +225,20 @@ final class AgentLeadsController extends BaseController {
         }
       }
 
-      $contactDt = (string)($_POST['contact_datetime'] ?? '');
-      $nextFollowup = (string)($_POST['next_followup_at'] ?? '');
+      $rawContactDt = (string)($_POST['contact_datetime'] ?? '');
+      $rawNextFollowup = (string)($_POST['next_followup_at'] ?? '');
       $callStatus = (string)($_POST['call_status'] ?? '');
-      $interestedStatus = (string)($_POST['interested_status'] ?? '');
-      $launchAt = (string)($_POST['launch_at'] ?? '');
+      $rawInterestedStatus = (string)($_POST['interested_status'] ?? '');
+      $rawLaunchAt = (string)($_POST['launch_at'] ?? '');
       $useLaunchAsFollowup = isset($_POST['use_launch_as_followup']) ? 1 : 0;
-      $intent = $_POST['intent'] ?? null;
-      $buyType = $_POST['buy_property_type'] ?? null;
+      $rawIntent = $_POST['intent'] ?? null;
+      $rawBuyType = $_POST['buy_property_type'] ?? null;
+      $contactDt = $rawContactDt;
+      $nextFollowup = $rawNextFollowup;
+      $interestedStatus = $rawInterestedStatus;
+      $launchAt = $rawLaunchAt;
+      $intent = $rawIntent;
+      $buyType = $rawBuyType;
       $unitType = null;
       $location = null;
       $building = null;
@@ -243,6 +251,43 @@ final class AgentLeadsController extends BaseController {
       $rentPerYear = null;
       $notes = trim((string)($_POST['notes'] ?? ''));
       $whatsapp = isset($_POST['whatsapp_contacted']) ? 1 : 0;
+      $buildFormOld = function() use ($rawContactDt, $rawNextFollowup, $callStatus, $rawInterestedStatus, $rawLaunchAt, $useLaunchAsFollowup, $rawIntent, $rawBuyType, $notes, $whatsapp): array {
+        $nextValue = $rawNextFollowup;
+        if ($nextValue === '' && $useLaunchAsFollowup && $rawLaunchAt !== '') {
+          $nextValue = $rawLaunchAt;
+        }
+        return [
+          'contact_datetime' => $rawContactDt,
+          'next_followup_at' => $nextValue,
+          'call_status' => $callStatus,
+          'interested_status' => $rawInterestedStatus,
+          'launch_at' => $rawLaunchAt,
+          'use_launch_as_followup' => $useLaunchAsFollowup ? '1' : '0',
+          'intent' => $rawIntent,
+          'buy_property_type' => $rawBuyType,
+          'unit_type_buy' => $_POST['unit_type_buy'] ?? ($_POST['unit_type'] ?? ''),
+          'unit_type_rent' => $_POST['unit_type_rent'] ?? '',
+          'location' => $_POST['location'] ?? '',
+          'building' => $_POST['building'] ?? '',
+          'beds' => $_POST['beds'] ?? '',
+          'size_sqft' => $_POST['size_sqft'] ?? '',
+          'budget' => $_POST['budget'] ?? '',
+          'downpayment' => $_POST['downpayment'] ?? '',
+          'location_offplan' => $_POST['location_offplan'] ?? '',
+          'size_sqft_offplan' => $_POST['size_sqft_offplan'] ?? '',
+          'budget_offplan' => $_POST['budget_offplan'] ?? '',
+          'downpayment_offplan' => $_POST['downpayment_offplan'] ?? '',
+          'location_rent' => $_POST['location_rent'] ?? '',
+          'building_rent' => $_POST['building_rent'] ?? '',
+          'size_sqft_rent' => $_POST['size_sqft_rent'] ?? '',
+          'beds_rent' => $_POST['beds_rent'] ?? '',
+          'cheques' => $_POST['cheques'] ?? '',
+          'rent_per_month' => $_POST['rent_per_month'] ?? '',
+          'rent_per_year_budget' => $_POST['rent_per_year_budget'] ?? '',
+          'notes' => $notes,
+          'whatsapp_contacted' => $whatsapp ? '1' : '0',
+        ];
+      };
 
       $errors = [];
       $serverOffset = (int)(-date('Z') / 60);
@@ -303,20 +348,25 @@ final class AgentLeadsController extends BaseController {
           $errors[] = 'For NO_RESPONSE, mark WhatsApp contacted or mention another channel (sms/email) in notes.';
         }
       }
-      $needsNextFollowup = false;
+      $requiresNextFollowup = false;
+      $optionalNextFollowup = false;
       if ($callStatus === 'ASK_CONTACT_LATER') {
-        $needsNextFollowup = true;
+        $requiresNextFollowup = true;
       }
       if ($callStatus === 'RESPONDED' && $interestedStatus === '50/50') {
-        $needsNextFollowup = true;
+        $requiresNextFollowup = true;
       }
       if ($callStatus === 'RESPONDED' && $interestedStatus === 'FUTURE_INTEREST') {
-        $needsNextFollowup = true;
+        $requiresNextFollowup = true;
         if ($useLaunchAsFollowup && $launchAt !== '') {
           $nextFollowup = $launchAt;
         }
       }
-      if ($needsNextFollowup) {
+      if ($callStatus === 'NO_RESPONSE') {
+        $optionalNextFollowup = true;
+      }
+
+      if ($requiresNextFollowup || ($optionalNextFollowup && $nextFollowup !== '')) {
         if ($nextFollowup === '') {
           $errors[] = 'Next follow-up date/time is required for 50/50, future interest, or contact later.';
         } else {
@@ -439,7 +489,7 @@ final class AgentLeadsController extends BaseController {
       $callShotError = $callShot['error'] ?? UPLOAD_ERR_NO_FILE;
       if (!$callShot || $callShotError !== UPLOAD_ERR_OK) {
         if (in_array($callShotError, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
-          $errors[] = 'Call screenshot exceeds the upload size limit.';
+          $errors[] = 'Call screenshot exceeds the upload size limit. ' . \upload_limit_message(self::FOLLOWUP_UPLOAD_HARD_BYTES);
         } else {
           $errors[] = 'Call screenshot is required.';
         }
@@ -450,7 +500,7 @@ final class AgentLeadsController extends BaseController {
         $whatsShotError = $whatsShot['error'] ?? UPLOAD_ERR_NO_FILE;
         if (!$whatsShot || $whatsShotError !== UPLOAD_ERR_OK) {
           if (in_array($whatsShotError, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
-            $errors[] = 'WhatsApp screenshot exceeds the upload size limit.';
+            $errors[] = 'WhatsApp screenshot exceeds the upload size limit. ' . \upload_limit_message(self::FOLLOWUP_UPLOAD_HARD_BYTES);
           } else {
             $errors[] = 'WhatsApp screenshot is required when WhatsApp contacted.';
           }
@@ -459,6 +509,7 @@ final class AgentLeadsController extends BaseController {
 
       if ($errors) {
         $_SESSION['_form_errors'] = $errors;
+        $_SESSION['_form_old'] = $buildFormOld();
         redirect('agent/lead?id=' . $leadId);
       }
 
@@ -481,6 +532,7 @@ final class AgentLeadsController extends BaseController {
         if ($callPath) $this->deleteUpload($callPath);
         if ($whatsPath) $this->deleteUpload($whatsPath);
         $_SESSION['_form_errors'] = $uploadErrors;
+        $_SESSION['_form_old'] = $buildFormOld();
         redirect('agent/lead?id=' . $leadId);
       }
 
@@ -574,8 +626,8 @@ final class AgentLeadsController extends BaseController {
   // Quick remark flow removed in favor of the main follow-up form.
 
   private function saveUpload(int $leadId, array $file): string {
-    $targetBytes = 3 * 1024 * 1024;
-    $hardLimitBytes = 8 * 1024 * 1024;
+    $targetBytes = self::FOLLOWUP_UPLOAD_TARGET_BYTES;
+    $hardLimitBytes = self::FOLLOWUP_UPLOAD_HARD_BYTES;
     $tmp = $file['tmp_name'] ?? '';
     if ($tmp === '' || !is_file($tmp)) {
       throw new \RuntimeException('Upload failed.');
@@ -599,7 +651,7 @@ final class AgentLeadsController extends BaseController {
       $compressed = $this->compressImage($tmp, $dir, $baseName, $mime, $targetBytes);
       if ($compressed === null) {
         if ($size > $hardLimitBytes) {
-          throw new \RuntimeException('Image exceeds 8MB and could not be compressed. Please upload a smaller file.');
+          throw new \RuntimeException('Image exceeds the upload limit and could not be compressed. ' . \upload_limit_message($hardLimitBytes));
         }
         $ext = $allowed[$mime];
         $name = $baseName . '.' . $ext;

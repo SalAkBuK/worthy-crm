@@ -68,8 +68,22 @@ final class ProfileController extends BaseController {
 
       $photo = $_FILES['profile_photo'] ?? null;
       if ($photo && ($photo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
-        if (($photo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-          $_SESSION['_profile_errors'] = ['Profile photo upload failed.'];
+        $photoError = $photo['error'] ?? UPLOAD_ERR_NO_FILE;
+        if ($photoError !== UPLOAD_ERR_OK) {
+          $message = 'Profile photo upload failed.';
+          if (in_array($photoError, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
+            $message = 'Profile photo exceeds the upload size limit. ' . \upload_limit_message(3 * 1024 * 1024);
+          }
+          $_SESSION['_profile_errors'] = [$message];
+          $_SESSION['_profile_old'] = [
+            'name' => $name,
+            'email' => $email,
+            'contact_phone' => $phone,
+            'rera_number' => $rera,
+          ];
+          redirect('profile');
+        } elseif (($photo['size'] ?? 0) > 3 * 1024 * 1024) {
+          $_SESSION['_profile_errors'] = ['Profile photo too large. ' . \upload_limit_message(3 * 1024 * 1024)];
           $_SESSION['_profile_old'] = [
             'name' => $name,
             'email' => $email,
@@ -141,7 +155,7 @@ final class ProfileController extends BaseController {
   private function saveProfilePhoto(int $userId, array $file): string {
     $max = 3 * 1024 * 1024;
     if (($file['size'] ?? 0) > $max) {
-      throw new \RuntimeException('File too large (max 3MB).');
+      throw new \RuntimeException('File too large. ' . \upload_limit_message($max));
     }
     $tmp = $file['tmp_name'] ?? '';
     $finfo = new \finfo(FILEINFO_MIME_TYPE);

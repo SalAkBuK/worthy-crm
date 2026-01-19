@@ -104,11 +104,16 @@ final class ListingDatasetsController extends BaseController {
       }
 
       if (($csvFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-        flash('danger', 'File upload failed.');
+        $fileError = $csvFile['error'] ?? UPLOAD_ERR_NO_FILE;
+        if (in_array($fileError, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
+          flash('danger', 'File exceeds the upload size limit. ' . \upload_limit_message(15 * 1024 * 1024));
+        } else {
+          flash('danger', 'File upload failed.');
+        }
         redirect('listings/datasets/upload');
       }
       if (($csvFile['size'] ?? 0) > (15 * 1024 * 1024)) {
-        flash('danger', 'File too large (max 15MB).');
+        flash('danger', 'File too large. ' . \upload_limit_message(15 * 1024 * 1024));
         redirect('listings/datasets/upload');
       }
 

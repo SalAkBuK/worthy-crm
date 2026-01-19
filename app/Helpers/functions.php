@@ -109,6 +109,50 @@ function parse_aed_amount(?string $raw): ?int {
   return null;
 }
 
+function parse_ini_bytes(?string $value): int {
+  if ($value === null) return 0;
+  $value = trim($value);
+  if ($value === '') return 0;
+  $unit = strtolower(substr($value, -1));
+  if (ctype_digit($value)) {
+    return (int)$value;
+  }
+  $num = (float)substr($value, 0, -1);
+  switch ($unit) {
+    case 'g':
+      return (int)round($num * 1024 * 1024 * 1024);
+    case 'm':
+      return (int)round($num * 1024 * 1024);
+    case 'k':
+      return (int)round($num * 1024);
+    default:
+      return (int)round($num);
+  }
+}
+
+function format_bytes(int $bytes): string {
+  if ($bytes <= 0) return '0B';
+  $units = ['B','KB','MB','GB','TB'];
+  $idx = 0;
+  $value = (float)$bytes;
+  while ($value >= 1024 && $idx < count($units) - 1) {
+    $value /= 1024;
+    $idx++;
+  }
+  $precision = $value >= 100 ? 0 : ($value >= 10 ? 1 : 2);
+  return rtrim(rtrim(number_format($value, $precision, '.', ''), '0'), '.') . $units[$idx];
+}
+
+function upload_limit_message(int $appLimitBytes): string {
+  $uploadMax = ini_get('upload_max_filesize');
+  $postMax = ini_get('post_max_size');
+  $parts = [];
+  if ($uploadMax !== false && $uploadMax !== '') $parts[] = 'server upload limit: ' . $uploadMax;
+  if ($postMax !== false && $postMax !== '') $parts[] = 'post limit: ' . $postMax;
+  $suffix = $parts ? (' (' . implode(', ', $parts) . ').') : '.';
+  return 'Max allowed: ' . format_bytes($appLimitBytes) . $suffix;
+}
+
 function paginate_meta(int $total, int $page, int $perPage): array {
   $pages = (int)ceil(max(1, $total) / $perPage);
   $page = max(1, min($pages, $page));

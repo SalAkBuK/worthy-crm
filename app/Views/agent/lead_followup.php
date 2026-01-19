@@ -3,6 +3,19 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../Helpers/functions.php';
 $formErrors = $_SESSION['_form_errors'] ?? [];
 unset($_SESSION['_form_errors']);
+$formOld = $_SESSION['_form_old'] ?? [];
+unset($_SESSION['_form_old']);
+$old = function(string $key, string $default = '') use ($formOld): string {
+  return array_key_exists($key, $formOld) ? (string)$formOld[$key] : $default;
+};
+$oldCallStatus = $old('call_status');
+$oldInterestedStatus = $old('interested_status');
+$showNextFollowup = $oldCallStatus === 'ASK_CONTACT_LATER'
+  || $oldCallStatus === 'NO_RESPONSE'
+  || ($oldCallStatus === 'RESPONDED' && in_array($oldInterestedStatus, ['50/50','FUTURE_INTEREST'], true));
+$requireNextFollowup = $oldCallStatus === 'ASK_CONTACT_LATER'
+  || ($oldCallStatus === 'RESPONDED' && in_array($oldInterestedStatus, ['50/50','FUTURE_INTEREST'], true));
+$showFutureInterest = $oldCallStatus === 'RESPONDED' && $oldInterestedStatus === 'FUTURE_INTEREST';
 
 $completed = count($followups);
 $isClosed = ($lead['status_overall'] ?? '') === 'CLOSED';
@@ -177,6 +190,7 @@ $blockReason = $blockReason ?? null;
             <ul class="mb-0">
               <?php foreach ($formErrors as $er): ?><li><?= e($er) ?></li><?php endforeach; ?>
             </ul>
+            <div class="small mt-2 text-muted">Screenshots must be re-selected after a validation error.</div>
           </div>
         <?php endif; ?>
 
@@ -193,24 +207,24 @@ $blockReason = $blockReason ?? null;
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label form-required">Contact Date & Time</label>
-              <input type="datetime-local" class="form-control" name="contact_datetime" placeholder="Select date & time" required <?= $followupBlocked ? 'disabled' : '' ?>>
+              <input type="datetime-local" class="form-control" name="contact_datetime" value="<?= e($old('contact_datetime')) ?>" placeholder="Select date & time" required <?= $followupBlocked ? 'disabled' : '' ?>>
             </div>
 
             <div class="col-md-6">
               <label class="form-label form-required">Call Status</label>
               <select class="form-select" name="call_status" id="call_status" required <?= $followupBlocked ? 'disabled' : '' ?>>
                 <option value="">Select</option>
-                <option value="NO_RESPONSE">No response</option>
-                <option value="RESPONDED">Responded</option>
-                <option value="ASK_CONTACT_LATER">Ask to contact later</option>
+                <option value="NO_RESPONSE" <?= $old('call_status') === 'NO_RESPONSE' ? 'selected' : '' ?>>No response</option>
+                <option value="RESPONDED" <?= $old('call_status') === 'RESPONDED' ? 'selected' : '' ?>>Responded</option>
+                <option value="ASK_CONTACT_LATER" <?= $old('call_status') === 'ASK_CONTACT_LATER' ? 'selected' : '' ?>>Ask to contact later</option>
               </select>
             </div>
 
-            <div class="col-md-6 d-none" id="nextFollowupWrap">
+            <div class="col-md-6<?= $showNextFollowup ? '' : ' d-none' ?>" id="nextFollowupWrap">
               <label class="form-label form-required">Next Follow-up Date & Time</label>
-              <input type="datetime-local" class="form-control" name="next_followup_at" id="next_followup_at" placeholder="Select date & time" <?= $followupBlocked ? 'disabled' : '' ?>>
+              <input type="datetime-local" class="form-control" name="next_followup_at" id="next_followup_at" value="<?= e($old('next_followup_at')) ?>" placeholder="Select date & time" <?= $requireNextFollowup ? 'required' : '' ?> <?= $followupBlocked ? 'disabled' : '' ?>>
               <div class="form-text">
-                <span>Set this for 50/50, future interest, or when asked to contact later.</span>
+                <span>Set this for 50/50, future interest, or when asked to contact later. Optional for no response.</span>
               </div>
             </div>
 
@@ -218,19 +232,19 @@ $blockReason = $blockReason ?? null;
               <label class="form-label form-required">Interested Status</label>
               <select class="form-select" name="interested_status" id="interested_status" required <?= $followupBlocked ? 'disabled' : '' ?>>
                 <option value="">Select</option>
-                <option value="INTERESTED">Interested</option>
-                <option value="50/50">50/50</option>
-                <option value="FUTURE_INTEREST">Future interest</option>
-                <option value="NOT_INTERESTED">Not interested</option>
+                <option value="INTERESTED" <?= $old('interested_status') === 'INTERESTED' ? 'selected' : '' ?>>Interested</option>
+                <option value="50/50" <?= $old('interested_status') === '50/50' ? 'selected' : '' ?>>50/50</option>
+                <option value="FUTURE_INTEREST" <?= $old('interested_status') === 'FUTURE_INTEREST' ? 'selected' : '' ?>>Future interest</option>
+                <option value="NOT_INTERESTED" <?= $old('interested_status') === 'NOT_INTERESTED' ? 'selected' : '' ?>>Not interested</option>
               </select>
             </div>
 
-            <div class="col-md-6 d-none" id="futureInterestWrap">
+            <div class="col-md-6<?= $showFutureInterest ? '' : ' d-none' ?>" id="futureInterestWrap">
               <label class="form-label form-required">Project Launch Date & Time</label>
-              <input type="datetime-local" class="form-control" name="launch_at" id="launch_at" placeholder="Select date & time" <?= $followupBlocked ? 'disabled' : '' ?>>
+              <input type="datetime-local" class="form-control" name="launch_at" id="launch_at" value="<?= e($old('launch_at')) ?>" placeholder="Select date & time" <?= $showFutureInterest ? 'required' : '' ?> <?= $followupBlocked ? 'disabled' : '' ?>>
               <div class="form-text">Track the actual launch date for this project.</div>
               <div class="form-check mt-2">
-                <input class="form-check-input" type="checkbox" id="use_launch_as_followup" name="use_launch_as_followup" value="1" <?= $followupBlocked ? 'disabled' : '' ?>>
+                <input class="form-check-input" type="checkbox" id="use_launch_as_followup" name="use_launch_as_followup" value="1" <?= $old('use_launch_as_followup') === '1' ? 'checked' : '' ?> <?= $followupBlocked ? 'disabled' : '' ?>>
                 <label class="form-check-label" for="use_launch_as_followup">Use launch date as next follow-up</label>
               </div>
             </div>
@@ -249,16 +263,16 @@ $blockReason = $blockReason ?? null;
                     <label class="form-label form-required">Intent</label>
                     <select class="form-select" name="intent" id="intent" <?= $followupBlocked ? 'disabled' : '' ?>>
                       <option value="">Select</option>
-                      <option value="RENT">Rent</option>
-                      <option value="BUY">Buy</option>
+                      <option value="RENT" <?= $old('intent') === 'RENT' ? 'selected' : '' ?>>Rent</option>
+                      <option value="BUY" <?= $old('intent') === 'BUY' ? 'selected' : '' ?>>Buy</option>
                     </select>
                   </div>
                   <div class="col-md-6 d-none" id="buyPropertyTypeWrap">
                     <label class="form-label form-required">Buy Property Type</label>
                     <select class="form-select" name="buy_property_type" id="buy_property_type" <?= $followupBlocked ? 'disabled' : '' ?>>
                       <option value="">Select</option>
-                      <option value="READY_TO_MOVE">Ready To Move</option>
-                      <option value="OFF_PLAN">Off Plan</option>
+                      <option value="READY_TO_MOVE" <?= $old('buy_property_type') === 'READY_TO_MOVE' ? 'selected' : '' ?>>Ready To Move</option>
+                      <option value="OFF_PLAN" <?= $old('buy_property_type') === 'OFF_PLAN' ? 'selected' : '' ?>>Off Plan</option>
                     </select>
                   </div>
                 </div>
@@ -273,33 +287,33 @@ $blockReason = $blockReason ?? null;
                     <label class="form-label form-required">Unit Type</label>
                     <select class="form-select" name="unit_type_buy" id="unit_type_buy" <?= $followupBlocked ? 'disabled' : '' ?>>
                       <option value="">Select</option>
-                      <option value="VILLA">Villa</option>
-                      <option value="APARTMENT">Apartment</option>
+                      <option value="VILLA" <?= $old('unit_type_buy') === 'VILLA' ? 'selected' : '' ?>>Villa</option>
+                      <option value="APARTMENT" <?= $old('unit_type_buy') === 'APARTMENT' ? 'selected' : '' ?>>Apartment</option>
                     </select>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Location</label>
-                    <input type="text" class="form-control" name="location" placeholder="Location" <?= $followupBlocked ? 'disabled' : '' ?>>
+                    <input type="text" class="form-control" name="location" value="<?= e($old('location')) ?>" placeholder="Location" <?= $followupBlocked ? 'disabled' : '' ?>>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Building</label>
-                    <input type="text" class="form-control" name="building" placeholder="Building name" <?= $followupBlocked ? 'disabled' : '' ?>>
+                    <input type="text" class="form-control" name="building" value="<?= e($old('building')) ?>" placeholder="Building name" <?= $followupBlocked ? 'disabled' : '' ?>>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Beds</label>
-                    <input type="number" min="0" class="form-control" name="beds" placeholder="e.g. 2" <?= $followupBlocked ? 'disabled' : '' ?>>
+                    <input type="number" min="0" class="form-control" name="beds" value="<?= e($old('beds')) ?>" placeholder="e.g. 2" <?= $followupBlocked ? 'disabled' : '' ?>>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">Size (sqft)</label>
-                    <input type="number" min="0" class="form-control" name="size_sqft" placeholder="e.g. 1200" <?= $followupBlocked ? 'disabled' : '' ?>>
+                    <input type="number" min="0" class="form-control" name="size_sqft" value="<?= e($old('size_sqft')) ?>" placeholder="e.g. 1200" <?= $followupBlocked ? 'disabled' : '' ?>>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">Budget (AED)</label>
-                    <input type="number" min="0" step="0.01" class="form-control" name="budget" placeholder="e.g. 950000 AED" <?= $followupBlocked ? 'disabled' : '' ?>>
+                    <input type="number" min="0" step="0.01" class="form-control" name="budget" value="<?= e($old('budget')) ?>" placeholder="e.g. 950000 AED" <?= $followupBlocked ? 'disabled' : '' ?>>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">Down Payment (%)</label>
-                    <input type="number" min="0" max="100" step="0.01" class="form-control" name="downpayment" placeholder="e.g. 10" <?= $followupBlocked ? 'disabled' : '' ?>>
+                    <input type="number" min="0" max="100" step="0.01" class="form-control" name="downpayment" value="<?= e($old('downpayment')) ?>" placeholder="e.g. 10" <?= $followupBlocked ? 'disabled' : '' ?>>
                   </div>
                 </div>
               </div>
@@ -311,19 +325,19 @@ $blockReason = $blockReason ?? null;
                 <div class="row g-3">
                   <div class="col-md-6">
                     <label class="form-label">Location</label>
-                    <input type="text" class="form-control" name="location_offplan" placeholder="Location" <?= $followupBlocked ? 'disabled' : '' ?>>
+                    <input type="text" class="form-control" name="location_offplan" value="<?= e($old('location_offplan')) ?>" placeholder="Location" <?= $followupBlocked ? 'disabled' : '' ?>>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Size (sqft)</label>
-                    <input type="number" min="0" class="form-control" name="size_sqft_offplan" placeholder="e.g. 1200" <?= $followupBlocked ? 'disabled' : '' ?>>
+                    <input type="number" min="0" class="form-control" name="size_sqft_offplan" value="<?= e($old('size_sqft_offplan')) ?>" placeholder="e.g. 1200" <?= $followupBlocked ? 'disabled' : '' ?>>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Budget (AED)</label>
-                    <input type="number" min="0" step="0.01" class="form-control" name="budget_offplan" placeholder="e.g. 950000 AED" <?= $followupBlocked ? 'disabled' : '' ?>>
+                    <input type="number" min="0" step="0.01" class="form-control" name="budget_offplan" value="<?= e($old('budget_offplan')) ?>" placeholder="e.g. 950000 AED" <?= $followupBlocked ? 'disabled' : '' ?>>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Down Payment (%)</label>
-                    <input type="number" min="0" max="100" step="0.01" class="form-control" name="downpayment_offplan" placeholder="e.g. 10" <?= $followupBlocked ? 'disabled' : '' ?>>
+                    <input type="number" min="0" max="100" step="0.01" class="form-control" name="downpayment_offplan" value="<?= e($old('downpayment_offplan')) ?>" placeholder="e.g. 10" <?= $followupBlocked ? 'disabled' : '' ?>>
                   </div>
                 </div>
               </div>
@@ -337,37 +351,37 @@ $blockReason = $blockReason ?? null;
                     <label class="form-label form-required">Unit Type</label>
                     <select class="form-select" name="unit_type_rent" id="unit_type_rent" <?= $followupBlocked ? 'disabled' : '' ?>>
                       <option value="">Select</option>
-                      <option value="VILLA">Villa</option>
-                      <option value="APARTMENT">Apartment</option>
+                      <option value="VILLA" <?= $old('unit_type_rent') === 'VILLA' ? 'selected' : '' ?>>Villa</option>
+                      <option value="APARTMENT" <?= $old('unit_type_rent') === 'APARTMENT' ? 'selected' : '' ?>>Apartment</option>
                     </select>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Location</label>
-                    <input type="text" class="form-control" name="location_rent" placeholder="Location" <?= $followupBlocked ? 'disabled' : '' ?>>
+                    <input type="text" class="form-control" name="location_rent" value="<?= e($old('location_rent')) ?>" placeholder="Location" <?= $followupBlocked ? 'disabled' : '' ?>>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Building</label>
-                    <input type="text" class="form-control" name="building_rent" placeholder="Building name" <?= $followupBlocked ? 'disabled' : '' ?>>
+                    <input type="text" class="form-control" name="building_rent" value="<?= e($old('building_rent')) ?>" placeholder="Building name" <?= $followupBlocked ? 'disabled' : '' ?>>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Size (sqft)</label>
-                    <input type="number" min="0" class="form-control" name="size_sqft_rent" placeholder="e.g. 1200" <?= $followupBlocked ? 'disabled' : '' ?>>
+                    <input type="number" min="0" class="form-control" name="size_sqft_rent" value="<?= e($old('size_sqft_rent')) ?>" placeholder="e.g. 1200" <?= $followupBlocked ? 'disabled' : '' ?>>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">Beds</label>
-                    <input type="number" min="0" class="form-control" name="beds_rent" placeholder="e.g. 2" <?= $followupBlocked ? 'disabled' : '' ?>>
+                    <input type="number" min="0" class="form-control" name="beds_rent" value="<?= e($old('beds_rent')) ?>" placeholder="e.g. 2" <?= $followupBlocked ? 'disabled' : '' ?>>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">Number of Cheques</label>
-                    <input type="number" min="0" class="form-control" name="cheques" placeholder="e.g. 4" <?= $followupBlocked ? 'disabled' : '' ?>>
+                    <input type="number" min="0" class="form-control" name="cheques" value="<?= e($old('cheques')) ?>" placeholder="e.g. 4" <?= $followupBlocked ? 'disabled' : '' ?>>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">Rent per Month</label>
-                    <input type="number" min="0" step="0.01" class="form-control" name="rent_per_month" placeholder="e.g. 8000" <?= $followupBlocked ? 'disabled' : '' ?>>
+                    <input type="number" min="0" step="0.01" class="form-control" name="rent_per_month" value="<?= e($old('rent_per_month')) ?>" placeholder="e.g. 8000" <?= $followupBlocked ? 'disabled' : '' ?>>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Yearly Budget</label>
-                    <input type="number" min="0" step="0.01" class="form-control" name="rent_per_year_budget" placeholder="e.g. 96000" <?= $followupBlocked ? 'disabled' : '' ?>>
+                    <input type="number" min="0" step="0.01" class="form-control" name="rent_per_year_budget" value="<?= e($old('rent_per_year_budget')) ?>" placeholder="e.g. 96000" <?= $followupBlocked ? 'disabled' : '' ?>>
                   </div>
                 </div>
               </div>
@@ -375,7 +389,7 @@ $blockReason = $blockReason ?? null;
 
             <div class="col-12">
               <label class="form-label form-required">Notes</label>
-              <textarea class="form-control" name="notes" id="notes" rows="4" minlength="50" required <?= $followupBlocked ? 'disabled' : '' ?>></textarea>
+              <textarea class="form-control" name="notes" id="notes" rows="4" minlength="50" required <?= $followupBlocked ? 'disabled' : '' ?>><?= e($old('notes')) ?></textarea>
               <div class="form-text">Minimum 50 characters. <span class="mono" id="notesCount">0</span></div>
             </div>
 
@@ -391,7 +405,7 @@ $blockReason = $blockReason ?? null;
 
             <div class="col-12">
               <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="whatsapp_contacted" name="whatsapp_contacted" value="1" <?= $followupBlocked ? 'disabled' : '' ?>>
+                <input class="form-check-input" type="checkbox" id="whatsapp_contacted" name="whatsapp_contacted" value="1" <?= $old('whatsapp_contacted') === '1' ? 'checked' : '' ?> <?= $followupBlocked ? 'disabled' : '' ?>>
                 <label class="form-check-label" for="whatsapp_contacted">Contacted on WhatsApp?</label>
               </div>
             </div>

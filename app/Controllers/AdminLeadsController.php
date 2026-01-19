@@ -198,11 +198,16 @@ final class AdminLeadsController extends BaseController {
         redirect('admin/leads/bulk');
       }
       if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-        flash('danger', 'File upload failed.');
+        $fileError = $file['error'] ?? UPLOAD_ERR_NO_FILE;
+        if (in_array($fileError, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
+          flash('danger', 'File exceeds the upload size limit. ' . \upload_limit_message(3 * 1024 * 1024));
+        } else {
+          flash('danger', 'File upload failed.');
+        }
         redirect('admin/leads/bulk');
       }
       if (($file['size'] ?? 0) > 3 * 1024 * 1024) {
-        flash('danger', 'File too large (max 3MB).');
+        flash('danger', 'File too large. ' . \upload_limit_message(3 * 1024 * 1024));
         redirect('admin/leads/bulk');
       }
       $ext = strtolower((string)pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
@@ -730,8 +735,15 @@ final class AdminLeadsController extends BaseController {
 
       $photo = $_FILES['agent_photo'] ?? null;
       if ($photo && ($photo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
-        if (($photo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-          $errors[] = 'Agent photo upload failed.';
+        $photoError = $photo['error'] ?? UPLOAD_ERR_NO_FILE;
+        if ($photoError !== UPLOAD_ERR_OK) {
+          if (in_array($photoError, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
+            $errors[] = 'Agent photo exceeds the upload size limit. ' . \upload_limit_message(3 * 1024 * 1024);
+          } else {
+            $errors[] = 'Agent photo upload failed.';
+          }
+        } elseif (($photo['size'] ?? 0) > 3 * 1024 * 1024) {
+          $errors[] = 'Agent photo too large. ' . \upload_limit_message(3 * 1024 * 1024);
         }
       }
 
@@ -1032,7 +1044,7 @@ final class AdminLeadsController extends BaseController {
   private function saveAgentPhoto(int $agentId, array $file): string {
     $max = 3 * 1024 * 1024;
     if (($file['size'] ?? 0) > $max) {
-      throw new \RuntimeException('File too large (max 3MB).');
+      throw new \RuntimeException('File too large. ' . \upload_limit_message($max));
     }
     $tmp = $file['tmp_name'] ?? '';
     $finfo = new \finfo(FILEINFO_MIME_TYPE);
