@@ -419,6 +419,34 @@ $blockReason = $blockReason ?? null;
   </div>
 </div>
 
+<style>
+  .upload-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+  }
+  .upload-card {
+    background: #ffffff;
+    padding: 20px 22px;
+    border-radius: 12px;
+    width: min(420px, 92%);
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.25);
+  }
+</style>
+<div id="uploadOverlay" class="upload-overlay d-none" role="status" aria-live="polite">
+  <div class="upload-card">
+    <div class="fw-semibold mb-2">Uploading follow-up</div>
+    <div class="progress mb-2" aria-label="Upload progress">
+      <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+    </div>
+    <div id="uploadStatus" class="text-muted small">Preparing upload...</div>
+  </div>
+</div>
+
 <script src="<?= e(url('assets/js/agent_followup.js')) ?>"></script>
 <script>
   (function(){

@@ -198,6 +198,93 @@
       });
     });
   }
+  function initUploadProgress(form){
+    var overlay = document.getElementById('uploadOverlay');
+    var bar = document.getElementById('uploadProgressBar');
+    var status = document.getElementById('uploadStatus');
+    if (!form || !overlay || !bar || !status) return;
+
+    function setProgress(pct){
+      var value = Math.max(0, Math.min(100, pct));
+      bar.style.width = value + '%';
+      bar.setAttribute('aria-valuenow', String(value));
+    }
+    function setStatus(text){
+      status.textContent = text;
+    }
+    function setDisabled(disabled){
+      form.querySelectorAll('input,select,textarea,button').forEach(function(el){
+        el.disabled = disabled;
+      });
+    }
+    function showOverlay(){
+      overlay.classList.remove('d-none');
+    }
+    function hideOverlay(){
+      overlay.classList.add('d-none');
+    }
+
+    form.addEventListener('submit', function(e){
+      if (form.dataset.uploading === '1') {
+        e.preventDefault();
+        return;
+      }
+
+      if (!window.FormData || !window.XMLHttpRequest) {
+        showOverlay();
+        setStatus('Uploading...');
+        return;
+      }
+
+      e.preventDefault();
+      form.dataset.uploading = '1';
+      var data = new FormData(form);
+
+      showOverlay();
+      setProgress(0);
+      setStatus('Uploading...');
+      setDisabled(true);
+
+      var xhr = new XMLHttpRequest();
+      xhr.open((form.method || 'POST').toUpperCase(), form.action, true);
+      xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+      xhr.upload.onprogress = function(evt){
+        if (evt.lengthComputable) {
+          var pct = Math.min(95, Math.round((evt.loaded / evt.total) * 100));
+          setProgress(pct);
+          setStatus('Uploading ' + pct + '%');
+        } else {
+          setStatus('Uploading...');
+        }
+      };
+      xhr.upload.onload = function(){
+        setProgress(100);
+        setStatus('Processing image...');
+      };
+      xhr.onload = function(){
+        if (xhr.status >= 200 && xhr.status < 400) {
+          setProgress(100);
+          setStatus('Finishing...');
+          var redirectUrl = xhr.responseURL || form.action;
+          window.location = redirectUrl;
+          return;
+        }
+        setStatus('Upload failed. Please try again.');
+        setDisabled(false);
+        form.dataset.uploading = '0';
+        setTimeout(hideOverlay, 1200);
+      };
+      xhr.onerror = function(){
+        setStatus('Upload failed. Please try again.');
+        setDisabled(false);
+        form.dataset.uploading = '0';
+        setTimeout(hideOverlay, 1200);
+      };
+
+      xhr.send(data);
+    });
+  }
   document.addEventListener('DOMContentLoaded', function(){
     showHideConditional(); whatsappToggle(); notesCounter(); updateGuidance(); validateNoResponseChannel(); initDateTimePickers();
     var tz = document.getElementById('tz_offset');
@@ -238,5 +325,7 @@
     }
     if (launch) launch.addEventListener('change', syncLaunchToFollowup);
     if (useLaunch) useLaunch.addEventListener('change', syncLaunchToFollowup);
+
+    initUploadProgress(form);
   });
 })();
