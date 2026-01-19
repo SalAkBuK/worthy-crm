@@ -49,7 +49,10 @@ final class ListingDatasetsController extends BaseController {
       $datasetId = (int)($_POST['dataset_id'] ?? 0);
       if ($datasetId > 0) {
         $dataset = ListingDataset::findById($datasetId);
-        if (!$dataset) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+        if (!$dataset) {
+          flash('warning', 'Dataset not found or deleted.');
+          redirect('listings/datasets');
+        }
         $dirs = $this->ensureUploadDirs();
         if (!$dirs) {
           flash('danger', 'Upload directories are not writable.');
@@ -153,9 +156,15 @@ final class ListingDatasetsController extends BaseController {
     try {
       AuthMiddleware::requireRole(['ADMIN', 'CEO']);
       $id = (int)($_GET['id'] ?? 0);
-      if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if ($id <= 0) {
+        flash('warning', 'Invalid dataset.');
+        redirect('listings/datasets');
+      }
       $dataset = ListingDataset::findById($id);
-      if (!$dataset) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if (!$dataset) {
+        flash('warning', 'Dataset not found or deleted.');
+        redirect('listings/datasets');
+      }
       $preview = '';
       if (!empty($dataset['extracted_text_path'])) {
         $path = __DIR__ . '/../../' . ltrim((string)$dataset['extracted_text_path'], '/');
@@ -183,9 +192,15 @@ final class ListingDatasetsController extends BaseController {
     try {
       AuthMiddleware::requireRole(['ADMIN', 'CEO']);
       $id = (int)($_GET['id'] ?? 0);
-      if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if ($id <= 0) {
+        flash('warning', 'Invalid dataset.');
+        redirect('listings/datasets');
+      }
       $dataset = ListingDataset::findById($id);
-      if (!$dataset) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if (!$dataset) {
+        flash('warning', 'Dataset not found or deleted.');
+        redirect('listings/datasets');
+      }
 
       $stored = (string)($dataset['stored_filename'] ?? '');
       if ($stored === '') {
@@ -265,9 +280,15 @@ final class ListingDatasetsController extends BaseController {
       AuthMiddleware::requireRole(['ADMIN', 'CEO']);
       CsrfMiddleware::verify();
       $id = (int)($_POST['id'] ?? 0);
-      if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if ($id <= 0) {
+        flash('warning', 'Invalid dataset.');
+        redirect('listings/datasets');
+      }
       $dataset = ListingDataset::findById($id);
-      if (!$dataset) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if (!$dataset) {
+        flash('warning', 'Dataset not found or deleted.');
+        redirect('listings/datasets');
+      }
 
       $pdo = DB::conn();
       $pdo->beginTransaction();

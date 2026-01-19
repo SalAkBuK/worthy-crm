@@ -366,9 +366,15 @@ final class AdminLeadsController extends BaseController {
     try {
       \require_role(['ADMIN','CEO']);
       $id = (int)($_GET['id'] ?? 0);
-      if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if ($id <= 0) {
+        flash('warning', 'Invalid lead.');
+        redirect('admin/leads');
+      }
       $lead = Lead::findWithAgent($id);
-      if (!$lead) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if (!$lead) {
+        flash('warning', 'Lead not found or deleted.');
+        redirect('admin/leads');
+      }
       $followups = Followup::listForLead($id);
       View::render('admin/lead_show', [
         'title' => 'Lead Details',
@@ -530,9 +536,15 @@ final class AdminLeadsController extends BaseController {
     try {
       \require_role(['ADMIN', 'CEO']);
       $id = (int)($_GET['id'] ?? 0);
-      if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if ($id <= 0) {
+        flash('warning', 'Invalid agent.');
+        redirect('admin/agents');
+      }
       $agent = User::agentWithStats($id);
-      if (!$agent) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if (!$agent) {
+        flash('warning', 'Agent not found or deleted.');
+        redirect('admin/agents');
+      }
       View::render('admin/agent_show', [
         'title' => 'Agent Details',
         'agent' => $agent,
@@ -545,9 +557,15 @@ final class AdminLeadsController extends BaseController {
       \require_role(['ADMIN', 'CEO']);
       \verify_csrf();
       $id = (int)($_POST['id'] ?? 0);
-      if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if ($id <= 0) {
+        flash('warning', 'Invalid agent.');
+        redirect('admin/agents');
+      }
       $agent = User::agentWithStats($id);
-      if (!$agent) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if (!$agent) {
+        flash('warning', 'Agent not found or deleted.');
+        redirect('admin/agents');
+      }
 
       $email = trim((string)($_POST['email'] ?? ''));
       $phone = trim((string)($_POST['contact_phone'] ?? ''));
@@ -577,10 +595,16 @@ final class AdminLeadsController extends BaseController {
       \require_role(['ADMIN', 'CEO']);
       \verify_csrf();
       $id = (int)($_POST['id'] ?? 0);
-      if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if ($id <= 0) {
+        flash('warning', 'Invalid agent.');
+        redirect('admin/agents');
+      }
 
       $agent = User::agentWithStats($id);
-      if (!$agent) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if (!$agent) {
+        flash('warning', 'Agent not found or deleted.');
+        redirect('admin/agents');
+      }
 
       $leadAction = (string)($_POST['lead_action'] ?? 'delete');
       if (!in_array($leadAction, ['delete', 'reassign'], true)) {
@@ -842,9 +866,15 @@ final class AdminLeadsController extends BaseController {
       \require_role(['ADMIN', 'CEO']);
       \verify_csrf();
       $id = (int)($_POST['id'] ?? 0);
-      if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if ($id <= 0) {
+        flash('warning', 'Invalid agent.');
+        redirect('admin/agents');
+      }
       $agent = User::agentWithStats($id);
-      if (!$agent) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if (!$agent) {
+        flash('warning', 'Agent not found or deleted.');
+        redirect('admin/agents');
+      }
       $password = 'agent123';
       $hash = password_hash($password, PASSWORD_DEFAULT);
       if (!User::resetAgentPassword($id, $hash)) {
@@ -1157,9 +1187,15 @@ final class AdminLeadsController extends BaseController {
       \require_role(['ADMIN','CEO']);
       \verify_csrf();
       $id = (int)($_POST['id'] ?? 0);
-      if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if ($id <= 0) {
+        flash('warning', 'Invalid lead.');
+        redirect('admin/leads');
+      }
       $lead = Lead::findWithAgent($id);
-      if (!$lead) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if (!$lead) {
+        flash('warning', 'Lead not found or deleted.');
+        redirect('admin/leads');
+      }
       $prevStatus = $lead['status_overall'] ?? '';
       Lead::setStatus($id, 'IN_PROGRESS');
       AuditLog::log((int)current_user()['id'], 'LEAD_REOPEN', ['lead_id'=>$id]);
@@ -1182,9 +1218,15 @@ final class AdminLeadsController extends BaseController {
       \require_role(['ADMIN','CEO']);
       \verify_csrf();
       $id = (int)($_POST['id'] ?? 0);
-      if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if ($id <= 0) {
+        flash('warning', 'Invalid lead.');
+        redirect('admin/leads');
+      }
       $lead = Lead::findWithAgent($id);
-      if (!$lead) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if (!$lead) {
+        flash('warning', 'Lead not found or deleted.');
+        redirect('admin/leads');
+      }
 
       $returnPath = (string)($_POST['return'] ?? 'admin/leads');
       if (str_starts_with($returnPath, 'http')) {

@@ -54,9 +54,15 @@ final class ListingsController extends BaseController {
     try {
       AuthMiddleware::requireRole(['ADMIN', 'CEO', 'AGENT']);
       $id = (int)($_GET['id'] ?? 0);
-      if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if ($id <= 0) {
+        flash('warning', 'Invalid listing.');
+        redirect('listings');
+      }
       $listing = Listing::findById($id);
-      if (!$listing) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if (!$listing) {
+        flash('warning', 'Listing not found or deleted.');
+        redirect('listings');
+      }
       View::render('listings/show', [
         'title' => 'Listing Details',
         'listing' => $listing,
@@ -144,9 +150,15 @@ final class ListingsController extends BaseController {
     try {
       AuthMiddleware::requireRole(['ADMIN', 'CEO']);
       $id = (int)($_GET['id'] ?? 0);
-      if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if ($id <= 0) {
+        flash('warning', 'Invalid listing.');
+        redirect('listings');
+      }
       $listing = Listing::findById($id);
-      if (!$listing) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if (!$listing) {
+        flash('warning', 'Listing not found or deleted.');
+        redirect('listings');
+      }
       View::render('listings/edit', [
         'title' => 'Edit Listing',
         'listing' => $listing,
@@ -161,9 +173,15 @@ final class ListingsController extends BaseController {
       AuthMiddleware::requireRole(['ADMIN', 'CEO']);
       CsrfMiddleware::verify();
       $id = (int)($_POST['id'] ?? 0);
-      if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if ($id <= 0) {
+        flash('warning', 'Invalid listing.');
+        redirect('listings');
+      }
       $listing = Listing::findById($id);
-      if (!$listing) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if (!$listing) {
+        flash('warning', 'Listing not found or deleted.');
+        redirect('listings');
+      }
 
       $projectName = trim((string)($_POST['project_name'] ?? ''));
       $area = trim((string)($_POST['area'] ?? ''));
@@ -227,9 +245,15 @@ final class ListingsController extends BaseController {
       AuthMiddleware::requireRole(['ADMIN', 'CEO']);
       CsrfMiddleware::verify();
       $id = (int)($_POST['id'] ?? 0);
-      if ($id <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if ($id <= 0) {
+        flash('warning', 'Invalid listing.');
+        redirect('listings');
+      }
       $listing = Listing::findById($id);
-      if (!$listing) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if (!$listing) {
+        flash('warning', 'Listing not found or deleted.');
+        redirect('listings');
+      }
 
       $returnPath = (string)($_POST['return'] ?? 'listings');
       if (str_starts_with($returnPath, 'http')) {

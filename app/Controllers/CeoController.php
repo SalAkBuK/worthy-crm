@@ -178,7 +178,10 @@ final class CeoController extends BaseController {
     try {
       \require_role(['CEO']);
       $agentId = (int)($_GET['agent_id'] ?? 0);
-      if ($agentId <= 0) { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if ($agentId <= 0) {
+        flash('warning', 'Invalid agent.');
+        redirect('ceo/dashboard');
+      }
 
       $filters = [
         'from' => \parse_date($_GET['from'] ?? null),
@@ -188,7 +191,10 @@ final class CeoController extends BaseController {
 
       $pdo = DB::conn();
       $agent = User::findById($agentId);
-      if (!$agent || $agent['role'] !== 'AGENT') { http_response_code(404); require __DIR__ . '/../Views/errors/404.php'; return; }
+      if (!$agent || $agent['role'] !== 'AGENT') {
+        flash('warning', 'Agent not found or deleted.');
+        redirect('ceo/dashboard');
+      }
 
       $where = ["l.assigned_agent_user_id = :agent"];
       $params = [':agent'=>$agentId];
