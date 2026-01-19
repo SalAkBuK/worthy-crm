@@ -558,7 +558,8 @@ final class AgentLeadsController extends BaseController {
   // Quick remark flow removed in favor of the main follow-up form.
 
   private function saveUpload(int $leadId, array $file): string {
-    $maxBytes = 3 * 1024 * 1024;
+    $targetBytes = 3 * 1024 * 1024;
+    $hardLimitBytes = 8 * 1024 * 1024;
     $tmp = $file['tmp_name'] ?? '';
     if ($tmp === '' || !is_file($tmp)) {
       throw new \RuntimeException('Upload failed.');
@@ -578,10 +579,19 @@ final class AgentLeadsController extends BaseController {
 
     $size = (int)($file['size'] ?? 0);
     $baseName = bin2hex(random_bytes(16));
-    if ($size > $maxBytes) {
-      $compressed = $this->compressImage($tmp, $dir, $baseName, $mime, $maxBytes);
+    if ($size > $targetBytes) {
+      $compressed = $this->compressImage($tmp, $dir, $baseName, $mime, $targetBytes);
       if ($compressed === null) {
-        throw new \RuntimeException('Image exceeds 3MB and could not be compressed. Please upload a smaller file.');
+        if ($size > $hardLimitBytes) {
+          throw new \RuntimeException('Image exceeds 8MB and could not be compressed. Please upload a smaller file.');
+        }
+        $ext = $allowed[$mime];
+        $name = $baseName . '.' . $ext;
+        $dest = $dir . '/' . $name;
+        if (!move_uploaded_file($tmp, $dest)) {
+          throw new \RuntimeException('Upload failed.');
+        }
+        return 'uploads/' . $leadId . '/' . $name;
       }
       return 'uploads/' . $leadId . '/' . $compressed;
     }
@@ -599,11 +609,21 @@ final class AgentLeadsController extends BaseController {
     if (!function_exists('imagecreatefromstring')) {
       return null;
     }
-    $data = @file_get_contents($srcPath);
-    if ($data === false) {
-      return null;
+    $image = null;
+    if ($mime === 'image/jpeg' && function_exists('imagecreatefromjpeg')) {
+      $image = @imagecreatefromjpeg($srcPath);
+    } elseif ($mime === 'image/png' && function_exists('imagecreatefrompng')) {
+      $image = @imagecreatefrompng($srcPath);
+    } elseif ($mime === 'image/webp' && function_exists('imagecreatefromwebp')) {
+      $image = @imagecreatefromwebp($srcPath);
     }
-    $image = @imagecreatefromstring($data);
+    if (!$image) {
+      $data = @file_get_contents($srcPath);
+      if ($data === false) {
+        return null;
+      }
+      $image = @imagecreatefromstring($data);
+    }
     if (!$image) {
       return null;
     }
@@ -616,13 +636,35 @@ final class AgentLeadsController extends BaseController {
       $targets[] = 'image/jpeg';
     }
 
+    $width = imagesx($image);
+    $height = imagesy($image);
+    $scales = [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.25, 0.2];
     $savedName = null;
-    foreach ($targets as $targetMime) {
-      $ext = $targetMime === 'image/png' ? 'png' : ($targetMime === 'image/webp' ? 'webp' : 'jpg');
-      $dest = $dir . '/' . $baseName . '.' . $ext;
-      if ($this->writeCompressedImage($image, $targetMime, $dest, $maxBytes)) {
-        $savedName = $baseName . '.' . $ext;
-        break;
+
+    foreach ($scales as $scale) {
+      $working = $image;
+      if ($scale < 1.0) {
+        $newW = max(1, (int)round($width * $scale));
+        $newH = max(1, (int)round($height * $scale));
+        $working = imagecreatetruecolor($newW, $newH);
+        imagealphablending($working, false);
+        imagesavealpha($working, true);
+        $transparent = imagecolorallocatealpha($working, 0, 0, 0, 127);
+        imagefill($working, 0, 0, $transparent);
+        imagecopyresampled($working, $image, 0, 0, 0, 0, $newW, $newH, $width, $height);
+      }
+
+      foreach ($targets as $targetMime) {
+        $ext = $targetMime === 'image/png' ? 'png' : ($targetMime === 'image/webp' ? 'webp' : 'jpg');
+        $dest = $dir . '/' . $baseName . '.' . $ext;
+        if ($this->writeCompressedImage($working, $targetMime, $dest, $maxBytes)) {
+          $savedName = $baseName . '.' . $ext;
+          break 2;
+        }
+      }
+
+      if ($working !== $image) {
+        imagedestroy($working);
       }
     }
 
@@ -633,17 +675,19 @@ final class AgentLeadsController extends BaseController {
   private function writeCompressedImage($image, string $mime, string $dest, int $maxBytes): bool {
     if ($mime === 'image/jpeg') {
       if (!function_exists('imagejpeg')) return false;
-      for ($quality = 85; $quality >= 40; $quality -= 10) {
+      for ($quality = 85; $quality >= 20; $quality -= 10) {
         if (!imagejpeg($image, $dest, $quality)) continue;
         if (filesize($dest) <= $maxBytes) return true;
+        @unlink($dest);
       }
       return false;
     }
     if ($mime === 'image/webp') {
       if (!function_exists('imagewebp')) return false;
-      for ($quality = 80; $quality >= 40; $quality -= 10) {
+      for ($quality = 80; $quality >= 20; $quality -= 10) {
         if (!imagewebp($image, $dest, $quality)) continue;
         if (filesize($dest) <= $maxBytes) return true;
+        @unlink($dest);
       }
       return false;
     }
@@ -653,6 +697,7 @@ final class AgentLeadsController extends BaseController {
       for ($level = 6; $level <= 9; $level++) {
         if (!imagepng($image, $dest, $level)) continue;
         if (filesize($dest) <= $maxBytes) return true;
+        @unlink($dest);
       }
       return false;
     }
