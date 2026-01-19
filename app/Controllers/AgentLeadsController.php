@@ -420,14 +420,24 @@ final class AgentLeadsController extends BaseController {
 
       // Upload validations
       $callShot = $_FILES['call_screenshot'] ?? null;
-      if (!$callShot || ($callShot['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-        $errors[] = 'Call screenshot is required.';
+      $callShotError = $callShot['error'] ?? UPLOAD_ERR_NO_FILE;
+      if (!$callShot || $callShotError !== UPLOAD_ERR_OK) {
+        if (in_array($callShotError, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
+          $errors[] = 'Call screenshot exceeds the upload size limit.';
+        } else {
+          $errors[] = 'Call screenshot is required.';
+        }
       }
       $whatsShot = null;
       if ($whatsapp) {
         $whatsShot = $_FILES['whatsapp_screenshot'] ?? null;
-        if (!$whatsShot || ($whatsShot['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-          $errors[] = 'WhatsApp screenshot is required when WhatsApp contacted.';
+        $whatsShotError = $whatsShot['error'] ?? UPLOAD_ERR_NO_FILE;
+        if (!$whatsShot || $whatsShotError !== UPLOAD_ERR_OK) {
+          if (in_array($whatsShotError, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
+            $errors[] = 'WhatsApp screenshot exceeds the upload size limit.';
+          } else {
+            $errors[] = 'WhatsApp screenshot is required when WhatsApp contacted.';
+          }
         }
       }
 
@@ -436,8 +446,27 @@ final class AgentLeadsController extends BaseController {
         redirect('agent/lead?id=' . $leadId);
       }
 
-      $callPath = $this->saveUpload($leadId, $callShot);
-      $whatsPath = $whatsapp ? $this->saveUpload($leadId, $whatsShot) : null;
+      $callPath = null;
+      $whatsPath = null;
+      $uploadErrors = [];
+      try {
+        $callPath = $this->saveUpload($leadId, $callShot);
+      } catch (\RuntimeException $e) {
+        $uploadErrors[] = $e->getMessage();
+      }
+      if ($whatsapp) {
+        try {
+          $whatsPath = $this->saveUpload($leadId, $whatsShot);
+        } catch (\RuntimeException $e) {
+          $uploadErrors[] = $e->getMessage();
+        }
+      }
+      if ($uploadErrors) {
+        if ($callPath) $this->deleteUpload($callPath);
+        if ($whatsPath) $this->deleteUpload($whatsPath);
+        $_SESSION['_form_errors'] = $uploadErrors;
+        redirect('agent/lead?id=' . $leadId);
+      }
 
       $id = Followup::create([
         'lead_id' => $leadId,
@@ -529,11 +558,11 @@ final class AgentLeadsController extends BaseController {
   // Quick remark flow removed in favor of the main follow-up form.
 
   private function saveUpload(int $leadId, array $file): string {
-    $max = 3 * 1024 * 1024;
-    if (($file['size'] ?? 0) > $max) {
-      throw new \RuntimeException('File too large (max 3MB).');
-    }
+    $maxBytes = 3 * 1024 * 1024;
     $tmp = $file['tmp_name'] ?? '';
+    if ($tmp === '' || !is_file($tmp)) {
+      throw new \RuntimeException('Upload failed.');
+    }
     $finfo = new \finfo(FILEINFO_MIME_TYPE);
     $mime = $finfo->file($tmp);
     $allowed = [
@@ -544,15 +573,96 @@ final class AgentLeadsController extends BaseController {
     if (!isset($allowed[$mime])) {
       throw new \RuntimeException('Invalid file type. Only jpg, png, webp allowed.');
     }
-    $ext = $allowed[$mime];
     $dir = __DIR__ . '/../../uploads/' . $leadId;
     if (!is_dir($dir)) mkdir($dir, 0755, true);
 
-    $name = bin2hex(random_bytes(16)) . '.' . $ext;
+    $size = (int)($file['size'] ?? 0);
+    $baseName = bin2hex(random_bytes(16));
+    if ($size > $maxBytes) {
+      $compressed = $this->compressImage($tmp, $dir, $baseName, $mime, $maxBytes);
+      if ($compressed === null) {
+        throw new \RuntimeException('Image exceeds 3MB and could not be compressed. Please upload a smaller file.');
+      }
+      return 'uploads/' . $leadId . '/' . $compressed;
+    }
+
+    $ext = $allowed[$mime];
+    $name = $baseName . '.' . $ext;
     $dest = $dir . '/' . $name;
     if (!move_uploaded_file($tmp, $dest)) {
       throw new \RuntimeException('Upload failed.');
     }
     return 'uploads/' . $leadId . '/' . $name;
+  }
+
+  private function compressImage(string $srcPath, string $dir, string $baseName, string $mime, int $maxBytes): ?string {
+    if (!function_exists('imagecreatefromstring')) {
+      return null;
+    }
+    $data = @file_get_contents($srcPath);
+    if ($data === false) {
+      return null;
+    }
+    $image = @imagecreatefromstring($data);
+    if (!$image) {
+      return null;
+    }
+
+    $targets = [];
+    if (in_array($mime, ['image/jpeg','image/png','image/webp'], true)) {
+      $targets[] = $mime;
+    }
+    if ($mime !== 'image/jpeg') {
+      $targets[] = 'image/jpeg';
+    }
+
+    $savedName = null;
+    foreach ($targets as $targetMime) {
+      $ext = $targetMime === 'image/png' ? 'png' : ($targetMime === 'image/webp' ? 'webp' : 'jpg');
+      $dest = $dir . '/' . $baseName . '.' . $ext;
+      if ($this->writeCompressedImage($image, $targetMime, $dest, $maxBytes)) {
+        $savedName = $baseName . '.' . $ext;
+        break;
+      }
+    }
+
+    imagedestroy($image);
+    return $savedName;
+  }
+
+  private function writeCompressedImage($image, string $mime, string $dest, int $maxBytes): bool {
+    if ($mime === 'image/jpeg') {
+      if (!function_exists('imagejpeg')) return false;
+      for ($quality = 85; $quality >= 40; $quality -= 10) {
+        if (!imagejpeg($image, $dest, $quality)) continue;
+        if (filesize($dest) <= $maxBytes) return true;
+      }
+      return false;
+    }
+    if ($mime === 'image/webp') {
+      if (!function_exists('imagewebp')) return false;
+      for ($quality = 80; $quality >= 40; $quality -= 10) {
+        if (!imagewebp($image, $dest, $quality)) continue;
+        if (filesize($dest) <= $maxBytes) return true;
+      }
+      return false;
+    }
+    if ($mime === 'image/png') {
+      if (!function_exists('imagepng')) return false;
+      imagesavealpha($image, true);
+      for ($level = 6; $level <= 9; $level++) {
+        if (!imagepng($image, $dest, $level)) continue;
+        if (filesize($dest) <= $maxBytes) return true;
+      }
+      return false;
+    }
+    return false;
+  }
+
+  private function deleteUpload(string $relativePath): void {
+    $path = __DIR__ . '/../../' . ltrim($relativePath, '/');
+    if (is_file($path)) {
+      @unlink($path);
+    }
   }
 }
